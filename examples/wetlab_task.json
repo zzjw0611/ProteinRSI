@@ -1,0 +1,17 @@
+{
+  "name": "Replace with your reviewed protein experiment",
+  "kind": "variant_design",
+  "reference_sequence": "ACDEFGHIKLMNPQRSTVWY",
+  "mutable_positions": [2, 5],
+  "max_mutations": 2,
+  "candidates": [],
+  "metric": "relative_fluorescence",
+  "unit": "relative_to_same_batch_control",
+  "direction": "maximize",
+  "feedback_source": "wetlab",
+  "assay_protocol": "REPLACE_WITH_APPROVED_ASSAY_VERSION",
+  "batch_size": 12,
+  "controls_per_batch": 2,
+  "max_rounds": 5,
+  "budget": {"experimental_wells": 60, "llm_calls": 100, "tool_calls": 100}
+}

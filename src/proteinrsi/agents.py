@@ -1,0 +1,211 @@
+# SPDX-License-Identifier: MIT
+"""Four logical agents. Deterministic mode is an explicit non-LLM baseline."""
+from __future__ import annotations
+
+from importlib.resources import files
+from typing import Any
+
+from pydantic import Field
+
+from proteinrsi.contracts import Candidate, Model, Patch, TaskKind, TaskView, Workflow
+from proteinrsi.llm import JSONLLM
+from proteinrsi.storage import Store
+from proteinrsi.tasks import apply_mutations, rank_candidates, validate_candidate
+from proteinrsi.tools import ToolCall, ToolGateway
+
+
+class Plan(Model):
+    rationale: str
+    tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
+
+
+class Design(Model):
+    candidates: list[Candidate] = Field(default_factory=list, max_length=384)
+    edits: list[list[dict[str, Any]]] = Field(default_factory=list, max_length=384)
+    tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
+
+
+class Analysis(Model):
+    ranking: list[str]
+    summary: str
+
+
+class FeedbackAnalysis(Model):
+    summary: str
+    alternatives: list[str] = Field(default_factory=list)
+
+
+class MetaResponse(Model):
+    reason: str
+    patch: Patch | None = None
+
+
+def skill_text(names: list[str]) -> str:
+    texts = []
+    for name in names:
+        if not name or any(c not in "abcdefghijklmnopqrstuvwxyz-" for c in name):
+            raise ValueError("Invalid skill name")
+        path = files("proteinrsi").joinpath("skills", name, "SKILL.md")
+        if not path.is_file():
+            raise ValueError(f"Unknown skill: {name}")
+        texts.append(path.read_text(encoding="utf-8"))
+    return "\n\n".join(texts)
+
+
+class PrincipalAgent:
+    def __init__(self, llm: JSONLLM | None = None):
+        self.llm = llm
+
+    def plan(self, view: TaskView, catalog: list[dict]) -> Plan:
+        if self.llm is None:
+            return Plan(rationale="Deterministic baseline: use revealed measurements only.")
+        instructions = "You are A, the principal investigator. Do not invent measurements. " + view.workflow.principal_prompt
+        return Plan.model_validate(self.llm.complete("A", instructions,
+                    {"view": view.model_dump(mode="json"), "available_tools": catalog}, Plan.model_json_schema()))
+
+
+    def finalize(self, view: TaskView, ranked: list[Candidate]) -> list[Candidate]:
+        if self.llm is None:
+            return ranked
+        result = Analysis.model_validate(self.llm.complete("A-selection",
+            "You are A. Review the analyst ranking and prioritize candidates for the approved batch. "
+            "Return all supplied sequences exactly once; execution and budget remain controlled by the runtime. "
+            + view.workflow.principal_prompt,
+            {"view": view.model_dump(mode="json"), "ranked_candidates": [c.model_dump() for c in ranked]},
+            Analysis.model_json_schema()))
+        if len(result.ranking) != len(ranked) or set(result.ranking) != {c.sequence for c in ranked}:
+            raise ValueError("Principal selection must be a permutation of the supplied candidates")
+        by_seq = {c.sequence: c for c in ranked}
+        return [by_seq[s] for s in result.ranking]
+
+
+class DesignerAgent:
+    def __init__(self, llm: JSONLLM | None = None):
+        self.llm = llm
+
+    def propose(self, view: TaskView, plan: Plan, tool_results: list[dict], catalog: list[dict]) -> Design:
+        if self.llm is None:
+            if view.task.kind in (TaskKind.BINDER, TaskKind.AFFINITY):
+                raise ValueError("Binder/affinity tasks require an actual configured LLM/tool route")
+            if not view.task.candidates:
+                raise ValueError("Deterministic mode needs an explicit candidate library")
+            return Design(candidates=[Candidate(sequence=s, source="library") for s in view.task.candidates])
+        instructions = ("You are B, the protein designer. You may return complete sequences, "
+                        "edits (position/from/to), or allowlisted tool calls. Never modify the target. "
+                        "An affinity task must retain its inputs and distinguish proxy from calibrated predictions. "
+                        + view.workflow.designer_prompt + "\n" + skill_text(view.workflow.skill_names))
+        return Design.model_validate(self.llm.complete("B", instructions,
+            {"view": view.model_dump(mode="json"), "plan": plan.model_dump(),
+             "tool_results": tool_results, "available_tools": catalog}, Design.model_json_schema()))
+
+
+class AnalystAgent:
+    def __init__(self, llm: JSONLLM | None = None):
+        self.llm = llm
+
+    def rank(self, view: TaskView, candidates: list[Candidate], tool_results: list[dict]) -> list[Candidate]:
+        if view.task.kind in (TaskKind.VARIANT, TaskKind.RANKING):
+            ranked = rank_candidates(view.task, [c.sequence for c in candidates], view.observations,
+                                     view.workflow, view.task.seed + view.round_index)
+        else:
+            ranked = candidates
+        if self.llm is None:
+            return ranked
+        response = Analysis.model_validate(self.llm.complete("C", "You are C, the analyst. "
+            "Return each supplied sequence exactly once in the ranking. " + view.workflow.analyst_prompt,
+            {"view": view.model_dump(mode="json"), "candidates": [c.model_dump() for c in ranked],
+             "tool_results": tool_results}, Analysis.model_json_schema()))
+        if len(response.ranking) != len(ranked) or set(response.ranking) != {c.sequence for c in ranked}:
+            raise ValueError("Analyst ranking must be a permutation of candidate sequences")
+        by_seq = {c.sequence: c for c in ranked}
+        return [by_seq[s] for s in response.ranking]
+
+
+    def feedback(self, view: TaskView) -> FeedbackAnalysis:
+        if self.llm is None:
+            return FeedbackAnalysis(summary="Deterministic feedback: inspect QC, prediction errors and trial records.")
+        return FeedbackAnalysis.model_validate(self.llm.complete("C-feedback",
+            "Interpret newly ingested experimental evidence, without modifying observations. "
+            + view.workflow.analyst_prompt + "\n" + skill_text(["experimental-feedback"]),
+            {"view": view.model_dump(mode="json")}, FeedbackAnalysis.model_json_schema()))
+
+
+class Team:
+    def __init__(self, store: Store, llm: JSONLLM | None = None, tools: ToolGateway | None = None):
+        self.store, self.llm = store, llm
+        self.tools = tools or ToolGateway(store)
+        self.principal = PrincipalAgent(llm)
+        self.designer = DesignerAgent(llm)
+        self.analyst = AnalystAgent(llm)
+
+    def run(self, view: TaskView) -> list[Candidate]:
+        from proteinrsi.contracts import digest
+        key = digest({"view": view.model_dump(mode="json"), "backend": "llm" if self.llm else "deterministic"})
+        previous = self.store.get("team_outputs", key)
+        if previous is not None:
+            return [Candidate.model_validate(c) for c in previous]
+        catalog = self.tools.catalog(view.task, view.workflow.tool_names)
+        plan = self.principal.plan(view, catalog)
+        results = [self.tools.call(c, view.task, allowed=view.workflow.tool_names, context_key=key)
+                   for c in plan.tool_calls]
+        design = self.designer.propose(view, plan, results, catalog)
+        results += [self.tools.call(c, view.task, allowed=view.workflow.tool_names, context_key=key)
+                    for c in design.tool_calls]
+        candidates = list(design.candidates)
+        candidates += [Candidate(sequence=apply_mutations(view.task.reference_sequence, edits),
+                                 source="llm_edits") for edits in design.edits]
+        for result in results:
+            # The operator's binding must normalize tool output to this documented contract.
+            for item in result.get("candidates", []):
+                candidates.append(Candidate.model_validate(item))
+        deduplicated = {}
+        for candidate in candidates:
+            validate_candidate(view.task, candidate)
+            deduplicated.setdefault(candidate.sequence, candidate)
+        if not deduplicated:
+            raise ValueError("Designer/tools returned no valid candidates")
+        ranked = self.analyst.rank(view, list(deduplicated.values()), results)
+        ranked = self.principal.finalize(view, ranked)
+        self.store.put("team_outputs", key, [c.model_dump() for c in ranked], immutable=True)
+        self.store.event("team_completed", {"round": view.round_index, "workflow": view.workflow.version,
+            "meta": view.meta.version, "evidence": view.evidence_version,
+            "backend": "llm" if self.llm else "deterministic", "plan": plan.model_dump(),
+            "candidate_count": len(ranked), "trace_id": key})
+        return ranked
+
+
+class MetaAgent:
+    def __init__(self, llm: JSONLLM | None = None):
+        self.llm = llm
+
+    def propose(self, view: TaskView, last_patch_round: int = -100) -> MetaResponse:
+        policy = view.meta
+        valid = [o for o in view.observations if o.qc == "valid"]
+        if (not policy.enabled or len(valid) < policy.min_observations
+                or view.remaining_wells < policy.min_remaining_wells
+                or view.round_index - last_patch_round < policy.cooldown_rounds):
+            return MetaResponse(reason="Insufficient evidence, cooldown or remaining experimental budget")
+        if self.llm:
+            instructions = ("You are M, the method improver. Propose one bounded workflow or meta-policy patch, "
+                "or abstain. Do not change tasks, metrics, budgets, permissions, labels, or evaluation gates. "
+                "A workflow patch changes research methods. A meta patch changes how YOU generate future changes. "
+                + policy.prompt)
+            return MetaResponse.model_validate(self.llm.complete("M", instructions,
+                {"view": view.model_dump(mode="json"), "workflow_schema": Workflow.model_json_schema(),
+                 "meta_schema": type(policy).model_json_schema()}, MetaResponse.model_json_schema()))
+        # Explicit scripted baseline: useful for mechanism testing, not an LLM/scientific claim.
+        recent = view.history[-1] if view.history else {}
+        if policy.mode == "diagnostic" and recent.get("qc_failure_fraction", 0) > 0.2:
+            return MetaResponse(reason="Investigate measurement quality before editing design strategy")
+        if view.workflow.strategy == "additive":
+            return MetaResponse(reason="Test whether a joint-effects surrogate helps",
+                patch=Patch(target="workflow", base_version=view.workflow.version,
+                    changes={"strategy": "pairwise"}, task_kind=view.task.kind,
+                    hypothesis="A pairwise surrogate may rank combinations better than additive effects.",
+                    evidence_refs=[view.evidence_version], author_backend="deterministic"))
+        if policy.mode == "plateau":
+            return MetaResponse(reason="Queue a successor improver for separate evaluation",
+                patch=Patch(target="meta", base_version=policy.version, changes={"mode": "diagnostic"},
+                    task_kind=view.task.kind, hypothesis="Diagnose measurement failures before editing methods.",
+                    evidence_refs=[view.evidence_version], author_backend="deterministic"))
+        return MetaResponse(reason="No supported additional bounded change")

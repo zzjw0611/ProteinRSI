@@ -1,0 +1,10 @@
+{
+  "strategy": "additive",
+  "exploration": 0.2,
+  "ridge_alpha": 1.0,
+  "designer_prompt": "Propose variants under the task constraints; cite visible evidence IDs.",
+  "analyst_prompt": "Separate measured outcomes, model predictions, and uncalibrated proxy scores.",
+  "principal_prompt": "Prioritize candidates within the shared experimental budget.",
+  "tool_names": [],
+  "skill_names": ["direct-sequence-design", "fitness-modeling"]
+}

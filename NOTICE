@@ -1,0 +1,7 @@
+ProteinRSI
+Copyright (c) 2026 ProteinRSI contributors
+
+Original source and documentation are licensed under MIT; see LICENSE.
+Optional dependencies and separately deployed scientific tools retain their own licenses.
+No third-party source code, experimental dataset or model weights are vendored.
+See THIRD_PARTY.md for actual API reuse and architectural references.
