@@ -29,3 +29,18 @@ The source dependency ranges are compatibility constraints, not a complete froze
 transitive lockfile. For a published experiment, capture the exact installed packages,
 OS/container image, backend code and model-weight versions, seeds, dataset hashes,
 assay versions, resource usage and independent evaluation protocol.
+
+## Verified GitHub Actions run
+
+Run [37110153069](https://github.com/zzjw0611/ProteinRSI/actions/runs/37110153069)
+completed successfully for implementation commit
+`4be676de20c277018d943f7bb5f86ec6de5a2ecd` on both Python 3.11 and 3.12.
+Both jobs passed dependency installation, Ruff, pytest, the three-round synthetic
+demo, and source/wheel builds. The Python 3.12 log reports **58 passed, no skips,
+86% statement coverage**. This includes actual LangGraph persisted interrupt/resume,
+GEPA adapter objects and MCP v1 import compatibility; it does not exercise paid
+model endpoints or remote protein-engine inference.
+
+The Python 3.12 job resolved LangGraph 1.2.12, SQLite checkpointer 3.1.1, GEPA 0.1.4,
+MCP 1.30.0, Pydantic 2.13.5 and NumPy 2.5.3. These are an observed compatibility
+snapshot, not a claim about every release admitted by the dependency ranges.
