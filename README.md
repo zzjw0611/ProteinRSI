@@ -28,9 +28,13 @@ proteinrsi step --campaign runs/esmc600m --agent llm
 分析 B 最终提出的候选，不依赖 LLM 偶然想起调用工具。实测不足时只提供先验；
 实测增加后重拟合任务预测器，ESMC 权重固定。外环与 RSI 的权限、验收机制保留。
 
-新 CLI `init` 默认启用 ESMC；`demo` 和既有 v0.1 任务保持离线旧行为，不偷偷
-改变已运行实验。新的纯基线用 `init --protein-model none`。旧任务继续使用原
+新 CLI `init` 默认启用 ESMC；`demo` 仍为离线演示，既有 v0.1 任务保留原后端，
+不偷偷改变已运行实验。新的纯基线用 `init --protein-model none`。旧任务继续使用原
 配置；请新建 ESMC 任务比较，不直接改数据库或重解释已提交批次。
+
+**已验证**：[ESMC CI 运行](https://github.com/zzjw0611/ProteinRSI/actions/runs/37112441460)
+通过核心双 Python 版本检查、23 项 ESMC 专项测试和实际 600M 权重的 CPU 推理测试。
+实际权重 SHA、环境及未验证范围见 [TESTING](docs/TESTING.md)。这不是湿实验或功能提升证明。
 
 ## 系统里有什么？
 

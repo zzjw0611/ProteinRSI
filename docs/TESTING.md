@@ -60,8 +60,42 @@ pytest -q
 PROTEINRSI_RUN_ESMC600M=1 pytest -q -s -m real_esmc
 ```
 
-The second command downloads actual weights and performs CPU inference; it does
+The final command downloads actual weights and performs CPU inference; it does
 not perform a wet experiment or demonstrate scientific improvement. GPU execution,
 real wet-lab experiments, paid LLM endpoints and protein benchmark gains still
-require independent deployment testing. Concrete CI results will be linked after
-the actual runs finish, not inferred from a workflow definition.
+require independent deployment testing. The verified execution below separates
+software/CPU inference validation from scientific performance claims.
+
+
+### Verified ESMC-600M execution (2026-10-03)
+
+[Actions run 37112441460](https://github.com/zzjw0611/ProteinRSI/actions/runs/37112441460)
+passed all four jobs for implementation commit
+`9ae4364f5644c62c491dd7463eae595ba6a8d60a`:
+
+| Execution | Observed result |
+|---|---|
+| Local core suite | 77 passed, 5 explicitly skipped (optional dependencies/real weights) |
+| Python 3.11 and 3.12 core CI | Both passed dependency installation, Ruff, pytest, synthetic demo and package builds |
+| Native ESMC adapter tests | 23 passed, 1 pretrained test deselected |
+| Official pretrained ESMC-600M CPU test | 1 passed, 23 other tests deselected; actual weight download and inference |
+
+The pretrained job loaded all 476 checkpoint tensors and successfully returned a
+`(1, 1152)` residue-mean embedding, a finite substitution log-odds score and a zero
+WT score. No fake backend or randomly initialized checkpoint was used in that job.
+The separate native-library test uses random *small* weights only for API checks.
+
+Verified runtime: Python 3.12.14, PyTorch 2.14.1+cpu, Transformers 5.16.1,
+Hugging Face Hub 1.33.0, float32, CPU. Exact model snapshot:
+
+```text
+biohub/ESMC-600M-hf
+0fb34e7e5fe1f85d0abaa3d35e2671107c0b458c
+```
+
+Set this SHA as `revision` in an ESMC configuration to reproduce the tested weights.
+The regular default resolves `main` once, then records and reuses its immutable
+snapshot. Test success establishes this model-loading/embedding/scoring path, not
+GPU support on arbitrary hardware, biological accuracy, new wet-lab results or
+scientific improvement from RSI. Multi-round/RSI control tests use explicit fixture
+backends and should not be described as real wet-lab validation.
