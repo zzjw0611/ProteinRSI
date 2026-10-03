@@ -24,7 +24,7 @@ TaskView includes only visible measurements. The full oracle table and its path 
 
 `Store` keeps campaign state, immutable batches/measurements, experiment trials, version archives, model/tool results, and audit events in SQLite. File locks serialize campaign writers; transactions make resource reservations atomic. Identical calls/imports are idempotent. An uncertain external call is not blindly repeated.
 
-The three enforced resource limits are **experimental wells, LLM calls and tool calls**. Controls, replicates and failed submitted assays consume wells. API tokens are recorded when provided but are not yet a separately enforced dollar/token budget. CPU/GPU seconds and money require a deployment-specific scheduler/accounting adapter.
+Base resource limits are **experimental wells, LLM calls and tool calls**. ESMC campaigns additionally enforce **plm_inputs** for uncached embedded or masked sequence examples. Controls, replicates and failed submitted assays consume wells. API tokens are recorded when provided but are not yet a separately enforced dollar/token budget. CPU/GPU seconds and money require a deployment-specific scheduler/accounting adapter.
 
 A cancelled unapproved batch releases its reservation. An approved batch is considered submitted and cannot be refunded by rolling back W/M. Previously acquired measurements remain available after any strategy rollback.
 
@@ -43,3 +43,17 @@ A queued meta patch is tested separately. Evaluator-owned cases supply a common 
 This isolates one-step improvement ability. A complete campaign additionally exercises accepted M successors over subsequent generations. These are distinct evaluation settings. A mechanism test with artificial data does not establish persistent scientific RSI.
 
 The local trusted evaluator can read labels. This deployment is not secure against malicious Python sharing its OS permissions. See SECURITY.md before enabling outside code or scientific services.
+
+## Native protein backbone in v0.2
+
+Operator-only `configuration/protein_model` selects ESMC-600M. The exact resolved
+HF snapshot is frozen in `protein_backend/snapshot`. Neither is in a Workflow or
+MetaPolicy patch. `Team` loads the backend lazily, registers its local tools and
+includes its identity (plus conversational provider/model) in team result caches.
+C analyzes generated candidates using priors and an observed-data-only task head.
+The PLM embedding cache never substitutes for new experimental measurements.
+
+The experiment controller and graph continue using the same operations. All
+offspring-evaluation stores receive identical protein configuration/checkpoint
+and model-input limits. Existing campaigns without a model configuration remain
+on the old baseline; initialization is not an in-place experiment migration.

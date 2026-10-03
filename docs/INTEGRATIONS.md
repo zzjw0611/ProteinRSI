@@ -12,6 +12,15 @@
 
 Versions installed by extras must be tested in your environment. The MCP adapter intentionally targets **SDK v1 (`mcp<2`)**, not the changing v2 client API. Virtual Lab has its own model/provider setup; its optional meeting is a supplemental review, not a second campaign controller.
 
+## Native ESMC-600M (default for new CLI campaigns)
+
+Use `pip install -e '.[esmc]'`, initialize a task, then run `esmc-check --download`.
+`protein/esmc.py` uses native Transformers ESMC-600M; `protein/tools.py` registers
+three real local tools; `protein/analysis.py` applies embeddings and revealed-label
+fitting to post-design candidates. No manual MCP normalization is needed for these
+built-ins. See [ESMC600M.md](ESMC600M.md). The generic MCP path below remains for
+other independent protein engines; do not configure a second ESMC backend by accident.
+
 ## LLM
 
 Set `PROTEINRSI_MODEL`, `PROTEINRSI_BASE_URL` (including `/v1`), and `PROTEINRSI_API_KEY`, then pass `--agent llm`. The client uses HTTP Chat Completions-compatible JSON mode and validates outputs independently. It never uses a hardcoded current model name. If your provider does not support the endpoint/response format, supply an adapter rather than accepting a silent fallback.

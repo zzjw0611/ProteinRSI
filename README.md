@@ -4,7 +4,33 @@
 
 [English](README.en.md) · [架构](docs/ARCHITECTURE.md) · [接入工具](docs/INTEGRATIONS.md) · [评测](docs/EVALUATION.md) · [许可与复用](THIRD_PARTY.md)
 
-> **v0.1.0 是可运行的研究实现，不是已验证的蛋白设计产品。** 默认 demo 使用本仓库生成的人工数值和确定性角色，不调用真实 LLM、不运行蛋白模型、不产生湿实验结果。真实 LLM、MCP、LangGraph 和 GEPA 通过可选适配器接入；模型、数据、许可证和实验执行条件需另行提供。
+> **v0.2.0 是可运行的研究实现，不是已验证的蛋白设计产品。** 默认 demo 使用本仓库生成的人工数值和确定性角色，不调用真实 LLM、不运行蛋白模型、不产生湿实验结果。新增真实本地 ESMC-600M 后端，供新任务默认使用；其权重需要明确下载。真实对话 LLM、其他蛋白工具、数据和实验条件需另行配置。
+
+## v0.2：默认蛋白后端改为 ESMC-600M
+
+**这是可调用的模型接入，不是把 ESM3 字符串改名。** 使用官方原生 Transformers
+权重 `biohub/ESMC-600M-hf`，支持单／多位点突变先验打分、单点候选建议、序列
+embedding，以及已揭示实测数据上的轻量 Ridge 预测器。A/B/C/M 的对话 LLM 不变。
+
+```bash
+pip install -e '.[esmc]'
+proteinrsi init --task examples/wetlab_task.json --out runs/esmc600m --device cuda
+proteinrsi esmc-check --campaign runs/esmc600m --download
+# 配置下文 PROTEINRSI_* 环境变量后
+proteinrsi step --campaign runs/esmc600m --agent llm
+```
+
+首次检查下载真实权重并做短序列推理，之后只读本地缓存。没有 GPU 时省略
+`--device cuda` 使用 CPU。配置见 `examples/esmc600m.json`，完整说明及无需 LLM
+的三个蛋白工具命令见 [ESMC600M](docs/ESMC600M.md)。不需要自己编写 MCP 包装器。
+
+**ESMC 是序列表征／掩码模型，不是结构生成器或亲和力真值模型。** C 会自动
+分析 B 最终提出的候选，不依赖 LLM 偶然想起调用工具。实测不足时只提供先验；
+实测增加后重拟合任务预测器，ESMC 权重固定。外环与 RSI 的权限、验收机制保留。
+
+新 CLI `init` 默认启用 ESMC；`demo` 和既有 v0.1 任务保持离线旧行为，不偷偷
+改变已运行实验。新的纯基线用 `init --protein-model none`。旧任务继续使用原
+配置；请新建 ESMC 任务比较，不直接改数据库或重解释已提交批次。
 
 ## 系统里有什么？
 
@@ -68,10 +94,11 @@ for event in store.events():
 
 ## 实际实现状态
 
-| 能力 | v0.1 状态与边界 |
+| 能力 | v0.2 状态与边界 |
 |---|---|
 | 多轮候选—反馈循环 | 已实现；任务级 SQLite 持久化、断点恢复、批次审批与幂等导入 |
 | 直接序列／突变设计 | 已实现真实 HTTP LLM 路径；本地测试使用模拟传输，不提供模型密钥 |
+| ESMC-600M | 本地原生推理、固定权重快照、打分／建议／特征、实测反馈拟合、缓存及 plm_inputs 预算 |
 | 工具调用 | 已实现 Schema、白名单、目标保护、预算、结果缓存和 MCP v1 HTTP 适配；需配置实际服务与输出映射 |
 | 工作流改进 | 已实现补丁暂存、等名额双臂实验、独立验收、版本更新和经验记录 |
 | 受限 RSI | M 可提出自身策略／提示的后继，独立比较后继工作流质量，验收后加载新 M |
@@ -102,7 +129,7 @@ python scripts/prepare_replay.py \
   --sequence-column full_sequence --value-column fitness \
   --reference ACDE --positions 2 --out runs/replay-input
 
-proteinrsi init --task runs/replay-input/task.json --out runs/replay
+proteinrsi init --task runs/replay-input/task.json --out runs/replay --protein-model none
 proteinrsi replay --campaign runs/replay --dataset runs/replay-input/measurements.csv
 ```
 
@@ -114,7 +141,7 @@ proteinrsi replay --campaign runs/replay --dataset runs/replay-input/measurement
 
 ## 接入 LLM 与蛋白工具
 
-默认无模型、无密钥、无隐式云服务。开启真实 LLM：
+不附带权重和密钥，不隐式调用云端推理。ESMC 与对话 LLM 分开配置。开启真实对话 LLM：
 
 ```bash
 export PROTEINRSI_MODEL='your-model-id'
@@ -138,7 +165,8 @@ proteinrsi step --campaign runs/replay --agent llm --tools /path/to/bindings.jso
 修改 `examples/wetlab_task.json`，填写自己的母本、允许位点、实验目标、单位、已批准 assay 版本和预算。
 
 ```bash
-proteinrsi init --task examples/wetlab_task.json --out runs/wet
+proteinrsi init --task examples/wetlab_task.json --out runs/wet --device cuda
+proteinrsi esmc-check --campaign runs/wet --download
 proteinrsi step --campaign runs/wet --agent llm
 # 输出 pending_batch；在运行目录查看批次和 results.template.csv
 proteinrsi approve --campaign runs/wet --batch YOUR_BATCH_ID --operator YOUR_NAME
@@ -148,7 +176,7 @@ proteinrsi import-results --campaign runs/wet --file /path/to/results.csv --agen
 proteinrsi step --campaign runs/wet --agent llm
 ```
 
-未批准批次不能导入；模板空白行不算测量；一个批次必须提供每个样本的最终状态（`valid`、`failed` 或 `inconclusive`）。可在导入前逐步收集结果，但 v0.1 不支持部分批次自动推进。重复导入完全相同数据是幂等操作，冲突数据会被拒绝。
+未批准批次不能导入；模板空白行不算测量；一个批次必须提供每个样本的最终状态（`valid`、`failed` 或 `inconclusive`）。可在导入前逐步收集结果，但当前不支持部分批次自动推进。重复导入完全相同数据是幂等操作，冲突数据会被拒绝。
 
 取消尚未批准的批次：
 

@@ -56,3 +56,32 @@ Avoid describing the project as a source-level merger of these repositories. Act
 - SSMuLA: https://github.com/fhalab/SSMuLA
 
 License identifiers are informational provenance for this implementation, not legal advice or a guarantee covering future releases.
+
+## ESMC-600M backend (v0.2, reviewed 2026-10-03)
+
+The implemented backend imports **native Hugging Face Transformers ESMC code**
+(Apache-2.0), PyTorch (BSD-style; see its LICENSE), Hugging Face Hub (Apache-2.0)
+and safetensors (Apache-2.0). It does not copy upstream source or require the
+separate `esm` / `fair-esm` packages. These remain independently licensed runtime
+dependencies, not ProteinRSI MIT source.
+
+Default model: `biohub/ESMC-600M-hf`, the native Transformers checkpoint format.
+The model card reviewed on this date exposes both `mit` and `other` metadata and
+links Biohub use conditions. Do not silently collapse that metadata into a grant
+of unrestricted rights: review and retain the exact snapshot's model card,
+license/notices and applicable terms. The backend pins the resolved commit and
+caches available README/LICENSE assets; it does not redistribute weights. Historical
+`esmc-600m-2024-12` releases had different terms and are not automatically relicensed
+by this project's MIT license. Paid provider terms remain separate.
+
+- Model/card: https://huggingface.co/biohub/ESMC-600M-hf
+- Native implementation: https://huggingface.co/docs/transformers/model_doc/esmc
+- Transformers license: https://github.com/huggingface/transformers/blob/v5.16.1/LICENSE
+- PyTorch license: https://github.com/pytorch/pytorch/blob/main/LICENSE
+- Hub license: https://github.com/huggingface/huggingface_hub/blob/main/LICENSE
+- Safetensors license: https://github.com/huggingface/safetensors/blob/main/LICENSE
+- Biohub notices: https://github.com/Biohub/esm/blob/main/THIRD_PARTY_NOTICE.md
+
+The native backend is implemented by API calls, not by vendoring Biohub or
+Transformers code. Test fake backends and synthetic sequences are original test
+fixtures; they must not be presented as pretrained ESMC or empirical biology.

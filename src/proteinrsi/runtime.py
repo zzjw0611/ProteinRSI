@@ -26,14 +26,22 @@ class Campaign:
 
     @classmethod
     def initialize(cls, directory: str, task: TaskSpec, *, workflow: Workflow | None = None,
-                   meta: MetaPolicy | None = None, gate: GatePolicy | None = None) -> Campaign:
+                   meta: MetaPolicy | None = None, gate: GatePolicy | None = None,
+                   protein_config=None) -> Campaign:
         validate_task(task)
         store = Store(directory)
         with store.lock():
             if store.get("campaign", "state") is not None:
                 raise Conflict("Campaign already exists; use resume/status, not init")
             workflow, meta, gate = workflow or Workflow(), meta or MetaPolicy(), gate or GatePolicy()
-            store.configure_budget(task.budget.model_dump())
+            resources = task.budget.model_dump()
+            if protein_config is not None:
+                from proteinrsi.protein.esmc import ESMCConfig
+                protein_config = ESMCConfig.model_validate(protein_config)
+                resources["plm_inputs"] = protein_config.max_model_inputs
+            store.configure_budget(resources)
+            if protein_config is not None:
+                store.put("configuration", "protein_model", protein_config.model_dump(), immutable=True)
             state = {"campaign_id": str(uuid.uuid4()), "task": task.model_dump(mode="json"),
                 "workflow": workflow.model_dump(), "meta": meta.model_dump(), "gate": gate.model_dump(),
                 "round_index": 0, "status": "ready", "observations": [], "history": [],
@@ -302,7 +310,9 @@ class Campaign:
         values = [o["value"] for o in state["observations"] if o["qc"] == "valid"]
         best = (max(values) if task.direction == "maximize" else min(values)) if values else None
         return {"campaign_id": state["campaign_id"], "status": state["status"],
-                "completed_rounds": state["round_index"], "evidence_source": task.feedback_source,
+                "completed_rounds": state["round_index"],
+                "protein_model": self.store.get("configuration", "protein_model"),
+                "protein_snapshot": self.store.get("protein_backend", "snapshot"), "evidence_source": task.feedback_source,
                 "workflow_version": Workflow.model_validate(state["workflow"]).version,
                 "meta_version": MetaPolicy.model_validate(state["meta"]).version,
                 "best_measured_value": best, "metric": task.metric, "unit": task.unit,

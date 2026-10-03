@@ -33,3 +33,23 @@ RSI is constrained to typed workflow/meta-policy configurations and prompts. Arb
 Original code and documentation are [MIT](LICENSE). LangGraph, GEPA, the official MCP SDK and Virtual Lab are reused through optional dependencies/APIs; protein-tool servers remain independent deployments. No upstream source, model weights or experimental dataset is vendored. HyperAgents, ProteinSwarm and ALDE are architectural references, not disguised copied implementations. Consult [THIRD_PARTY](THIRD_PARTY.md), [INTEGRATIONS](docs/INTEGRATIONS.md), [EVALUATION](docs/EVALUATION.md), and [SECURITY](SECURITY.md).
 
 Tests demonstrate software mechanisms, not scientific improvement. Read [TESTING](docs/TESTING.md) for tested environments, optional skips and external capabilities that have not been exercised.
+
+## v0.2: actual ESMC-600M backend
+
+New CLI campaigns default to `biohub/ESMC-600M-hf` using native Transformers 5.16.1.
+The conversational LLM is unchanged. Install `.[esmc]`, initialize with `--device
+cuda` (or CPU by default), run `proteinrsi esmc-check --campaign ... --download`
+once, then run `step --agent llm`. No separate protein MCP server is required.
+
+The backend supplies WT-context masked-marginal scores, single-substitution
+suggestions, residue-mean embeddings and a revealed-measurement ridge head. C
+applies it to post-design candidates automatically. Priors are not functional
+measurements or calibrated affinities. ESMC weights are frozen; W/M remain under
+the existing independent gates. Model snapshots, software, caches and model-input
+budgets are recorded and inherited by both sides of meta evaluation.
+
+`demo`, old campaigns and the Python initialization default remain model-free;
+new CLI model-free baselines require `--protein-model none`. Read
+[ESMC600M](docs/ESMC600M.md) for complete runnable commands, exact scoring meaning,
+configuration and validation limits, and [THIRD_PARTY](THIRD_PARTY.md) for model
+license metadata and notices. No weights are bundled or relicensed by this project.

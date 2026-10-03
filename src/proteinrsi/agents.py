@@ -43,7 +43,7 @@ class MetaResponse(Model):
 def skill_text(names: list[str]) -> str:
     texts = []
     for name in names:
-        if not name or any(c not in "abcdefghijklmnopqrstuvwxyz-" for c in name):
+        if not name or any(c not in "abcdefghijklmnopqrstuvwxyz0123456789-" for c in name):
             raise ValueError("Invalid skill name")
         path = files("proteinrsi").joinpath("skills", name, "SKILL.md")
         if not path.is_file():
@@ -92,6 +92,8 @@ class DesignerAgent:
             return Design(candidates=[Candidate(sequence=s, source="library") for s in view.task.candidates])
         instructions = ("You are B, the protein designer. You may return complete sequences, "
                         "edits (position/from/to), or allowlisted tool calls. Never modify the target. "
+                        "ESMC600M tools supply sequence priors, single-site suggestions and embeddings, not structures. "
+                        "Do not use free mutation suggestions when an explicit candidate library is enforced. "
                         "An affinity task must retain its inputs and distinguish proxy from calibrated predictions. "
                         + view.workflow.designer_prompt + "\n" + skill_text(view.workflow.skill_names))
         return Design.model_validate(self.llm.complete("B", instructions,
@@ -100,11 +102,16 @@ class DesignerAgent:
 
 
 class AnalystAgent:
-    def __init__(self, llm: JSONLLM | None = None):
+    def __init__(self, llm: JSONLLM | None = None, protein_model=None):
         self.llm = llm
+        self.protein_model = protein_model
 
     def rank(self, view: TaskView, candidates: list[Candidate], tool_results: list[dict]) -> list[Candidate]:
-        if view.task.kind in (TaskKind.VARIANT, TaskKind.RANKING):
+        if self.protein_model is not None and view.task.kind in (TaskKind.VARIANT, TaskKind.RANKING):
+            from proteinrsi.protein.analysis import rank_with_esmc
+            ranked, report = rank_with_esmc(view, candidates, self.protein_model)
+            tool_results = [*tool_results, {"esmc600m_analysis": report}]
+        elif view.task.kind in (TaskKind.VARIANT, TaskKind.RANKING):
             ranked = rank_candidates(view.task, [c.sequence for c in candidates], view.observations,
                                      view.workflow, view.task.seed + view.round_index)
         else:
@@ -131,19 +138,30 @@ class AnalystAgent:
 
 
 class Team:
-    def __init__(self, store: Store, llm: JSONLLM | None = None, tools: ToolGateway | None = None):
+    def __init__(self, store: Store, llm: JSONLLM | None = None, tools: ToolGateway | None = None,
+                 protein_model=None):
+        from proteinrsi.protein.esmc import from_store
+        from proteinrsi.protein.tools import register_esmc_tools
+        self.protein_model = protein_model or from_store(store)
         self.store, self.llm = store, llm
         self.tools = tools or ToolGateway(store)
+        if self.protein_model is not None:
+            register_esmc_tools(self.tools, self.protein_model)
         self.principal = PrincipalAgent(llm)
         self.designer = DesignerAgent(llm)
-        self.analyst = AnalystAgent(llm)
+        self.analyst = AnalystAgent(llm, self.protein_model)
 
     def run(self, view: TaskView) -> list[Candidate]:
         from proteinrsi.contracts import digest
-        key = digest({"view": view.model_dump(mode="json"), "backend": "llm" if self.llm else "deterministic"})
+        key = digest({"view": view.model_dump(mode="json"), "backend": "llm" if self.llm else "deterministic",
+                      "protein_model": self.protein_model.identity if self.protein_model else None,
+                      "llm_model": getattr(self.llm, "model", None),
+                      "llm_url": getattr(self.llm, "base_url", None)})
         previous = self.store.get("team_outputs", key)
         if previous is not None:
             return [Candidate.model_validate(c) for c in previous]
+        if self.protein_model is not None:
+            self.protein_model.validate(view.task.reference_sequence)
         catalog = self.tools.catalog(view.task, view.workflow.tool_names)
         plan = self.principal.plan(view, catalog)
         results = [self.tools.call(c, view.task, allowed=view.workflow.tool_names, context_key=key)

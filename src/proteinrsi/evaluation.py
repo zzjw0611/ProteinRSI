@@ -41,9 +41,16 @@ def read_cases(path: str | Path) -> list[MetaCase]:
 
 
 def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
-                     directory: str, team_factory: Callable[[Store], Team] | None) -> tuple[float, dict]:
+                     directory: str, team_factory: Callable[[Store], Team] | None,
+                     protein_config: dict | None = None, protein_pin: dict | None = None) -> tuple[float, dict]:
     store = Store(directory)
-    store.configure_budget(case.task.budget.model_dump())
+    resources = case.task.budget.model_dump()
+    if protein_config:
+        resources["plm_inputs"] = protein_config["max_model_inputs"]
+        store.put("configuration", "protein_model", protein_config, immutable=True)
+        if protein_pin:
+            store.put("protein_backend", "snapshot", protein_pin, immutable=True)
+    store.configure_budget(resources)
     team = team_factory(store) if team_factory else Team(store)
     # Read only observed data in the policy context. No labels, global extrema or paths.
     view = TaskView(task=case.task, round_index=1, observations=case.initial,
@@ -90,10 +97,16 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
     child_m = apply_patch(base_m, patch)
     grouped: dict[str, list[tuple[float, float]]] = defaultdict(list)
     traces = []
+    protein_config = campaign.store.get("configuration", "protein_model")
+    protein_pin = campaign.store.get("protein_backend", "snapshot")
+    if protein_config and not protein_pin:
+        raise ValueError("Resolve ESMC once with esmc-check before a paired meta evaluation")
     with TemporaryDirectory(prefix="proteinrsi-meta-") as directory:
         for i, case in enumerate(cases):
-            old, trace_old = _offspring_score(case, base_w, base_m, f"{directory}/{i}-old", team_factory)
-            new, trace_new = _offspring_score(case, base_w, child_m, f"{directory}/{i}-new", team_factory)
+            old, trace_old = _offspring_score(case, base_w, base_m, f"{directory}/{i}-old", team_factory,
+                                          protein_config, protein_pin)
+            new, trace_new = _offspring_score(case, base_w, child_m, f"{directory}/{i}-new", team_factory,
+                                          protein_config, protein_pin)
             grouped[case.group_id].append((old, new))
             traces.append({"baseline": trace_old, "challenger": trace_new})
     # Seeds/related cases from one protein/group do not count as independent proteins.
@@ -103,11 +116,13 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
     manifest_hash = digest([c.model_dump(mode="json") for c in cases])
     report = {"patch_id": patch.patch_id, "base_meta": base_m.version, "candidate_meta": child_m.version,
               "base_workflow": base_w.version, "case_manifest_sha256": manifest_hash,
+              "protein_model": protein_pin, "protein_configuration": protein_config,
               "gate": gate.model_dump(), "traces": traces, "promoted": False,
               "protocol": "one-step frozen-improver, paired group means, equal query/call limits",
               "scope": {"kind": task.kind.value, "metric": task.metric, "unit": task.unit},
               "sources": sorted({c.task.feedback_source for c in cases})}
-    key = digest({"patch": patch.patch_id, "manifest": manifest_hash, "base_w": base_w.version})
+    key = digest({"patch": patch.patch_id, "manifest": manifest_hash, "base_w": base_w.version,
+                  "protein_config": protein_config, "protein_pin": protein_pin})
     with campaign.store.lock():
         current = campaign.state
         if (current["workflow"] != snapshot["workflow"] or current["meta"] != snapshot["meta"]

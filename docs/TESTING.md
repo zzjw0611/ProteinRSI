@@ -44,3 +44,24 @@ model endpoints or remote protein-engine inference.
 The Python 3.12 job resolved LangGraph 1.2.12, SQLite checkpointer 3.1.1, GEPA 0.1.4,
 MCP 1.30.0, Pydantic 2.13.5 and NumPy 2.5.3. These are an observed compatibility
 snapshot, not a claim about every release admitted by the dependency ranges.
+
+## v0.2 ESMC validation
+
+The v0.2 local tests cover fixed model selection, single-mask indexing/log-odds,
+additive multi-mutant prior semantics, residue-mean features, observed-only refitting,
+model-input accounting, cache reuse, nonfinite/failed inference handling, protected
+inputs, automatic C integration and CLI initialization. A native Transformers test
+uses a small random ESMC to check tokenizer offsets/padding against direct logits.
+The pretrained 600M test is separate and explicitly opt-in:
+
+```bash
+pip install -e '.[esmc,dev]'
+pytest -q
+PROTEINRSI_RUN_ESMC600M=1 pytest -q -s -m real_esmc
+```
+
+The second command downloads actual weights and performs CPU inference; it does
+not perform a wet experiment or demonstrate scientific improvement. GPU execution,
+real wet-lab experiments, paid LLM endpoints and protein benchmark gains still
+require independent deployment testing. Concrete CI results will be linked after
+the actual runs finish, not inferred from a workflow definition.
