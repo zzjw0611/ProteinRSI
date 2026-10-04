@@ -166,11 +166,13 @@ class Team:
 
     def _run_fixed(self, view: TaskView) -> list[Candidate]:
         from proteinrsi.contracts import digest
-        key = digest({"view": view.model_dump(mode="json"), "backend": "llm" if self.llm else "deterministic",
+        identity = {"view": view.model_dump(mode="json"), "backend": "llm" if self.llm else "deterministic",
                       "protein_model": self.protein_model.identity if self.protein_model else None,
                       "llm_model": getattr(self.llm, "model", None),
                       "llm_url": getattr(self.llm, "base_url", None),
-                      "local_tools": self.store.get("configuration", "local_tools")})
+                      "local_tools": self.store.get("configuration", "local_tools")}
+        identity.update(getattr(self.llm, "cache_settings", {}))
+        key = digest(identity)
         previous = self.store.get("team_outputs", key)
         if previous is not None:
             return [Candidate.model_validate(c) for c in previous]

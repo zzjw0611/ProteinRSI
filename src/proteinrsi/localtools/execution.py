@@ -93,6 +93,7 @@ def clean_env(config: EngineConfig, work: Path) -> dict[str, str]:
     return {"PATH": str(Path(config.python).parent) + ":/usr/local/bin:/usr/bin:/bin",
             "HOME": str(work), "TMPDIR": str(work), "LANG": "C.UTF-8",
             "CUDA_VISIBLE_DEVICES": config.cuda_devices,
+            "DGLBACKEND": "pytorch",
             "OMP_NUM_THREADS": str(config.threads), "OPENBLAS_NUM_THREADS": str(config.threads),
             "PYTHONNOUSERSITE": "1", "PYTHONUNBUFFERED": "1",
             "HF_HUB_OFFLINE": "1", "HF_HUB_DISABLE_TELEMETRY": "1", "WANDB_MODE": "disabled"}

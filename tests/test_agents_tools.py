@@ -77,6 +77,81 @@ def test_bad_llm_response_has_no_scripted_fallback(campaign):
     assert campaign.store.usage()["llm_calls"]["committed"] == 1
 
 
+def test_responses_reasoning_output_cache_and_usage(campaign):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        payload = json.loads(request.content)
+        assert request.url.path == "/v1/responses"
+        assert payload["input"][0]["role"] == "developer"
+        assert payload["reasoning"]["effort"] in ("medium", "low")
+        assert payload["text"]["format"] == {"type": "json_object"}
+        assert payload["store"] is False
+        return httpx.Response(200, json={"status": "completed", "output": [
+            {"type": "reasoning", "summary": []},
+            {"type": "message", "role": "assistant", "content": [
+                {"type": "output_text", "text": '{"ok":'},
+                {"type": "output_text", "text": ' true}'}]}],
+            "usage": {"input_tokens": 20, "output_tokens": 10}})
+
+    kwargs = {"model": "test-model", "base_url": "https://provider.example/v1",
+              "api_key": "TEST_SECRET", "api_protocol": "responses",
+              "transport": httpx.MockTransport(handler)}
+    client = JSONLLM(campaign.store, reasoning_effort="medium", **kwargs)
+    assert client.complete("A", "test", {}, {}) == {"ok": True}
+    assert client.complete("A", "test", {}, {}) == {"ok": True}
+    assert len(requests) == 1
+    assert JSONLLM(campaign.store, reasoning_effort="low", **kwargs).complete(
+        "A", "test", {}, {}) == {"ok": True}
+    assert len(requests) == 2
+    assert campaign.store.usage()["llm_calls"]["committed"] == 2
+    assert "TEST_SECRET" not in json.dumps(campaign.store.all("llm"))
+    assert all(record["usage"]["output_tokens"] == 10
+               for record in campaign.store.all("llm").values())
+
+
+@pytest.mark.parametrize("body", [
+    {"status": "incomplete", "output": [{"type": "message", "role": "assistant",
+        "content": [{"type": "output_text", "text": '{"ok": true}'}]}]},
+    {"status": "completed", "output": [{"type": "message", "role": "assistant",
+        "content": [{"type": "refusal", "refusal": "Cannot comply"}]}]},
+    {"status": "completed", "output": [{"type": "reasoning", "summary": []}]},
+])
+def test_responses_failure_is_recorded_and_not_resubmitted(campaign, body):
+    requests = []
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200, json=body)
+    client = JSONLLM(campaign.store, model="test", base_url="https://provider.example/v1",
+        api_key="TEST", api_protocol="responses", transport=httpx.MockTransport(handler))
+    for _ in range(2):
+        with pytest.raises(LLMError):
+            client.complete("A", "test", {}, {})
+    assert len(requests) == 1
+    assert campaign.store.usage()["llm_calls"]["committed"] == 1
+
+
+def test_codex_key_file_and_http_require_explicit_configuration(campaign, tmp_path, monkeypatch):
+    auth = tmp_path / "auth.json"
+    auth.write_text(json.dumps({"OPENAI_API_KEY": "TEST_SECRET"}))
+    monkeypatch.delenv("PROTEINRSI_API_KEY", raising=False)
+    monkeypatch.setenv("PROTEINRSI_CODEX_AUTH_FILE", str(auth))
+    monkeypatch.setenv("PROTEINRSI_MODEL", "test-model")
+    monkeypatch.setenv("PROTEINRSI_BASE_URL", "http://provider.example:8080/v1")
+    monkeypatch.setenv("PROTEINRSI_API_PROTOCOL", "responses")
+    monkeypatch.setenv("PROTEINRSI_REASONING_EFFORT", "medium")
+    monkeypatch.delenv("PROTEINRSI_ALLOW_HTTP", raising=False)
+    with pytest.raises(ValueError):
+        JSONLLM.from_env(campaign.store)
+    monkeypatch.setenv("PROTEINRSI_ALLOW_HTTP", "true")
+    client = JSONLLM.from_env(campaign.store)
+    assert client.api_key == "TEST_SECRET"
+    assert client.api_protocol == "responses"
+    assert client.reasoning_effort == "medium"
+    assert "TEST_SECRET" not in json.dumps(campaign.store.events())
+
+
 def test_four_research_role_calls_are_wired(campaign):
     class FakeLLM:
         roles = []
@@ -94,6 +169,16 @@ def test_four_research_role_calls_are_wired(campaign):
     llm = FakeLLM()
     results = Team(campaign.store, llm).run(campaign.view())
     assert len(results) == 5
+    assert llm.roles == ["A", "B", "C", "A-selection"]
+    llm.roles = []
+    llm.cache_settings = {"llm_api_protocol": "responses", "llm_reasoning_effort": "medium"}
+    Team(campaign.store, llm).run(campaign.view())
+    assert llm.roles == ["A", "B", "C", "A-selection"]
+    Team(campaign.store, llm).run(campaign.view())
+    assert llm.roles == ["A", "B", "C", "A-selection"]
+    llm.roles = []
+    llm.cache_settings["llm_reasoning_effort"] = "high"
+    Team(campaign.store, llm).run(campaign.view())
     assert llm.roles == ["A", "B", "C", "A-selection"]
 
 

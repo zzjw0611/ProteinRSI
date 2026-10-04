@@ -198,6 +198,7 @@ class ResearchRunner:
             "backend": "llm" if self.team.llm else "deterministic",
             "protein_model": self.team.protein_model.identity if self.team.protein_model else None,
             "local_tools": self.store.get("configuration", "local_tools")}
+        identity.update(getattr(self.team.llm, "cache_settings", {}))
         run_id = digest(identity)
         record = self.store.get("research_runs", run_id)
         if record is None:

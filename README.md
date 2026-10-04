@@ -114,7 +114,7 @@ set -a; source .env; set +a
 proteinrsi step --campaign runs/protein --agent llm
 ```
 
-`PROTEINRSI_MODEL` 填对话模型，**不要填 ESMC**。客户端使用 Chat Completions 风格 JSON 接口。原生其他协议需要适配；LLM 出错明确失败。开启 `resource_selection=llm` 会消耗同一个 `llm_calls` 预算，默认 rules 不额外调用检索 LLM。
+`PROTEINRSI_MODEL` 填对话模型，**不要填 ESMC**。客户端支持 Chat Completions 与 Responses JSON 接口，用 `PROTEINRSI_API_PROTOCOL` 选择（默认 `chat_completions`）；`PROTEINRSI_REASONING_EFFORT=medium` 设置推理强度。配置 `PROTEINRSI_CODEX_AUTH_FILE` 可读取本机 Codex `auth.json` 的 `OPENAI_API_KEY`，无需复制密钥到 `.env`。第三方 HTTP 地址需要显式设置 `PROTEINRSI_ALLOW_HTTP=true`。LLM 出错明确失败。开启 `resource_selection=llm` 会消耗同一个 `llm_calls` 预算，默认 rules 不额外调用检索 LLM。
 
 ## 蛋白工具与独立环境
 

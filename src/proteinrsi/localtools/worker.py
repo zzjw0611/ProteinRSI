@@ -8,6 +8,7 @@ The Python audit hook prevents ordinary Python network calls; only Docker
 from __future__ import annotations
 
 import json
+import math
 from pathlib import Path
 import os
 import runpy
@@ -62,6 +63,9 @@ def run_proteinmpnn(request):
 
 
 def run_rfdiffusion(request):
+    # Upstream checkpoints contain trusted configuration objects as well as tensors.
+    # The host verifies the pinned asset hash before starting this worker.
+    os.environ["TORCH_FORCE_NO_WEIGHTS_ONLY_LOAD"] = "1"
     p = request["parameters"]
     repo, assets = Path(request["repo"]), Path(request["assets"])
     contig = f"[A1-{p['target_length']}/0 {p['length']}-{p['length']}]"
@@ -86,6 +90,8 @@ def run_protenix(request):
     p = request["parameters"]
     repo, assets = Path(request["repo"]), Path(request["assets"])
     os.environ["PROTENIX_ROOT_DIR"] = str(assets)
+    # Match the native Torch kernels selected below without requiring a CUDA compiler.
+    os.environ["LAYERNORM_TYPE"] = "torch"
     # Direct inference runner does not start the CLI's remote MSA preparation pipeline.
     invoke(repo / "runner/inference.py", [
         "--model_name", request["model_name"],
@@ -108,6 +114,10 @@ def run_protenix(request):
         structure = MMCIFParser(QUIET=True).get_structure("prediction", str(path))
         if len(structure) != 1 or any(len(c.id) != 1 for c in structure.get_chains()):
             raise ValueError("Cannot losslessly export this CIF to supported single-model PDB")
+        if any(not math.isfinite(float(v)) or len(f"{float(v):8.3f}") > 8
+               for atom in structure.get_atoms() for v in atom.coord):
+            raise ValueError("Protenix coordinates exceed the PDB field range; "
+                             "inspect the CIF or increase diffusion steps")
         writer = PDBIO()
         writer.set_structure(structure)
         pdb_path = path.with_suffix(".pdb")
@@ -132,7 +142,12 @@ def run_pyrosetta(request):
         files = [{"path": "relaxed.pdb", "kind": "pdb"}]
         metrics = {"total_energy": {"value": float(scorefxn(pose)), "unit": "REU"}}
     else:
-        mover = pyrosetta.rosetta.protocols.analysis.InterfaceAnalyzerMover(p["interface"])
+        interface = p["interface"]
+        # Newer bindings parse the chain groups into a DockingPartners object.
+        partners_type = getattr(pyrosetta.rosetta.core.pose, "DockingPartners", None)
+        if partners_type is not None:
+            interface = partners_type.docking_partners_from_string(interface)
+        mover = pyrosetta.rosetta.protocols.analysis.InterfaceAnalyzerMover(interface)
         mover.set_scorefunction(scorefxn)
         mover.set_pack_separated(True)
         mover.apply(pose)
