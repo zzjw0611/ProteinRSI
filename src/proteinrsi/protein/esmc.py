@@ -8,7 +8,7 @@ import re
 from typing import Literal
 
 import numpy as np
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from proteinrsi.contracts import AMINO_ACIDS, Model, digest
 from proteinrsi.storage import Store
@@ -26,6 +26,16 @@ class ESMCConfig(Model):
     max_residues: int = Field(default=2046, ge=1, le=2046)
     max_masked_positions: int = Field(default=128, ge=1, le=2046)
     max_model_inputs: int = Field(default=4096, ge=1)
+    worker_python: str | None = None
+    worker_timeout_seconds: int = Field(default=1800, ge=1, le=86400)
+
+
+    @field_validator("worker_python")
+    @classmethod
+    def worker_path(cls, value):
+        if value is not None and not Path(value).is_absolute():
+            raise ValueError("worker_python must be an absolute interpreter path")
+        return value
 
 
 def software_versions() -> dict:
@@ -158,7 +168,13 @@ class ESMC600M:
 
     def __init__(self, store: Store, config: ESMCConfig, *, backend=None):
         self.store, self.config = store, config
-        self.backend = backend or TransformersBackend(store, config)
+        if backend is not None:
+            self.backend = backend
+        elif config.worker_python:
+            from proteinrsi.protein.isolated import IsolatedESMCBackend
+            self.backend = IsolatedESMCBackend(store, config)
+        else:
+            self.backend = TransformersBackend(store, config)
 
     @property
     def identity(self) -> dict:

@@ -39,6 +39,13 @@ def main(argv: list[str] | None = None) -> None:
     init.add_argument("--workflow")
     init.add_argument("--meta")
     init.add_argument("--gate")
+    init.add_argument("--research-config", help="Operator-authored resource selection and plan limits")
+    init.add_argument("--research-mode", choices=["adaptive", "fixed"], default=None,
+                      help="New CLI campaigns default to adaptive; fixed retains the v0.3 team path")
+    research = sub.add_parser("research", help="Inspect plans/resources or analyze revealed data, without LLM/model calls")
+    research.add_argument("action", choices=["plans", "resources", "analyze"])
+    research.add_argument("--campaign", required=True)
+    init.add_argument("--local-tools", help="Operator-authored isolated local tool configuration JSON")
     init.add_argument("--protein-model", choices=["esmc600m", "none"], default="esmc600m",
                       help="New campaigns default to real ESMC-600M; none is the offline baseline")
     init.add_argument("--protein-config", help="Operator-authored ESMC configuration JSON")
@@ -50,10 +57,21 @@ def main(argv: list[str] | None = None) -> None:
     tool.add_argument("--campaign", required=True)
     tool.add_argument("--name", required=True)
     tool.add_argument("--arguments", required=True, help="JSON file with tool arguments")
+    inventory = sub.add_parser("tools", help="Inspect local descriptions/environments without model inference")
+    inventory.add_argument("action", choices=["list", "describe", "doctor"])
+    inventory.add_argument("--config", help="Local environment JSON; no secrets or LLM-generated commands")
+    inventory.add_argument("--name")
+    inventory.add_argument("--probe", action="store_true", help="Explicitly import libraries in their isolated environments")
+    inventory.add_argument("--strict", action="store_true", help="Exit nonzero if an enabled engine is not configured")
+    artifact = sub.add_parser("artifact-import", help="Explicitly register a scientific input file")
+    artifact.add_argument("--campaign", required=True)
+    artifact.add_argument("--file", required=True)
+    artifact.add_argument("--kind", required=True, choices=["pdb", "cif", "a3m", "fasta", "json"])
     demo = sub.add_parser("demo", help="Run an explicitly artificial, no-API smoke experiment")
     demo.add_argument("--out", required=True)
     demo.add_argument("--rounds", type=int, default=5)
     demo.add_argument("--seed", type=int, default=17)
+    demo.add_argument("--adaptive", action="store_true", help="Exercise the typed research loop with scripted roles, not an LLM")
     for name in ("step", "status", "approve", "cancel", "import-results", "replay", "patch", "evaluate-meta", "graph"):
         cmd = sub.add_parser(name)
         cmd.add_argument("--campaign", required=True)
@@ -75,22 +93,80 @@ def main(argv: list[str] | None = None) -> None:
             cmd.add_argument("--resume", help="JSON file with explicit approval/measurement payload")
     args = parser.parse_args(argv)
     try:
-        if args.command == "init":
+        if args.command == "research":
+            from proteinrsi.research.analysis import persist_analysis
+            store = Store(args.campaign)
+            if store.get("campaign", "state") is None:
+                raise ValueError("Initialize the campaign first")
+            if args.action == "plans":
+                output = store.all("research_runs")
+            elif args.action == "resources":
+                output = store.all("resource_selections")
+            else:
+                with store.lock():
+                    output = persist_analysis(Campaign(store).view(), store)
+        elif args.command == "tools":
+            from proteinrsi.localtools.config import LocalToolsConfig, load_config
+            from proteinrsi.localtools.catalog import description, descriptions
+            from proteinrsi.localtools.registry import configured_names, doctor
+            config = load_config(args.config) if args.config else LocalToolsConfig()
+            if args.action == "describe":
+                if not args.name:
+                    raise ValueError("tools describe requires --name")
+                output = description(args.name)
+            elif args.action == "doctor":
+                output = doctor(config, probe=args.probe)
+                if args.strict and any(r["status"] == "missing_requirements" for r in output):
+                    print(json.dumps(output, ensure_ascii=False, indent=2))
+                    raise SystemExit(2)
+            else:
+                configured = set(configured_names(config))
+                output = [{"name": d["name"], "engine": d["engine"], "capability": d["capability"],
+                    "configured": (config.esmc is not None) if d["engine"] == "esmc600m" else d["name"] in configured,
+                    "note": "ESMC configuration is campaign-specific" if d["engine"] == "esmc600m" else
+                    "configured does not mean installed, inference-tested, or scientifically validated"}
+                    for d in descriptions()]
+        elif args.command == "artifact-import":
+            from proteinrsi.localtools.artifacts import ArtifactStore
+            store = Store(args.campaign)
+            if store.get("campaign", "state") is None:
+                raise ValueError("Initialize the campaign first")
+            with store.lock():
+                output = ArtifactStore(store).put(args.file, args.kind)
+        elif args.command == "init":
             from proteinrsi.protein.esmc import ESMCConfig
             from proteinrsi.protein.tools import TOOL_NAMES
+            from proteinrsi.localtools.config import LocalToolsConfig, load_config
+            from proteinrsi.localtools.registry import configured_names, doctor
+            local_config = load_config(args.local_tools) if args.local_tools else LocalToolsConfig()
             protein_config = None
             if args.protein_model == "esmc600m":
-                protein_config = ESMCConfig.model_validate(load_json(args.protein_config)) if args.protein_config else ESMCConfig()
+                protein_config = (ESMCConfig.model_validate(load_json(args.protein_config)) if args.protein_config
+                                  else (local_config.esmc or ESMCConfig()))
                 if args.device:
                     protein_config.device = args.device
-            elif args.protein_config or args.device:
+            elif args.protein_config or args.device or local_config.esmc is not None:
                 raise ValueError("Protein configuration requires --protein-model esmc600m")
+            # Preflight and persist the effective override, not an unused template interpreter.
+            local_config.esmc = protein_config
+            problems = [r for r in doctor(local_config) if r["status"] == "missing_requirements"]
+            if problems:
+                raise ValueError("Local tool preflight failed: " + json.dumps(problems, ensure_ascii=False))
             workflow = Workflow.model_validate(load_json(args.workflow)) if args.workflow else Workflow()
             if protein_config is not None and not args.workflow:
                 workflow.tool_names = list(TOOL_NAMES)
                 workflow.skill_names = [*workflow.skill_names, "esmc600m-analysis"]
+            if not args.workflow:
+                workflow.tool_names += configured_names(local_config)
+                if any(e.enabled for e in local_config.engines.values()):
+                    workflow.analysis_tool_rounds = 2
+                    workflow.skill_names += ["local-protein-tools"]
+            from proteinrsi.research.contracts import ResearchConfig
+            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig()
+            if args.research_mode is not None:
+                research_config.enabled = args.research_mode == "adaptive"
             campaign = Campaign.initialize(args.out, TaskSpec.model_validate(load_json(args.task)),
-                workflow=workflow, protein_config=protein_config,
+                workflow=workflow, protein_config=protein_config, local_tools=local_config, research_config=research_config,
                 meta=MetaPolicy.model_validate(load_json(args.meta)) if args.meta else None,
                 gate=GatePolicy.model_validate(load_json(args.gate)) if args.gate else None)
             output = campaign.report()
@@ -121,7 +197,9 @@ def main(argv: list[str] | None = None) -> None:
                 raise ValueError("Demo output exists; use a new directory to preserve previous results")
             task_file, labels = make_fixture(out / "fixture", seed=args.seed, rounds=args.rounds)
             task = TaskSpec.model_validate(load_json(str(task_file)))
-            campaign = Campaign.initialize(str(out / "campaign"), task)
+            from proteinrsi.research.contracts import ResearchConfig
+            campaign = Campaign.initialize(str(out / "campaign"), task,
+                research_config=ResearchConfig() if args.adaptive else None)
             oracle = CSVOracle(labels, task)
             while (batch := campaign.prepare()) is not None:
                 campaign.approve(batch.batch_id, operator="synthetic-demo-driver")

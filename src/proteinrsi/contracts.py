@@ -112,12 +112,20 @@ class Workflow(Model):
     designer_prompt: str = Field(default="Propose legal variants using only the supplied evidence.", min_length=1, max_length=12000)
     analyst_prompt: str = Field(default="Separate proxy scores, predictions and experimental measurements.", min_length=1, max_length=12000)
     principal_prompt: str = Field(default="Select informative candidates within the approved budget.", min_length=1, max_length=12000)
-    tool_names: list[str] = Field(default_factory=list, max_length=16)
+    design_tool_rounds: int = Field(default=4, ge=1, le=12)
+    analysis_tool_rounds: int = Field(default=0, ge=0, le=6)
+    tool_names: list[str] = Field(default_factory=list, max_length=32)
     skill_names: list[str] = Field(default_factory=lambda: ["direct-sequence-design", "fitness-modeling"])
 
     @property
     def version(self) -> str:
-        return "w-" + digest(self)[:16]
+        data = self.model_dump(mode="json")
+        # Preserve v0.2 workflow identities when new loop options retain defaults.
+        if self.design_tool_rounds == 4:
+            data.pop("design_tool_rounds")
+        if self.analysis_tool_rounds == 0:
+            data.pop("analysis_tool_rounds")
+        return "w-" + digest(data)[:16]
 
 
 class MetaPolicy(Model):
@@ -213,6 +221,8 @@ class TaskView(Model):
     workflow: Workflow
     meta: MetaPolicy
     experience: list[dict[str, Any]] = Field(default_factory=list)
+    artifacts: list[dict[str, Any]] = Field(default_factory=list)
+    research_context: dict[str, Any] = Field(default_factory=dict)
 
     @property
     def evidence_version(self) -> str:

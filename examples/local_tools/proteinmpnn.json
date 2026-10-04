@@ -1,0 +1,12 @@
+{
+  "backbone_ref": "artifact:0000000000000000000000000000000000000000000000000000000000000000.pdb",
+  "reference": "ACDEFGHIKLMNPQRSTVWY",
+  "mutable_positions": [
+    2,
+    5
+  ],
+  "design_chain": "B",
+  "num_sequences": 8,
+  "temperature": 0.1,
+  "seed": 17
+}

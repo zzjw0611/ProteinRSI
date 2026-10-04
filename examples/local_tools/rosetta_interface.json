@@ -1,0 +1,6 @@
+{
+  "structure_ref": "artifact:0000000000000000000000000000000000000000000000000000000000000000.pdb",
+  "target_chain": "A",
+  "design_chain": "B",
+  "seed": 17
+}

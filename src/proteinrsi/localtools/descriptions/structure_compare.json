@@ -1,0 +1,50 @@
+{
+  "name": "structure_compare",
+  "capability": "structure.compare",
+  "description": "Kabsch CA RMSD for explicitly matched equal-length chains. No automatic alignment.",
+  "limitations": "",
+  "engine": "utilities",
+  "task_kinds": [
+    "variant_design",
+    "variant_ranking",
+    "binder_design",
+    "affinity_prediction"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "reference_ref": {
+        "type": "string",
+        "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+      },
+      "reference_chain": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9]$"
+      },
+      "prediction_ref": {
+        "type": "string",
+        "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+      },
+      "prediction_chain": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9]$"
+      }
+    },
+    "required": [
+      "reference_ref",
+      "reference_chain",
+      "prediction_ref",
+      "prediction_chain"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {},
+  "license_id": "MIT",
+  "data_egress": false
+}

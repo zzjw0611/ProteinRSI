@@ -27,7 +27,7 @@ class Campaign:
     @classmethod
     def initialize(cls, directory: str, task: TaskSpec, *, workflow: Workflow | None = None,
                    meta: MetaPolicy | None = None, gate: GatePolicy | None = None,
-                   protein_config=None) -> Campaign:
+                   protein_config=None, local_tools=None, research_config=None) -> Campaign:
         validate_task(task)
         store = Store(directory)
         with store.lock():
@@ -42,6 +42,16 @@ class Campaign:
             store.configure_budget(resources)
             if protein_config is not None:
                 store.put("configuration", "protein_model", protein_config.model_dump(), immutable=True)
+            if local_tools is not None:
+                from proteinrsi.localtools.config import LocalToolsConfig
+                local_tools = LocalToolsConfig.model_validate(local_tools)
+                store.put("configuration", "local_tools", local_tools.model_dump(mode="json"), immutable=True)
+            if research_config is not None:
+                from proteinrsi.research.contracts import ResearchConfig
+                from proteinrsi.research.knowledge import snapshot_documents
+                research_config = ResearchConfig.model_validate(research_config)
+                store.put("configuration", "research", research_config.model_dump(), immutable=True)
+                snapshot_documents(store)
             state = {"campaign_id": str(uuid.uuid4()), "task": task.model_dump(mode="json"),
                 "workflow": workflow.model_dump(), "meta": meta.model_dump(), "gate": gate.model_dump(),
                 "round_index": 0, "status": "ready", "observations": [], "history": [],
@@ -76,7 +86,8 @@ class Campaign:
             observations=[Observation.model_validate(o) for o in state["observations"]],
             history=state["history"], remaining_wells=self.store.remaining("experimental_wells"),
             workflow=workflow or Workflow.model_validate(state["workflow"]),
-            meta=MetaPolicy.model_validate(state["meta"]), experience=self.memory.retrieve(task.kind))
+            meta=MetaPolicy.model_validate(state["meta"]), experience=self.memory.retrieve(task.kind),
+            artifacts=list(self.store.all("artifacts").values()))
 
     def prepare(self) -> Batch | None:
         with self.store.lock():
@@ -244,6 +255,18 @@ class Campaign:
                 state["pending_patch"] = None
                 summary["trial"] = result.model_dump()
                 self.store.event("workflow_trial_completed", {"batch_id": batch_id, **result.model_dump()})
+            research_config = self.store.get("configuration", "research", {})
+            if research_config.get("enabled"):
+                from proteinrsi.research.analysis import persist_analysis
+                analysis = persist_analysis(self.view(state), self.store)
+                # Trace references are scoped to the evidence used for this submitted batch.
+                trace_summaries = [{"run_id": r["run_id"], "workflow": r["workflow_version"],
+                    "status": r["status"], "plan": r["plan"], "revisions": r["revisions"]}
+                    for r in self.store.all("research_runs").values()
+                    if r["evidence_version"] == batch.evidence_version and r["round"] == batch.round_index]
+                summary["research_analysis"] = {"artifact_ref": analysis["artifact_ref"],
+                    "qc": analysis["qc"], "prediction_errors": {k: v for k, v in analysis["prediction_errors"].items() if k != "rows"}}
+                summary["research_traces"] = trace_summaries
             state["history"].append(summary)
             state["round_index"] += 1
             state["pending_batch"], state["status"] = None, "ready"
@@ -311,6 +334,7 @@ class Campaign:
         best = (max(values) if task.direction == "maximize" else min(values)) if values else None
         return {"campaign_id": state["campaign_id"], "status": state["status"],
                 "completed_rounds": state["round_index"],
+                "research_config": self.store.get("configuration", "research"),
                 "protein_model": self.store.get("configuration", "protein_model"),
                 "protein_snapshot": self.store.get("protein_backend", "snapshot"), "evidence_source": task.feedback_source,
                 "workflow_version": Workflow.model_validate(state["workflow"]).version,

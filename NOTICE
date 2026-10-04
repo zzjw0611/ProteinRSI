@@ -1,7 +1,23 @@
 ProteinRSI
 Copyright (c) 2026 ProteinRSI contributors
 
-Original source and documentation are licensed under MIT; see LICENSE.
-Optional dependencies and separately deployed scientific tools retain their own licenses.
-No third-party source code, experimental dataset or model weights are vendored.
-See THIRD_PARTY.md for actual API reuse and architectural references.
+Original source, tests and documentation are licensed under MIT; see LICENSE.
+
+This distribution additionally includes one modified source adaptation from:
+  Biomni — snap-stanford/Biomni
+  https://github.com/snap-stanford/Biomni
+  Source: biomni/model/retriever.py
+  Revision: 400c1f366b96a35ca253e13c9b06c5076af41d65
+  Local file: src/proteinrsi/research/biomni_retriever.py
+  License: Apache License, Version 2.0
+  Complete preserved license: licenses/Biomni-Apache-2.0.txt
+
+Modified by ProteinRSI contributors in 2026: injected budgeted JSON client;
+typed and bounded resource-index responses; removed implicit provider defaults
+and regex parser; used permission-prefiltered resource inputs and scoped experience.
+Upstream attribution is retained. No endorsement or affiliation is implied.
+
+The package contains MIT and Apache-2.0 components, not a choice to relicense the
+upstream file as MIT. Optional dependencies and separately installed engines retain
+their own licenses. No model weights, experimental datasets, credentials or user
+research PDF are included. See THIRD_PARTY.md and docs/REUSE.md.

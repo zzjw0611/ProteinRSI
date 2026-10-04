@@ -1,4 +1,20 @@
+# v0.4 integration note
+
+Biomni's category retriever has one explicitly licensed source adaptation in
+`research/biomni_retriever.py`; default rules mode does not invoke it. See
+[REUSE](REUSE.md) and [RESEARCH_RUNTIME](RESEARCH_RUNTIME.md). Local protein engines
+remain independent Python/CLI environments, not NIM services. Existing optional
+LangGraph/GEPA/MCP/Virtual Lab integrations below are retained.
+
 # Integration guide
+
+## v0.3 local-first execution
+
+See [LOCAL_TOOLS.md](LOCAL_TOOLS.md) for function/description separation and isolated
+local engines. This is the recommended path; no NIM is used. Existing generic MCP
+remains optional for previously configured external tools. Never register duplicate
+local and remote implementations under the same tool name.
+
 
 ## Implemented reuse, not copied monorepos
 

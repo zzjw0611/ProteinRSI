@@ -1,0 +1,24 @@
+{
+  "strategy": "additive",
+  "exploration": 0.2,
+  "ridge_alpha": 1.0,
+  "designer_prompt": "Propose variants under the task constraints; cite visible evidence IDs.",
+  "analyst_prompt": "Separate measured outcomes, model predictions, and uncalibrated proxy scores.",
+  "principal_prompt": "Prioritize candidates within the shared experimental budget.",
+  "tool_names": [
+    "protein_sequence_qc",
+    "structure_inspect",
+    "interface_geometry",
+    "structure_compare",
+    "msa_validate",
+    "proteinmpnn_design",
+    "rfdiffusion_binder",
+    "protenix_predict"
+  ],
+  "skill_names": [
+    "direct-sequence-design",
+    "local-protein-tools"
+  ],
+  "design_tool_rounds": 6,
+  "analysis_tool_rounds": 3
+}

@@ -1,0 +1,26 @@
+{
+  "reviewed_date": "2026-10-03",
+  "proteinmpnn": {
+    "repository": "https://github.com/dauparas/ProteinMPNN.git",
+    "revision": "8907e6671bfbfc92303b5f79c4b5e6ce47cdef57",
+    "code_license": "MIT",
+    "model_name": "v_48_020"
+  },
+  "rfdiffusion": {
+    "repository": "https://github.com/RosettaCommons/RFdiffusion.git",
+    "revision": "86507b6538f51fce57b5a72477165f03999ed7ae",
+    "code_license": "BSD-3-Clause",
+    "model_name": "Complex_base_ckpt"
+  },
+  "protenix": {
+    "repository": "https://github.com/bytedance/Protenix.git",
+    "revision": "85767b811c40ed46e73a9b39519cf6bfca8701ba",
+    "code_license": "Apache-2.0",
+    "model_name": "protenix_base_default_v1.0.0"
+  },
+  "pyrosetta": {
+    "repository": "https://www.pyrosetta.org/downloads",
+    "code_license": "Operator-supplied licensed distribution",
+    "model_name": "ref2015"
+  }
+}

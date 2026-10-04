@@ -1,0 +1,13 @@
+{
+  "sequence": "ACDEFGHIKLMNPQRSTVWY",
+  "assembly": "monomer",
+  "msa_mode": "none",
+  "msas": {},
+  "seeds": [
+    17
+  ],
+  "samples": 1,
+  "steps": 200,
+  "cycles": 10,
+  "dtype": "fp32"
+}

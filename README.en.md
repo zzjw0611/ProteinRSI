@@ -1,55 +1,88 @@
-# ProteinRSI
+# ProteinRSI 0.4
 
-A budgeted protein-research agent framework with experimental feedback, validated workflow changes, and bounded meta-policy evolution. See the [Chinese README](README.md) for the complete operational guide.
+**Budgeted protein research with an experimental inner loop, validated workflow
+improvement, and bounded successor-improver evaluation.**
 
-## Four logical agents
+[中文](README.md) · [Research runtime](docs/RESEARCH_RUNTIME.md) · [Reuse inventory](docs/REUSE.md) · [Local tools](docs/LOCAL_TOOLS.md) · [Licensing](THIRD_PARTY.md)
 
-A (principal) plans and reviews selection; B (designer) proposes sequences/edits or requests tools; C (analyst) ranks and interprets feedback; M (method improver) proposes changes to the research workflow or its own improvement policy. The database, experiment gateway, budget ledger, and promotion gate are trusted programs, not additional agents.
+This release integrates the delivered v0.3 local tools with resource-aware typed
+planning. It is research software, not a validated protein design product. No NIM
+service is required. No arbitrary generated Python/shell is executed.
 
-The inner loop is **plan → design → analysis → approval → measurement → feedback**. The outer loop is **diagnosis → bounded patch → checks → trial → independent gate → versioned adoption or abstention**. Accepted successor meta policies are actually loaded in subsequent rounds.
+## Four logical roles and one campaign controller
+
+A selects resources and creates/revises the unexecuted portion of a ResearchPlan.
+B proposes constrained sequences/edits or calls registered design tools. C performs
+read-only evidence analysis and candidate review. M proposes persistent workflow or
+MetaPolicy patches; only independent gates may adopt them. All can share one chat LLM.
+
+```
+Visible task/evidence → permission-filtered resources → A's plan
+   → evidence / B design / tools / C ranking → actual outputs → A replanning
+   → A final priorities → trusted checks → human approval → experiment
+   → new observations → next inner round and conditional outer improvement
+```
+
+A current-plan revision is not a published workflow. A new workflow is not necessarily
+a better improver. Data, workflow, MetaPolicy and research-run identities are recorded
+separately. Both Meta-evaluation offspring receive identical research configuration
+and Know-how snapshots; hidden labels remain evaluator-owned.
+
+## What is genuinely reused?
+
+| Project | Actual status |
+|---|---|
+| **Biomni** | One **modified source adaptation** in `research/biomni_retriever.py` (Apache-2.0), used in `resource_selection=llm`. Category retrieval/formatting adapted from fixed revision `400c1f3`; explicit budgeted JSON client, strict bounds and permissions added. Plan/observe and Know-how designs inform otherwise original code. No A1 REPL/E1 environment copied. |
+| **ProteinMCP** | Environment isolation, tool registry and Skill design inspiration; no source copied or `pmcp` runtime dependency. |
+| **LangGraph / GEPA / MCP SDK / Virtual Lab** | Optional actual library/API adapters; not implicitly invoked by the offline demo or merged as competing controllers. |
+| **Transformers / ESMC-600M** | Real native model API. Frozen weights downloaded separately; embeddings/prior scoring and an original observed-label Ridge head. |
+| **ProteinMPNN / RFdiffusion / Protenix / PyRosetta** | Original adapters call separately installed upstream programs/APIs after configuration, version/asset checks and license review. New heavy engines are not end-to-end validated in this environment. |
+| **ProteinSwarm / HyperAgents / ADAS / ALDE / EVOLVEpro** | Related design/method references, not copied implementations or reproduced results. No HyperAgents noncommercial source included. |
+
+Exact source files, modifications and limitations: [docs/REUSE.md](docs/REUSE.md).
+Original code/docs are MIT; the Biomni-derived file is Apache-2.0. Distribution
+metadata is **MIT AND Apache-2.0**, not a choice of licenses. The full original
+Apache license and NOTICE are packaged. Model/database terms are separate.
 
 ## Run
 
+Python 3.11+, POSIX/WSL. No weights, user research files, experiments or credentials
+are bundled. After extracting the source or applying the supplied patch:
+
 ```bash
+cd ProteinRSI
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
-proteinrsi demo --out runs/demo --rounds 5
+proteinrsi demo --adaptive --out runs/research-demo --rounds 3
+proteinrsi research plans --campaign runs/research-demo/campaign
+proteinrsi research resources --campaign runs/research-demo/campaign
+proteinrsi research analyze --campaign runs/research-demo/campaign
 pytest -q
 ```
 
-Python 3.11+, Linux/macOS or WSL. The native runtime is immediately usable without optional agent packages. Install `.[graph,mcp,gepa]` for actual LangGraph/MCP/GEPA integrations.
+The demo uses synthetic numerical labels and scripted roles, not real LLM reasoning,
+ESMC inference or wet-lab work. Omitting `--adaptive` retains the fixed demo baseline.
+New CLI `init` defaults to adaptive; use `--research-mode fixed` for the old route.
+Old campaigns and the Python initialization API without research_config remain fixed.
 
-**The default demo is a deterministic baseline on an artificial fixture. It is not an LLM experiment, protein-model prediction, historical measurement, or new wet-lab result.** No model keys, weights or third-party datasets are bundled. Real model calls are opt-in and fail explicitly rather than silently substituting mocks.
+Main configs: `configs/research.json` (retrieval/plan bounds),
+`configs/protein_tools.json` (independent model environments), `.env.example` (chat
+provider), `examples/wetlab_task.json` (task/assay/budget), and workflow/meta JSONs.
+Configure the LLM separately from ESMC; `.env` is not automatically loaded.
 
-## Implemented scope
+The 13 local protein/structure/MSA tools are retained. Three additional context-bound
+analysis tools inspect observed QC, frozen pre-measurement prediction error and
+explicit-scale combination deviations. They accept no arbitrary observation tables,
+paths or hidden labels. Missing constituent measurements are reported as missing.
 
-Persistent multi-round campaigns; canonical sequence/position constraints; observed-only ridge ranking; direct LLM sequence edits; allowlisted JSON-Schema/MCP tools; manual experiment approval and CSV feedback; idempotent budget/accounting; equal-allocation workflow trials; scoped experience records; and separate improver-descendant evaluation with successor activation.
+## Boundaries
 
-RSI is constrained to typed workflow/meta-policy configurations and prompts. Arbitrary generated Python is deliberately not executed. Binder support is fixed-length scaffold redesign with an external backend, not a ready-made de novo platform. Affinity predictions require a suitable external model; the built-in ridge/novelty heuristic is not an affinity predictor.
-
-## Reuse and license
-
-Original code and documentation are [MIT](LICENSE). LangGraph, GEPA, the official MCP SDK and Virtual Lab are reused through optional dependencies/APIs; protein-tool servers remain independent deployments. No upstream source, model weights or experimental dataset is vendored. HyperAgents, ProteinSwarm and ALDE are architectural references, not disguised copied implementations. Consult [THIRD_PARTY](THIRD_PARTY.md), [INTEGRATIONS](docs/INTEGRATIONS.md), [EVALUATION](docs/EVALUATION.md), and [SECURITY](SECURITY.md).
-
-Tests demonstrate software mechanisms, not scientific improvement. Read [TESTING](docs/TESTING.md) for tested environments, optional skips and external capabilities that have not been exercised.
-
-## v0.2: actual ESMC-600M backend
-
-New CLI campaigns default to `biohub/ESMC-600M-hf` using native Transformers 5.16.1.
-The conversational LLM is unchanged. Install `.[esmc]`, initialize with `--device
-cuda` (or CPU by default), run `proteinrsi esmc-check --campaign ... --download`
-once, then run `step --agent llm`. No separate protein MCP server is required.
-
-The backend supplies WT-context masked-marginal scores, single-substitution
-suggestions, residue-mean embeddings and a revealed-measurement ridge head. C
-applies it to post-design candidates automatically. Priors are not functional
-measurements or calibrated affinities. ESMC weights are frozen; W/M remain under
-the existing independent gates. Model snapshots, software, caches and model-input
-budgets are recorded and inherited by both sides of meta evaluation.
-
-`demo`, old campaigns and the Python initialization default remain model-free;
-new CLI model-free baselines require `--protein-model none`. Read
-[ESMC600M](docs/ESMC600M.md) for complete runnable commands, exact scoring meaning,
-configuration and validation limits, and [THIRD_PARTY](THIRD_PARTY.md) for model
-license metadata and notices. No weights are bundled or relicensed by this project.
+Plans are typed serial operations, not arbitrary code or a parallel DAG engine.
+Completed steps cannot be rewritten; new evidence after ranking requires reranking.
+Failed/uncertain jobs remain blocked for operator investigation. Model environments
+isolate dependencies but are not OS security sandboxes. No new biological efficacy,
+GPU performance, paid-LLM integration or wet-lab result is claimed. Quantitative
+protein–protein affinity and generalized cross-protein experience transfer remain
+incomplete capabilities. The generic Meta gate still rejects structural-engine cases
+without case-scoped artifact/evaluation support. See [TESTING](docs/TESTING.md).

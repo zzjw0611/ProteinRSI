@@ -1,0 +1,49 @@
+{
+  "name": "protein_sequence_qc",
+  "capability": "sequence.validate",
+  "description": "Check sequence alphabet, length, substitutions and simple descriptors; no function prediction.",
+  "limitations": "",
+  "engine": "utilities",
+  "task_kinds": [
+    "variant_design",
+    "variant_ranking",
+    "binder_design",
+    "affinity_prediction"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "reference": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+      },
+      "sequences": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+        },
+        "minItems": 1,
+        "maxItems": 384
+      }
+    },
+    "required": [
+      "reference",
+      "sequences"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {
+    "reference": "reference_sequence"
+  },
+  "license_id": "MIT",
+  "data_egress": false
+}

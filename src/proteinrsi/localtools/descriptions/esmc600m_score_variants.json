@@ -1,0 +1,49 @@
+{
+  "name": "esmc600m_score_variants",
+  "capability": "variant.score",
+  "description": "ESMC-600M masked marginal substitution prior in the WT reference context.",
+  "limitations": "Multi-site scores are additive WT-context priors, not epistasis or calibrated fitness.",
+  "engine": "esmc600m",
+  "task_kinds": [
+    "variant_design",
+    "variant_ranking",
+    "binder_design"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "reference": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+      },
+      "sequences": {
+        "type": "array",
+        "items": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+        },
+        "minItems": 1,
+        "maxItems": 384
+      }
+    },
+    "required": [
+      "reference",
+      "sequences"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "model",
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {
+    "reference": "reference_sequence"
+  },
+  "license_id": "SEE_THIRD_PARTY.md",
+  "data_egress": false
+}

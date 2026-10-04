@@ -1,0 +1,81 @@
+{
+  "name": "proteinmpnn_design",
+  "capability": "sequence.inverse_fold",
+  "description": "Design one explicit chain on a complete fixed backbone using official ProteinMPNN. Other chains and nonmutable residues are fixed.",
+  "limitations": "One designed chain. Fixed-length, canonical protein only. Complete N/CA/C/O backbone. Sequence predictions are not experiments.",
+  "engine": "proteinmpnn",
+  "task_kinds": [
+    "variant_design",
+    "variant_ranking",
+    "binder_design"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "backbone_ref": {
+        "type": "string",
+        "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+      },
+      "reference": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+      },
+      "mutable_positions": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minItems": 1,
+        "maxItems": 2046,
+        "uniqueItems": true
+      },
+      "design_chain": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9]$"
+      },
+      "target_chain": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9]$"
+      },
+      "num_sequences": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 64
+      },
+      "temperature": {
+        "type": "number",
+        "exclusiveMinimum": 0,
+        "maximum": 1
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647
+      }
+    },
+    "required": [
+      "backbone_ref",
+      "reference",
+      "mutable_positions",
+      "design_chain",
+      "num_sequences",
+      "temperature",
+      "seed"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {
+    "reference": "reference_sequence",
+    "mutable_positions": "mutable_positions"
+  },
+  "license_id": "SEE_THIRD_PARTY.md",
+  "data_egress": false
+}

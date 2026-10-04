@@ -1,0 +1,54 @@
+{
+  "name": "esmc600m_suggest_mutations",
+  "capability": "variant.suggest",
+  "description": "Recommend single substitutions at the exact allowed sequence positions using ESMC-600M.",
+  "limitations": "",
+  "engine": "esmc600m",
+  "task_kinds": [
+    "variant_design"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "reference": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+      },
+      "positions": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "minItems": 1,
+        "maxItems": 2046,
+        "uniqueItems": true
+      },
+      "top_k": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 384
+      }
+    },
+    "required": [
+      "reference",
+      "positions",
+      "top_k"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "model",
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {
+    "reference": "reference_sequence",
+    "positions": "mutable_positions"
+  },
+  "license_id": "SEE_THIRD_PARTY.md",
+  "data_egress": false
+}

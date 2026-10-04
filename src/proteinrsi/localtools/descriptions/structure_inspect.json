@@ -1,0 +1,35 @@
+{
+  "name": "structure_inspect",
+  "capability": "structure.inspect",
+  "description": "Read chain sequences and explicit observed-residue maps from an imported PDB.",
+  "limitations": "",
+  "engine": "utilities",
+  "task_kinds": [
+    "variant_design",
+    "variant_ranking",
+    "binder_design",
+    "affinity_prediction"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "structure_ref": {
+        "type": "string",
+        "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+      }
+    },
+    "required": [
+      "structure_ref"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {},
+  "license_id": "MIT",
+  "data_egress": false
+}

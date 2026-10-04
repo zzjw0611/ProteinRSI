@@ -27,10 +27,12 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev,graph,gepa,mcp]'
+      - run: pip install -e '.[dev,graph,gepa,mcp]' 'biopython>=1.84,<2'
       - run: ruff check .
       - run: pytest -q --cov=proteinrsi --cov-report=term-missing
       - run: proteinrsi demo --out runs/ci-demo --rounds 3
+      - run: proteinrsi demo --adaptive --out runs/ci-research-demo --rounds 3
+      - run: proteinrsi research plans --campaign runs/ci-research-demo/campaign
       - run: python -m build
 
   esmc-native:

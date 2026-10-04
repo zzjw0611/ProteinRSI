@@ -1,0 +1,108 @@
+{
+  "name": "protenix_predict",
+  "capability": "structure.predict",
+  "description": "Predict a monomer or fixed-target protein complex using locally installed Protenix and explicit MSA mode. Returns structures and raw confidence artifacts, not Kd.",
+  "limitations": "Canonical proteins only; B is candidate and A is immutable target in complex mode. No automatic MSA/template service. Requires locally staged data and weights.",
+  "engine": "protenix",
+  "task_kinds": [
+    "variant_design",
+    "variant_ranking",
+    "binder_design",
+    "affinity_prediction"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "sequence": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+      },
+      "assembly": {
+        "enum": [
+          "monomer",
+          "complex"
+        ]
+      },
+      "msa_mode": {
+        "enum": [
+          "none",
+          "precomputed"
+        ]
+      },
+      "msas": {
+        "type": "object",
+        "additionalProperties": {
+          "type": "object",
+          "properties": {
+            "unpaired": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+            },
+            "paired": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+            }
+          },
+          "required": [
+            "unpaired"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "seeds": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "minItems": 1,
+        "maxItems": 4,
+        "uniqueItems": true
+      },
+      "samples": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "steps": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 200
+      },
+      "cycles": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10
+      },
+      "dtype": {
+        "enum": [
+          "fp32",
+          "bf16"
+        ]
+      }
+    },
+    "required": [
+      "sequence",
+      "assembly",
+      "msa_mode",
+      "msas",
+      "seeds",
+      "samples",
+      "steps",
+      "cycles",
+      "dtype"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {},
+  "license_id": "SEE_THIRD_PARTY.md",
+  "data_egress": false
+}

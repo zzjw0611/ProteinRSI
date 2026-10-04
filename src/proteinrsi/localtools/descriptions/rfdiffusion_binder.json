@@ -1,0 +1,65 @@
+{
+  "name": "rfdiffusion_binder",
+  "capability": "backbone.generate",
+  "description": "Generate fixed-length binder backbones against an explicitly supplied fixed target. Use returned backbone_ref and chain roles with ProteinMPNN.",
+  "limitations": "Fixed-length, fully mutable binder; target structure must cover the full declared target. No scaffold poly-G sequence is returned as a final candidate.",
+  "engine": "rfdiffusion",
+  "task_kinds": [
+    "binder_design"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "target_ref": {
+        "type": "string",
+        "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+      },
+      "target_chain": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9]$"
+      },
+      "length": {
+        "type": "integer",
+        "minimum": 10,
+        "maximum": 500
+      },
+      "num_designs": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 16
+      },
+      "hotspots": {
+        "type": "array",
+        "items": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "maxItems": 32,
+        "uniqueItems": true
+      },
+      "seed": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 2147483647
+      }
+    },
+    "required": [
+      "target_ref",
+      "target_chain",
+      "length",
+      "num_designs",
+      "hotspots",
+      "seed"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {},
+  "license_id": "SEE_THIRD_PARTY.md",
+  "data_egress": false
+}

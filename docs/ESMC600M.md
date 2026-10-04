@@ -176,3 +176,20 @@ PyTorch has its own BSD-style license. Biohub's model card currently includes
 both `mit` and `other` metadata and links use conditions; retain and review the
 exact downloaded revision's card/license/notices. We do not redistribute weights,
 relicense earlier noncommercial releases, or grant rights to unrelated engines.
+
+
+## v0.3 separate interpreter option
+
+`worker_python` selects an absolute interpreter from a dedicated ESMC venv/Conda
+installation. The unchanged native Transformers computation then runs in that
+interpreter, receiving only sequences/positions and a pinned public weight path,
+not the campaign database or hidden labels. Example configuration:
+`configs/esmc600m.isolated.json`, or the `esmc` section of
+`configs/protein_tools.json`. Install the worker with
+`scripts/setup_local_tools.py --engine esmc600m --execute` after reviewing its plan.
+
+The parent still owns all caches/input charges and resolves downloads explicitly.
+Each uncached operation starts a process and reloads weights; this is not a
+high-throughput resident model service. Native mode (`worker_python=null`) remains
+available. The new isolated path has not repeated the v0.2 pretrained inference
+validation in this build environment; run esmc-check on the deployment machine.

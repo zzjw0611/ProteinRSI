@@ -1,225 +1,171 @@
 # ProteinRSI
 
-**实验反馈驱动的蛋白研究多 Agent 框架：内环优化研究对象，外环验证并改进科研方法，再对改进器本身进行独立验收。**
+**有限实验预算下的蛋白科研团队：内环推进设计／预测，外环验证工作流修改，再对改进器本身进行独立验收。**
 
-[English](README.en.md) · [架构](docs/ARCHITECTURE.md) · [接入工具](docs/INTEGRATIONS.md) · [评测](docs/EVALUATION.md) · [许可与复用](THIRD_PARTY.md)
+[English](README.en.md) · [研究执行层](docs/RESEARCH_RUNTIME.md) · [代码复用清单](docs/REUSE.md) · [本地工具](docs/LOCAL_TOOLS.md) · [ESMC-600M](docs/ESMC600M.md) · [评测](docs/EVALUATION.md) · [许可](THIRD_PARTY.md)
 
-> **v0.2.0 是可运行的研究实现，不是已验证的蛋白设计产品。** 默认 demo 使用本仓库生成的人工数值和确定性角色，不调用真实 LLM、不运行蛋白模型、不产生湿实验结果。新增真实本地 ESMC-600M 后端，供新任务默认使用；其权重需要明确下载。真实对话 LLM、其他蛋白工具、数据和实验条件需另行配置。
+> **v0.4.0 是研究软件，不是已验证的自动蛋白设计产品。** 本版整合 v0.3 的本地工具与隔离环境，并新增资源选择、可修订的结构化计划和已揭示数据分析。没有 NIM 依赖，不需要启动 MCP 服务就能使用本地工具。默认演示仍是合成数值＋确定性角色；它不调用真实 LLM、蛋白模型或实验室。当前受限 RSI 修改的是提示与类型化策略，不执行任意自修改 Python。
 
-## v0.2：默认蛋白后端改为 ESMC-600M
+## 整体架构与四个角色
 
-**这是可调用的模型接入，不是把 ESM3 字符串改名。** 使用官方原生 Transformers
-权重 `biohub/ESMC-600M-hf`，支持单／多位点突变先验打分、单点候选建议、序列
-embedding，以及已揭示实测数据上的轻量 Ridge 预测器。A/B/C/M 的对话 LLM 不变。
-
-```bash
-pip install -e '.[esmc]'
-proteinrsi init --task examples/wetlab_task.json --out runs/esmc600m --device cuda
-proteinrsi esmc-check --campaign runs/esmc600m --download
-# 配置下文 PROTEINRSI_* 环境变量后
-proteinrsi step --campaign runs/esmc600m --agent llm
-```
-
-首次检查下载真实权重并做短序列推理，之后只读本地缓存。没有 GPU 时省略
-`--device cuda` 使用 CPU。配置见 `examples/esmc600m.json`，完整说明及无需 LLM
-的三个蛋白工具命令见 [ESMC600M](docs/ESMC600M.md)。不需要自己编写 MCP 包装器。
-
-**ESMC 是序列表征／掩码模型，不是结构生成器或亲和力真值模型。** C 会自动
-分析 B 最终提出的候选，不依赖 LLM 偶然想起调用工具。实测不足时只提供先验；
-实测增加后重拟合任务预测器，ESMC 权重固定。外环与 RSI 的权限、验收机制保留。
-
-新 CLI `init` 默认启用 ESMC；`demo` 仍为离线演示，既有 v0.1 任务保留原后端，
-不偷偷改变已运行实验。新的纯基线用 `init --protein-model none`。旧任务继续使用原
-配置；请新建 ESMC 任务比较，不直接改数据库或重解释已提交批次。
-
-**已验证**：[ESMC CI 运行](https://github.com/zzjw0611/ProteinRSI/actions/runs/37112441460)
-通过核心双 Python 版本检查、23 项 ESMC 专项测试和实际 600M 权重的 CPU 推理测试。
-实际权重 SHA、环境及未验证范围见 [TESTING](docs/TESTING.md)。这不是湿实验或功能提升证明。
-
-## 系统里有什么？
-
-| 角色 | 职责 | 代码 |
+| 角色 | 工作 | 实现 |
 |---|---|---|
-| A 科研负责人 | 制定计划，审核 C 的排序，确定候选优先级 | `agents.PrincipalAgent` |
-| B 蛋白设计员 | 直接输出序列／突变编辑，或调用允许的工具 | `agents.DesignerAgent` |
-| C 分析评估员 | 计算排序、分析新反馈，区分预测与实测 | `agents.AnalystAgent` |
-| M 方法改进员 | 提出工作流补丁或自身 meta-policy 后继版本 | `agents.MetaAgent` |
+| A 科研负责人 | 选择相关资源、制定研究计划、根据实际结果修订未执行步骤、审核最终排序 | `agents.PrincipalAgent`＋`research/runner.py` |
+| B 蛋白设计员 | 直接给出序列／编辑，或连续调用允许的设计工具 | `agents.DesignerAgent` |
+| C 分析评估员 | 分析已知测量、调用计算工具、评价候选、解释新实验 | `agents.AnalystAgent`＋`research/analysis.py` |
+| M 方法改进员 | 提出工作流补丁或自身策略的后继版本；不能自行验收 | `agents.MetaAgent`＋`improvement.py` |
 
-四个逻辑角色可以使用同一个模型。工具、实验后端、预算账本和验收程序不是额外的 Agent。
+四个逻辑角色可以共用一个对话模型。ESMC 是蛋白计算模型，不是对话 LLM。资源选择器、计划运行时、预算账本与验收器不是额外的科研 Agent。
 
 ```mermaid
 flowchart TD
-    Input[研究任务与预算] --> A[A 科研负责人]
-    A --> B[B 直接设计或调用 Skill / Tool]
-    B --> C[C 分析评估]
-    C --> Select[A 审核候选优先级]
-    Select --> Approval[约束检查与人工批准]
-    Approval --> Lab[实验执行 / 受控历史数据查询]
-    Lab --> Feedback[C 分析新测量]
-    Feedback --> A
-    Feedback --> M[M 方法改进员]
-    M --> Patch[工作流补丁 / Meta Policy 补丁]
-    Patch --> Check[类型、权限与低成本检查]
-    Check --> Trial[受限试用 / 独立后继能力评测]
-    Trial --> Gate[可信验收：采纳、拒绝或证据不足]
-    Gate --> Versions[版本档案与有作用域的经验]
+    Task[任务 / 已揭示实验 / 预算] --> Resources[权限过滤后选择工具、数据、Skill和方法知识]
+    Resources --> A[A 制定或修订 ResearchPlan]
+    A --> Execute[按计划执行 B设计 / C分析 / 注册工具]
+    Execute --> Observe[实际结果、候选、产物和检查记录]
+    Observe --> A
+    A --> Final[A 审核排序；只提出实验候选]
+    Final --> Gate[可信服务校验 / 人工批准]
+    Gate --> Lab[历史实测查询 或 人工湿实验]
+    Lab --> Feedback[新测量导入 / QC / 误差分析]
+    Feedback --> Task
+    Feedback --> M[M 判断是否值得修改方法]
+    M --> Patch[工作流或Meta策略候选补丁]
+    Patch --> Trial[低成本检查 / 后续等名额实验试用 / 独立后继评测]
+    Trial --> Promotion[采纳、拒绝或证据不足]
+    Promotion --> Versions[W和M版本 / 有作用域的经验]
     Versions --> A
     Versions --> M
 ```
 
-**三个版本分别记录**：`evidence_version` 是已揭示证据，`workflow_version` 是 A/B/C 的方法，`meta_version` 是 M 的改进方法。更换候选或重拟合相同预测器不等于 RSI。
+**三个层次不可混淆**：调整当前计划是内环；修改可复用工作流 `W` 并验证是系统自改进；改进器 `M` 产生经独立验收的后继并接管后续修改，才进入本项目的受限 RSI。`evidence_version`、`workflow_version`、`meta_version` 和每次 `research run_id` 分别记录。
 
-## 五分钟运行
+## v0.4 真正新增了什么？
 
-要求 Python 3.11+，Linux/macOS；Windows 使用 WSL。首次安装需要访问包仓库，安装后默认演示不联网。
+**资源选择。** 从已授权且可用的工具、当前可见数据、工作流 Skill、初始 Know-how 和当前作用域经验中选择资源。默认使用轻量排序；`resource_selection=llm` 才调用预算内的 LLM 检索。选择不扩大权限，不读取隐藏标签，不安装新工具。文档和工具描述都是参考数据，不是更高权限的指令。
+
+**结构化计划。** A 可以安排“先分析→再设计”，也可在分析后再次设计。计划包含假设、步骤、依赖、问题和预期产物；执行器记录实际负责人、完成状态、输出引用及修订历史。只能修改未执行部分；最终提交必须经过设计、最新候选池的 C 排序和 A 审核。每个完成步骤持久化。已失败／状态不确定的执行明确阻塞，不静默改用假结果。
+
+**只读实验分析。** 增加 `research_evidence_summary`、`research_prediction_errors`、`research_combination_effects` 三个上下文绑定工具。它们不能接收隐藏标签、任意文件路径或自报实验值，只访问当前 `TaskView`。误差分析使用当初送测时冻结的预测；组合效应需显式选择 linear/log 标度，默认不跨实验批次混合，缺母本或组成单突变实测就报告缺失。这些是描述性分析，不自动校正测量，也不是显著性证明。
+
+**知识与经验分离。** Know-how 是初始方法说明，Skill 是操作方法，Method Experience 是有验证记录及适用范围的方法修改。Know-how 在任务初始化时保存内容快照。当前经验主要在任务内记录／检索；跨蛋白传递和收益仍需专门协议，不宣称已解决。
+
+## 实际复用与借鉴：不是把多个仓库直接嵌套
+
+| 来源 | 类型 | 具体复用／借鉴 | 本项目位置及边界 |
+|---|---|---|---|
+| **Biomni** | **有限的源码改编＋架构借鉴** | 改编 `ToolRetriever` 的分类检索与资源格式化；借鉴计划—执行—观察和 Know-how 思路 | `research/biomni_retriever.py` 为 **Apache-2.0**；它在 `resource_selection=llm` 路线被调用。预算化 JSON 客户端、索引校验和权限预过滤是本项目修改。没有引入 A1 主类、全局 REPL、全部工具或 E1 环境 |
+| **ProteinMCP** | 架构借鉴，**未复制源码** | 一模型一环境、工具注册、Skill 组织 | `localtools/` 是原创函数／描述／Worker；不依赖 Claude Code 或其 MCP 服务管理器 |
+| **LangGraph** | 可选库/API 复用 | StateGraph、SQLite 检查点、批准／结果中断恢复 | `integrations/langgraph.py`；复用同一个 `Campaign`，不是第二套实验循环 |
+| **GEPA** | 可选库/API 复用 | `evaluate`、反思数据接口与优化入口 | `integrations/gepa.py`；需要操作者提供受控 evaluator 和反思模型，候选必须另过 gate；未自动取代 M |
+| **Virtual Lab** | 可选库/API 复用＋角色思路借鉴 | 调用上游 `Agent` / `run_meeting`，参考 PI／专家分工 | `integrations/virtual_lab.py` 是显式可选讨论，不是默认 A/B/C 的隐藏依赖 |
+| **Transformers / ESMC** | 实际模型/API 复用 | 原生 ESMC-600M 加载、掩码打分和特征 | `protein/esmc.py`；权重另行下载并固定版本，模型不是本项目训练 |
+| **ProteinMPNN / RFdiffusion / Protenix / PyRosetta** | 部署后调用上游原生程序/API | 逆折叠、骨架生成、结构预测、可选物理分析 | `localtools/functions.py`＋`worker.py`；不重写模型，安装、许可与权重另行准备，新增引擎尚未端到端实测 |
+| **ProteinSwarm** | 架构参考，**未复制源码** | LLM 直接序列编辑与反馈的思路 | 不宣称复现其实验、残基群体或设计收益 |
+| **HyperAgents / ADAS** | 架构参考，**未复制源码** | 后继改进器／工作流搜索 | 本项目是原创的受限策略演化，未包含 HyperAgents 非商业源码 |
+| **ALDE / SSMuLA / EVOLVEpro** | 方法／评测参考，**不是代码依赖** | 实测反馈、主动学习和蛋白特征＋轻量预测器的分工 | 自带 Ridge 是原创 NumPy 基线，不是 ALDE/EVOLVEpro；真实数据由用户依法提供 |
+
+Biomni 源码审读版本固定为 [`400c1f3`](https://github.com/snap-stanford/Biomni/tree/400c1f366b96a35ca253e13c9b06c5076af41d65)。源文件、修改内容、许可和验证边界见 [REUSE](docs/REUSE.md)。不复制论文性能数字，不声称当前仓库等同于 Biomni 正刊使用的确切代码版本；也不将它的单次运行 `self_critic` 称为本项目的 RSI。
+
+## 安装与离线演示
+
+Python 3.11+，Linux/macOS，Windows 使用 WSL。代码包不包含模型权重、实验数据和密钥。
 
 ```bash
-git clone https://github.com/zzjw0611/ProteinRSI.git
 cd ProteinRSI
 python -m venv .venv
 source .venv/bin/activate
 pip install -e '.[dev]'
 
-proteinrsi demo --out runs/demo --rounds 5 --seed 17
-proteinrsi status --campaign runs/demo/campaign
+# 新增研究运行时，角色与数据仍明确为脚本/合成
+proteinrsi demo --adaptive --out runs/research-demo --rounds 3
+proteinrsi research plans --campaign runs/research-demo/campaign
+proteinrsi research resources --campaign runs/research-demo/campaign
+proteinrsi research analyze --campaign runs/research-demo/campaign
 pytest -q
 ```
 
-Demo 生成 `runs/demo/fixture/`、SQLite 状态、每轮批次、反馈、工作流试用结果和 `report.json`。重复使用相同 demo 目录会报错，避免覆盖旧实验。某个补丁可能被接受、拒绝或判为证据不足；代码不会强制出现“进步”。
+不带 `--adaptive` 的 `demo` 保留原固定流程，可做工程对照；不能把两条脚本流程的演示差异当作 LLM 协作收益。输出含 SQLite、批次与结果模板、资源快照、研究计划、逐步输出和 `report.json`。不会强制让补丁被采纳；结果可以是 `inconclusive`。
 
-查看结构化审计轨迹：
+## 配置入口
 
-```python
-from proteinrsi.storage import Store
-store = Store('runs/demo/campaign')
-for event in store.events():
-    print(event['kind'], event['payload'])
-```
-
-## 实际实现状态
-
-| 能力 | v0.2 状态与边界 |
+| 文件 | 作用 |
 |---|---|
-| 多轮候选—反馈循环 | 已实现；任务级 SQLite 持久化、断点恢复、批次审批与幂等导入 |
-| 直接序列／突变设计 | 已实现真实 HTTP LLM 路径；本地测试使用模拟传输，不提供模型密钥 |
-| ESMC-600M | 本地原生推理、固定权重快照、打分／建议／特征、实测反馈拟合、缓存及 plm_inputs 预算 |
-| 工具调用 | 已实现 Schema、白名单、目标保护、预算、结果缓存和 MCP v1 HTTP 适配；需配置实际服务与输出映射 |
-| 工作流改进 | 已实现补丁暂存、等名额双臂实验、独立验收、版本更新和经验记录 |
-| 受限 RSI | M 可提出自身策略／提示的后继，独立比较后继工作流质量，验收后加载新 M |
-| 任意 Python 自修改 | **未开放**；不在宿主机执行 LLM 生成代码。当前演化范围是有类型的策略和提示配置 |
-| 单／多位点任务 | 已实现有限候选库设计、直接编辑和基于已测数据的排序 |
-| Binder | 有固定长度 scaffold／固定靶点约束与外部工具入口；**不是开箱即用的从头设计平台** |
-| 亲和力 | 固定输入、预测产物和反馈接口；**没有内置可靠亲和力模型**，不能用 Ridge/结构分数冒充 Kd |
-| 湿实验 | 已实现人工批准、批次导出、真实结果导入；没有机器人驱动，也没有本项目产生的新湿实验数据 |
-| 跨蛋白经验 | 已记录作用域与未验证迁移状态；迁移收益必须通过新的实验协议验证 |
+| `.env.example` | A/B/C/M 对话 LLM 的模型、BASE_URL 和密钥模板 |
+| **`configs/research.json`** | 资源选择模式、上下文额度、计划步数、修订次数和执行上限 |
+| **`configs/protein_tools.json`** | 本地重型模型环境、资产、版本与执行限额；新增引擎默认禁用 |
+| `examples/esmc600m.json` | 单独使用 ESMC 时的设备、精度、批量和输入限额 |
+| `examples/wetlab_task.json` | 母本、允许位点、任务目标、测量协议与预算 |
+| `examples/workflow.json` / `workflow.binder.json` | W 的提示、策略、工具及 Skill 白名单 |
+| `examples/meta_policy.json` | M 的初始受限策略 |
 
-原生控制器无需 LangGraph 即可运行，是断网／轻量环境的可测试入口。安装 `graph` extra 后，**同一套操作**由真实 LangGraph 状态图编排，而不是另造一套实验逻辑。
-
-## 使用已有实测数据模拟多轮实验
-
-不随仓库分发 SSMuLA、ProteinGym 或其他第三方数据。先确认原始数据许可并准备 CSV。最小格式为：
-
-```csv
-sequence,value,qc
-ACDE,1.0,valid
-AFDE,1.3,valid
-```
-
-必须提供正确的母本和 1-based 序列位点；结构文件残基号不能直接当序列位置。
+`init` 保存配置；修改样例文件不会热更新既有任务。**新 CLI 任务默认 adaptive＋ESMC；旧任务和未传 research_config 的 Python API 保持固定路径。** 用 `--research-mode fixed` 创建固定流程基线；用 `--protein-model none` 创建不加载蛋白模型的基线。协议和权限不能由 M 修改。
 
 ```bash
-python scripts/prepare_replay.py \
-  --csv /path/to/your_data.csv \
-  --sequence-column full_sequence --value-column fitness \
-  --reference ACDE --positions 2 --out runs/replay-input
+# 首先根据机器安装相应 CPU/CUDA PyTorch，再安装 ESMC 依赖
+pip install -e '.[esmc]'
+# 将任务样例改成自己的序列、位点、指标与已审核实验协议
+proteinrsi init --task examples/wetlab_task.json --out runs/protein \
+  --protein-config examples/esmc600m.json --research-config configs/research.json
+proteinrsi esmc-check --campaign runs/protein --download
 
-proteinrsi init --task runs/replay-input/task.json --out runs/replay --protein-model none
-proteinrsi replay --campaign runs/replay --dataset runs/replay-input/measurements.csv
+# 编辑 .env 后手工加载；程序不会自动 source 文件
+set -a; source .env; set +a
+proteinrsi step --campaign runs/protein --agent llm
 ```
 
-脚本也支持 `--site-sequences`：输入列只保存可变位点的氨基酸串时，根据显式位点重建完整序列。重复记录不擅自聚合，缺失值不自动填零，库外候选不编造标签。没有母本测量时需显式使用 `--controls 0`。
+`PROTEINRSI_MODEL` 填对话模型，**不要填 ESMC**。客户端使用 Chat Completions 风格 JSON 接口。原生其他协议需要适配；LLM 出错明确失败。开启 `resource_selection=llm` 会消耗同一个 `llm_calls` 预算，默认 rules 不额外调用检索 LLM。
 
-大候选库每轮按公开序列、随机种子和已测集合提取至多 `proposal_pool_size` 个候选；该步骤不读取未知标签。它是有限池搜索，不等于对完整景观进行无限规模推断。
+## 蛋白工具与独立环境
 
-**按轮查询已有实测值是历史实测回放，不是新湿实验。** `feedback_source` 始终记录这一差别。
+本版保留 **13 个蛋白／结构／MSA 工具**，再增加 **3 个任务上下文分析工具**。ESMC、ProteinMPNN、RFdiffusion、Protenix 与可选 PyRosetta 各司其职，所有任务不必运行全部模型。
 
-## 接入 LLM 与蛋白工具
-
-不附带权重和密钥，不隐式调用云端推理。ESMC 与对话 LLM 分开配置。开启真实对话 LLM：
+```text
+Agent → 类型化工具函数 / 独立描述 → 白名单、预算、产物校验
+      → 模型独立 Python 环境或可选容器 → 上游原生程序 → 结构化结果
+```
 
 ```bash
-export PROTEINRSI_MODEL='your-model-id'
-export PROTEINRSI_BASE_URL='https://your-provider/v1'
-export PROTEINRSI_API_KEY='set-locally'
-
-proteinrsi step --campaign runs/replay --agent llm
+proteinrsi tools list --config configs/protein_tools.json
+proteinrsi tools describe --name proteinmpnn_design
+python scripts/setup_local_tools.py --engine proteinmpnn --prefix /opt/proteinrsi
+# 先阅读计划，确认后才加 --execute。环境/权重/许可完成后生成 tools.local.json。
+proteinrsi tools doctor --config tools.local.json --probe --strict
+proteinrsi init --task examples/wetlab_task.json --out runs/isolated \
+  --local-tools tools.local.json --research-config configs/research.json
 ```
 
-`.env.example` 只是模板；程序不自动加载 `.env`。HTTP 接口需要支持 Chat Completions 风格 JSON 输出，实际响应仍独立验证。模型出错时明确失败，不自动切回确定性假 Agent。
+`tools list` 列的是模型工具部署目录；3 个分析工具在 adaptive 运行时绑定当前数据快照。ESMC 也可使用 `configs/esmc600m.isolated.json` 指定独立解释器。MCP 仍为兼容已有外部工具的可选通道，但本地路线不需要它。**独立环境隔离依赖，不等于操作系统安全沙箱。** 本版不开放任意 `exec()`／模型生成 shell。
+
+## 多轮实测反馈与双闭环
 
 ```bash
-pip install -e '.[graph,mcp,gepa]'
-proteinrsi step --campaign runs/replay --agent llm --tools /path/to/bindings.json
+proteinrsi step --campaign runs/protein --agent llm
+# 人工检查批次、序列和预算
+proteinrsi approve --campaign runs/protein --batch YOUR_BATCH_ID --operator YOUR_NAME
+# 实验室完成测量，保留模板样本身份、单位、来源和协议
+proteinrsi import-results --campaign runs/protein --file /path/to/results.csv --agent llm
+proteinrsi step --campaign runs/protein --agent llm
 ```
 
-工具绑定由操作者提供，并固定工具版本、输入 Schema 哈希、输出 Schema、任务适用范围和受保护输入。跨主机传输还需 `--allow-data-egress`。**安装 MCP SDK 不会自动安装 ESM、Protenix、Rosetta 或 ProteinMPNN。** 详见 [INTEGRATIONS](docs/INTEGRATIONS.md)。
+只有新实测导入后才开始下一轮实验反馈；一次湿实验前的多步计算不是多轮湿实验。批准／提交名额计费，不能通过回滚 W 退款。导入一个批次的所有最终状态，失败／无结论不是零；相同结果重复导入不重复计费。人工 CSV 只是集成接口，软件不能自行证明其真实性。
 
-## 真实湿实验：计划、批准、等待、导入
+历史数据使用 `scripts/prepare_replay.py` 准备，再运行 `proteinrsi replay --dataset ...`。源数据不附带。隐藏标签只由受控揭示器读取，**资源检索与分析工具没有“免费查真实标签”的通道**；查询式回放仍不是新湿实验。
 
-修改 `examples/wetlab_task.json`，填写自己的母本、允许位点、实验目标、单位、已批准 assay 版本和预算。
+工作流补丁先经类型、权限和可用性检查，再在后续相同名额双臂试用。Meta 补丁由 `proteinrsi evaluate-meta --cases ... --promote` 独立比较后继工作流；相同研究配置、Know-how 内容和固定 ESMC 快照传给双方。没有待验收 Meta 补丁会拒绝。最终测试不能选版本。涉及外部结构引擎的通用 Meta 验收仍被阻止，需要另行准备任务范围内的结构产物与评价器。探索性 bootstrap gate 不是持续多次搜索后仍有效的统计证明。
 
-```bash
-proteinrsi init --task examples/wetlab_task.json --out runs/wet --device cuda
-proteinrsi esmc-check --campaign runs/wet --download
-proteinrsi step --campaign runs/wet --agent llm
-# 输出 pending_batch；在运行目录查看批次和 results.template.csv
-proteinrsi approve --campaign runs/wet --batch YOUR_BATCH_ID --operator YOUR_NAME
+## 当前没有完成的能力
 
-# 在实验室执行；填写真实测量，保留 sample_id、序列哈希、单位与 assay 版本。
-proteinrsi import-results --campaign runs/wet --file /path/to/results.csv --agent llm
-proteinrsi step --campaign runs/wet --agent llm
-```
+没有新增重型引擎的真实端到端／GPU 验证，没有付费 LLM 端到端运行，没有新湿实验或 RSI 科学收益证明。定量蛋白—蛋白亲和力、完整全原子质量验证、跨蛋白持续经验迁移和单 Agent／多 Agent 科学对照仍需专项工作。历史 ESMC CPU 推理记录不能替代本版新功能验证。分析算子为确定性白名单函数，不是自由数据分析代码沙箱。
 
-未批准批次不能导入；模板空白行不算测量；一个批次必须提供每个样本的最终状态（`valid`、`failed` 或 `inconclusive`）。可在导入前逐步收集结果，但当前不支持部分批次自动推进。重复导入完全相同数据是幂等操作，冲突数据会被拒绝。
+## 许可与测试
 
-取消尚未批准的批次：
-
-```bash
-proteinrsi cancel --campaign runs/wet --batch YOUR_BATCH_ID --operator YOUR_NAME
-```
-
-批准后实验名额按已提交计费，不能通过回滚工作流退款；物理实验取消／退款需要未来的实验室集成处理。本程序不会自动下单或操作机器人，也无法单凭 CSV 证明数据确实来自实验室。
-
-## RSI 怎么验证？
-
-工作流补丁不会立即替换当前 W。它先通过类型、权限和工具可用性检查，再用后续批次中相同名额的旧／新策略候选比较，实验支出计入同一个账本。
-
-Meta 补丁也不会自行发布。准备 evaluator-only 案例文件（包含独立组别、开发／验证／测试划分、公共初始观测及仅评测器可见的标签），运行：
-
-```bash
-proteinrsi evaluate-meta --campaign runs/replay --cases /path/to/validation_cases.json --promote
-```
-
-没有待验收 meta 补丁时，此命令拒绝执行。评测从相同 W、相同已知证据和额度出发，分别让旧、新 M 产生后继 W，比较后继结果；接受后后续轮次使用新 M。测试集只能报告，不能用于版本选择。
-
-本实现的 gate 是预先设定的探索性 bootstrap 比较，**不是**多次搜索后仍有保证的统计证明。少量样本、相关变体、连续试验和公开数据污染都需要在正式研究中另行控制。[评测说明](docs/EVALUATION.md) 列出了必要边界。
-
-## 测试与复现
+原创核心代码、测试与文档继续采用 **MIT**。`research/biomni_retriever.py` 的改编部分采用 **Apache-2.0**，完整原许可在 `licenses/Biomni-Apache-2.0.txt`，出处和修改记录在 `NOTICE`。分发包元数据写作 **`MIT AND Apache-2.0`**，表示并存文件义务，**不是任选其一的双许可**。其他依赖、权重、数据库、PyRosetta 分别遵守其条款；未重新许可它们。
 
 ```bash
 pytest -q --cov=proteinrsi --cov-report=term-missing
 python -m compileall -q src
-# 安装 graph/gepa/mcp 后运行对应集成测试；否则明确显示 skipped。
-pip install -e '.[dev,graph,gepa,mcp]'
-pytest -q
+python -m build
 ```
 
-首次构建的本地环境无法联网安装可选包；核心、实验接口、LLM 模拟传输、预算和受限 RSI 测试已实际运行。具体数量、版本和未测项见 [TESTING](docs/TESTING.md)。CI 会在具备网络的 GitHub runner 上安装依赖并重新验证，状态以真实 Actions 结果为准。
-
-## 许可与安全
-
-**本仓库原创代码和文档采用 [MIT](LICENSE)**。不包含第三方模型权重、实测数据、用户研究记录 PDF 或第三方 Agent 源码副本。实际复用通过库依赖和 API 适配完成，许可证分别保留。
-
-HyperAgents 等项目只作为架构参考，**没有把其非商业源码复制进 MIT 项目**。ProteinSwarm 与 ALDE 也没有被冒称为本仓库已经运行的上游实现；本地 Ridge 是明确标注的原创轻量基线。全部复用／参考关系见 [THIRD_PARTY](THIRD_PARTY.md)。
-
-正式研究前请阅读 [SECURITY](SECURITY.md)，并在隔离环境里部署模型工具。SQLite 和 Python 属性私有化不是恶意代码沙箱；不要让能任意读文件的 Agent 与隐藏标签、密钥、审批服务共用权限。
+实际执行结果与未运行项见 [TESTING](docs/TESTING.md)；版本变化见 [CHANGELOG](CHANGELOG.md)。本次发行内容不包括用户研究 PDF、私有实验数据、密钥或模型权重。

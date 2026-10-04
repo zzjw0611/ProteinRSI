@@ -19,6 +19,8 @@ class ToolCall(Model):
 class ToolSpec(Model):
     name: str
     capability: str
+    description: str = ""
+    limitations: str = ""
     implementation_version: str
     task_kinds: list[TaskKind]
     input_schema: dict[str, Any]
@@ -33,6 +35,12 @@ class ToolGateway:
         self.store = store
         self.allow_egress = allow_egress
         self._tools: dict[str, tuple[ToolSpec, Callable[[dict], dict]]] = {}
+
+    def fork(self) -> ToolGateway:
+        """Copy bindings for a round-local overlay; shared store retains budget/cache rules."""
+        gateway = ToolGateway(self.store, allow_egress=self.allow_egress)
+        gateway._tools = dict(self._tools)
+        return gateway
 
     def register(self, spec: ToolSpec, executor: Callable[[dict], dict]) -> None:
         if spec.name in self._tools:

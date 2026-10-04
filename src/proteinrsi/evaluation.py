@@ -42,7 +42,8 @@ def read_cases(path: str | Path) -> list[MetaCase]:
 
 def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
                      directory: str, team_factory: Callable[[Store], Team] | None,
-                     protein_config: dict | None = None, protein_pin: dict | None = None) -> tuple[float, dict]:
+                     protein_config: dict | None = None, protein_pin: dict | None = None,
+                     research_config: dict | None = None, know_how: list | None = None) -> tuple[float, dict]:
     store = Store(directory)
     resources = case.task.budget.model_dump()
     if protein_config:
@@ -51,6 +52,11 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
         if protein_pin:
             store.put("protein_backend", "snapshot", protein_pin, immutable=True)
     store.configure_budget(resources)
+    if research_config is not None:
+        store.put("configuration", "research", research_config, immutable=True)
+        store.put("configuration", "know_how", know_how or [], immutable=True)
+    from proteinrsi.localtools.config import LocalToolsConfig
+    store.put("configuration", "local_tools", LocalToolsConfig().model_dump(), immutable=True)
     team = team_factory(store) if team_factory else Team(store)
     # Read only observed data in the policy context. No labels, global extrema or paths.
     view = TaskView(task=case.task, round_index=1, observations=case.initial,
@@ -91,6 +97,10 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
     if any((c.task.kind, c.task.metric, c.task.unit, c.task.direction) !=
            (task.kind, task.metric, task.unit, task.direction) for c in cases):
         raise ValueError("Do not average incomparable tasks/units in a promotion gate")
+    local_tools = campaign.store.get("configuration", "local_tools", {})
+    if any(e.get("enabled") for e in local_tools.get("engines", {}).values()):
+        raise ValueError("External-engine meta evaluation needs case-scoped artifact provisioning; "
+                         "the current numeric evaluator cannot silently reuse another protein's structure")
     base_w = Workflow.model_validate(snapshot["workflow"])
     base_m = MetaPolicy.model_validate(snapshot["meta"])
     patch = Patch.model_validate(snapshot["pending_meta"])
@@ -99,14 +109,16 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
     traces = []
     protein_config = campaign.store.get("configuration", "protein_model")
     protein_pin = campaign.store.get("protein_backend", "snapshot")
+    research_config = campaign.store.get("configuration", "research")
+    know_how = campaign.store.get("configuration", "know_how")
     if protein_config and not protein_pin:
         raise ValueError("Resolve ESMC once with esmc-check before a paired meta evaluation")
     with TemporaryDirectory(prefix="proteinrsi-meta-") as directory:
         for i, case in enumerate(cases):
             old, trace_old = _offspring_score(case, base_w, base_m, f"{directory}/{i}-old", team_factory,
-                                          protein_config, protein_pin)
+                                          protein_config, protein_pin, research_config, know_how)
             new, trace_new = _offspring_score(case, base_w, child_m, f"{directory}/{i}-new", team_factory,
-                                          protein_config, protein_pin)
+                                          protein_config, protein_pin, research_config, know_how)
             grouped[case.group_id].append((old, new))
             traces.append({"baseline": trace_old, "challenger": trace_new})
     # Seeds/related cases from one protein/group do not count as independent proteins.
@@ -117,12 +129,14 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
     report = {"patch_id": patch.patch_id, "base_meta": base_m.version, "candidate_meta": child_m.version,
               "base_workflow": base_w.version, "case_manifest_sha256": manifest_hash,
               "protein_model": protein_pin, "protein_configuration": protein_config,
+              "research_configuration": research_config, "know_how_snapshot_sha256": digest(know_how),
               "gate": gate.model_dump(), "traces": traces, "promoted": False,
               "protocol": "one-step frozen-improver, paired group means, equal query/call limits",
               "scope": {"kind": task.kind.value, "metric": task.metric, "unit": task.unit},
               "sources": sorted({c.task.feedback_source for c in cases})}
     key = digest({"patch": patch.patch_id, "manifest": manifest_hash, "base_w": base_w.version,
-                  "protein_config": protein_config, "protein_pin": protein_pin})
+                  "protein_config": protein_config, "protein_pin": protein_pin,
+                  "research": research_config, "know_how": digest(know_how)})
     with campaign.store.lock():
         current = campaign.state
         if (current["workflow"] != snapshot["workflow"] or current["meta"] != snapshot["meta"]

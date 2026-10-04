@@ -1,3 +1,27 @@
+# v0.4 local validation — 2026-10-04
+
+Local source suite: **142 passed, 5 skipped**, **78% statement coverage**.
+Python 3.13.5, NumPy 2.3.5, Pydantic 2.13.4, pytest 9.0.2. This includes
+35 new tests for the adaptive plan loop, budgeted JSON retrieval, read-only
+analyses, scope/permission filtering, plan revisions, completed-step recovery,
+blocked failures, paired Meta configuration and exact upstream license retention.
+The existing 107 tests also pass. Three-round adaptive and fixed synthetic demos
+and source compilation pass. No demonstration forces a positive improvement.
+
+Skipped: native Transformers test (dependency unavailable), actual pretrained
+ESMC test (not opted in), GEPA, LangGraph SQLite and MCP optional integration tests.
+No paid LLM, new model weights, GPU, Docker or new wet-lab experiment ran locally.
+Scripted LLMs and mocked HTTP test mechanics, not biological or LLM performance.
+
+Network dependency installation could not run in this container because DNS/package
+access was unavailable. Editable installation succeeds with existing packages using
+`pip install --no-build-isolation --no-deps -e .`. Distribution builds use the
+installed setuptools backend without downloading build dependencies. Ruff is not
+installed locally; the checked-in CI retains the Ruff step. New release CI status
+must be verified separately and must not be inferred from historical runs below.
+
+All earlier test records below describe their stated versions, not this release.
+
 # Initial build verification
 
 The initial implementation was exercised locally with Python 3.13.5, Pydantic 2.13.4,
@@ -99,3 +123,40 @@ snapshot. Test success establishes this model-loading/embedding/scoring path, no
 GPU support on arbitrary hardware, biological accuracy, new wet-lab results or
 scientific improvement from RSI. Multi-round/RSI control tests use explicit fixture
 backends and should not be described as real wet-lab validation.
+
+
+## v0.3 local-tool implementation tests (2026-10-03)
+
+The update was developed against the exact source tree of upstream commit
+`1094e26f0777bf3d86dbe60337a6ebfa72594234` (tree
+`95e699c30f1c3d462a28d86be9392daaac917e7e`). The current connector was read-only
+and the local environment could not resolve remote Git hosts, so this update is
+provided as a source archive and an applicable patch, not a claimed GitHub push.
+No new GitHub Actions run was executed for this local update.
+
+Local verification:
+
+- `PYTHONPATH=src OPENBLAS_NUM_THREADS=1 pytest -q`: **107 passed, 5 skipped** on Python 3.13.5.
+  The coverage run reports **75% statement coverage**; child-process worker execution is not instrumented in that total.
+- `python -m compileall -q src scripts`: passed.
+- Three-round deterministic synthetic demo: completed; not a wet-lab result.
+- `tools list`, `tools describe`, and a model-free sequence-QC CLI call: exercised.
+- Wheel built locally with `pip wheel --no-deps --no-build-isolation --no-index`.
+- Ruff was not installed in this execution environment, so no local Ruff pass is claimed.
+
+The five skips are the absent native Transformers library test, the opt-in actual
+ESMC-600M checkpoint test, and unavailable GEPA, LangGraph and MCP extras. The
+v0.2 real-checkpoint CI result above remains a historical result, not a new v0.3
+isolated-worker validation.
+
+The new tests use explicitly **fake upstream command programs** and synthetic PDB
+fixtures. They launch real subprocesses to test ProteinMPNN/RFdiffusion/Protenix
+argument construction, output parsing, target/design mapping, fixed residues,
+artifact integrity, secret stripping, timeout/output bounds, sequence validation,
+workflow version compatibility and sequential tool calls. They do not simulate
+scientific success or claim that real engine weights ran. PyRosetta inference,
+Docker execution, GPU performance, the isolated ESMC weight path and complete
+real-model Binder workflows still need operator validation on the deployment host.
+
+The ordinary CI test job additionally installs Biopython for the fixture CIF
+conversion test; it does not install the real Protenix engine.

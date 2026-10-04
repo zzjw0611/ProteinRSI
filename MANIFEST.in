@@ -5,3 +5,10 @@ recursive-include examples *.json
 recursive-include scripts *.py
 recursive-include tests *.py
 recursive-include src/proteinrsi/skills *.md
+
+recursive-include configs *.json *.yml
+recursive-include src/proteinrsi/localtools/descriptions *.json
+include CHANGELOG.md
+
+recursive-include licenses *.txt
+recursive-include src/proteinrsi/research/know_how *.md

@@ -1,3 +1,15 @@
+# Current architecture (v0.4)
+
+The new optional typed inner-loop runtime is documented in [RESEARCH_RUNTIME](RESEARCH_RUNTIME.md).
+New CLI tasks enable it by default; old campaigns retain their prior fixed runner.
+A resource selector, explicit plan ledger and read-only analyses are shared by A/B/C;
+no new permanent Agent, NIM service or unrestricted interpreter is added. M and the
+trusted experiment/promotion boundaries remain unchanged. [REUSE](REUSE.md) records
+what was actually adapted/imported versus merely inspired by other projects.
+
+The following sections retain the baseline architecture and still describe its
+scientific/security boundaries; fixed A→B→C ordering applies to fixed mode.
+
 # Architecture and invariants
 
 ## One durable campaign, four roles

@@ -1,0 +1,41 @@
+{
+  "name": "msa_validate",
+  "capability": "msa.validate",
+  "description": "Validate an already computed A3M against its query. Does not search a remote or local sequence database.",
+  "limitations": "",
+  "engine": "utilities",
+  "task_kinds": [
+    "variant_design",
+    "variant_ranking",
+    "binder_design",
+    "affinity_prediction"
+  ],
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "msa_ref": {
+        "type": "string",
+        "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+      },
+      "sequence": {
+        "type": "string",
+        "minLength": 1,
+        "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+      }
+    },
+    "required": [
+      "msa_ref",
+      "sequence"
+    ],
+    "additionalProperties": false
+  },
+  "output_schema": {
+    "type": "object",
+    "required": [
+      "evidence_kind"
+    ]
+  },
+  "protected_inputs": {},
+  "license_id": "MIT",
+  "data_egress": false
+}

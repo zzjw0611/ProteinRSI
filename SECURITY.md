@@ -11,3 +11,18 @@ ProteinRSI v0.1 is a research implementation, not a hardened autonomous laborato
 - CI uses synthetic fixtures and no API keys. Do not add private labels, restricted model weights or real experiment records to public tests or issues.
 
 Report vulnerabilities to the repository maintainer through an available private channel. Do not publish secrets or unpublished protein datasets in an issue. The repository does not promise any preconfigured private reporting channel or incident response time.
+
+
+## v0.3 local engines
+
+Per-engine venv/Conda interpreters isolate dependencies, **not hostile code**. They
+retain OS permissions of the invoking user. Sanitized child environments and Python
+audit hooks are defense in depth, not a substitute for OS network/filesystem policy.
+Use the provided Docker route or site sandbox for untrusted dependencies. Docker
+mounts only approved code/assets and one job workspace, uses no network and never
+pulls implicitly; this deployment path still needs operator testing.
+
+Do not load untrusted .pt/pickle data. Only operator-approved scientific files enter
+the artifact store. There is no arbitrary shell tool. Failed/uncertain jobs are not
+silently retried, and generated output references must remain inside their workdir.
+Weights, environment config, resource limits and promotion rules are not RSI-editable.
