@@ -1,4 +1,4 @@
-# ProteinRSI 0.4
+# ProteinRSI 0.5
 
 **Budgeted protein research with an experimental inner loop, validated workflow
 improvement, and bounded successor-improver evaluation.**
@@ -16,17 +16,38 @@ B proposes constrained sequences/edits or calls registered design tools. C perfo
 read-only evidence analysis and candidate review. M proposes persistent workflow or
 MetaPolicy patches; only independent gates may adopt them. All can share one chat LLM.
 
-```
-Visible task/evidence → permission-filtered resources → A's plan
-   → evidence / B design / tools / C ranking → actual outputs → A replanning
-   → A final priorities → trusted checks → human approval → experiment
-   → new observations → next inner round and conditional outer improvement
-```
+![User-supplied protein agent conceptual architecture](docs/assets/proteinrsi-architecture-zh.svg)
+
+The supplied SVG is copied without alteration; its conceptual transfer/RSI arrows are not efficacy evidence.
+
 
 A current-plan revision is not a published workflow. A new workflow is not necessarily
 a better improver. Data, workflow, MetaPolicy and research-run identities are recorded
 separately. Both Meta-evaluation offspring receive identical research configuration
 and Know-how snapshots; hidden labels remain evaluator-owned.
+
+## v0.5: optional means no implicit computation
+
+Actual LLM execution never automatically scores with ESMC, embeds sequences or fits Ridge.
+Models are available as tools; zero-call rounds are valid. The explicitly labelled
+deterministic baseline retains numerical ranking. The user can prewarm weights with
+`esmc-check`, but metadata inspection and role planning do not load them.
+
+Prompts are inspectable Markdown snapshots in `prompts/`; they are ProteinRSI-authored,
+not transplanted four-agent prompts. `research_fit_predict` is an explicit context-bound
+operation. All 13 protein manifests have richer usage guidance and strict outputs.
+
+GB1 can start with one paid parent lookup, counted inside round one. Catalogue mode
+separates the LLM preview from the eligible universe. Meta evaluations charge the shared
+study ledger, including warm-start labels. Reports expose best sequences, query history,
+unique variants and tool/LLM usage without inventing dollar prices.
+
+`replay` defaults to a Linux Landlock/seccomp worker, with controller-only labels and
+capability RPC for LLM/tools. Unsupported kernels fail closed. The explicitly selected
+`--execution inprocess` path is NOT an isolated benchmark. The development environment
+lacks the Landlock syscall, so real guarded-worker tests are skipped, not reported passed.
+See [PROMPTS](docs/PROMPTS.md), [TOOL_CONTRACTS](docs/TOOL_CONTRACTS.md), and
+[REPLAY_SECURITY](docs/REPLAY_SECURITY.md). Start a new campaign for v0.5 semantics.
 
 ## What is genuinely reused?
 

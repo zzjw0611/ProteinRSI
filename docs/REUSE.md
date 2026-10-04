@@ -1,4 +1,4 @@
-# Reuse and design provenance — v0.4
+# Reuse and design provenance — v0.5
 
 This is an implementation inventory, not a claim of reproducing upstream papers.
 An API adapter is not source transplantation. A design citation is not an installed model.
@@ -76,3 +76,14 @@ independent successor-improver gate and scoped experience records are implemente
 in ProteinRSI. These are implementation responsibilities, not claims that the broad
 ideas were first invented here. Scientific novelty and generalization require
 independent experiments.
+
+## v0.5 additions
+
+`prompting.py` and all `prompts/*.md` are original templates, with role/workflow influences
+listed in PROMPTS.md. They do not claim to reproduce an upstream prompt experiment.
+`replay/` is an original controller/capability worker and Linux restriction implementation,
+not a copy of the server-local guard scripts described in the user's data report.
+`research/prediction.py`, catalogue helpers, SponsoredStore and reporting are original.
+Model implementations and the original Biomni adaptation retain their prior licenses.
+The provided architecture SVG is byte-for-byte preserved in docs/assets; origin/hash are
+recorded in architecture.provenance.json. It is not a Biomni figure or validation result.

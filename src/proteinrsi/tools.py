@@ -14,6 +14,7 @@ from proteinrsi.storage import Store
 class ToolCall(Model):
     name: str
     arguments: dict[str, Any]
+    purpose: str = Field(default="", max_length=2000)
 
 
 class ToolSpec(Model):
@@ -21,6 +22,13 @@ class ToolSpec(Model):
     capability: str
     description: str = ""
     limitations: str = ""
+    when_to_use: list[str] = Field(default_factory=list)
+    when_not_to_use: list[str] = Field(default_factory=list)
+    cost_hint: str = "No empirical runtime estimate available; use deployment-specific measurement."
+    examples: list[dict[str, Any]] = Field(default_factory=list)
+    output_semantics: str = ""
+    validation_level: str = "adapter_contract_only"
+    result_schema_version: str = "1"
     implementation_version: str
     task_kinds: list[TaskKind]
     input_schema: dict[str, Any]
@@ -72,6 +80,8 @@ class ToolGateway:
         payload = {"spec": spec.model_dump(mode="json"), "call": call.model_dump(), "context": context_key}
         key = "tool-" + digest(payload)
         previous = self.store.get("tool_jobs", key)
+        self.store.event("tool_requested", {"tool": call.name, "purpose": call.purpose,
+            "context": context_key, "cache_hit": bool(previous and previous.get("state")=="done")})
         if previous:
             if previous["state"] != "done":
                 raise RuntimeError("Uncertain/failed prior tool job; reconcile rather than resubmit blindly")

@@ -41,11 +41,52 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "ca_contact_pairs": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "minimum_ca_distance_angstrom": {
+        "type": "number"
+      },
+      "cutoff_angstrom": {
+        "type": "number"
+      }
+    },
     "required": [
-      "evidence_kind"
-    ]
+      "evidence_kind",
+      "ca_contact_pairs",
+      "minimum_ca_distance_angstrom",
+      "cutoff_angstrom",
+      "warning"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {},
   "license_id": "MIT",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Need an explicit check of sequence, structure or alignment input."
+  ],
+  "when_not_to_use": [
+    "Need a calibrated phenotype prediction."
+  ],
+  "cost_hint": "One tool call; local CPU validation/geometry, no experimental query.",
+  "output_semantics": "",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Need an explicit check of sequence, structure or alignment input.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "see_also": "docs/TOOL_CONTRACTS.md"
+    }
+  ]
 }

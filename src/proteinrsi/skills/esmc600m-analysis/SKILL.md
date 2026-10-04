@@ -18,11 +18,13 @@ Available local tools (only when allowlisted):
 - `esmc600m_embed_sequences`: stores residue-mean, final-layer embeddings locally
   and returns an artifact reference, not thousands of numbers in the discussion.
 
-For variant design/ranking, C automatically evaluates the actual post-design
-candidate pool using ESMC. Before two distinct valid measured variants exist,
-sequence priors are shown without a numeric task prediction. Afterwards, a ridge
-head uses only revealed labels and fixed ESMC embeddings plus the workflow's
-additive/pairwise mutation features. New measurements refit that head, not ESMC.
+All ESMC operations are OPTIONAL. There is no automatic post-design scoring,
+embedding extraction or task-head fitting in the LLM route. No-call rounds are valid.
+Only request a tool to answer a concrete question. To learn from already revealed
+measurements, explicitly request `research_fit_predict` with `features=esmc` (or
+`features=mutation` without ESMC). This is not run merely because ESMC is configured.
+Only an explicitly obtained task prediction artifact can supply a numeric phenotype
+estimate; do not translate a sequence prior into fitness. ESMC weights stay frozen.
 
 Interpret both priors and unvalidated ridge predictions as proxies. A large prior
 is not proof of improved fluorescence, stability, Kd, or experimental success.

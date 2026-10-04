@@ -1,3 +1,11 @@
+# v0.5 guarded replay
+
+Formal replay uses a fresh Landlock/seccomp-constrained researcher process and a trusted
+controller for labels, LLM access and protein tools. Unsupported kernels fail closed.
+The explicit in-process mode is for trusted debugging, not an isolated benchmark.
+See [REPLAY_SECURITY](docs/REPLAY_SECURITY.md). Code/protein workers and administrators
+are trusted; this is not an unrestricted arbitrary-code sandbox or security proof.
+
 # Security and scientific safety
 
 ProteinRSI v0.1 is a research implementation, not a hardened autonomous laboratory service.

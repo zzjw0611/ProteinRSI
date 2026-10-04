@@ -55,11 +55,151 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "artifacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "enum": [
+                "pdb",
+                "cif",
+                "a3m",
+                "fasta",
+                "json"
+              ]
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "filename": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ref",
+            "sha256",
+            "kind",
+            "bytes"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1
+      },
+      "backbones": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "filename": {
+              "type": "string"
+            },
+            "target_chain": {
+              "type": "string"
+            },
+            "design_chain": {
+              "type": "string"
+            },
+            "backbone_ref": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+            }
+          },
+          "required": [
+            "filename",
+            "target_chain",
+            "design_chain",
+            "backbone_ref"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1
+      },
+      "provenance": {
+        "type": "object",
+        "required": [
+          "engine",
+          "job_id",
+          "revision",
+          "wall_seconds",
+          "runtime"
+        ],
+        "properties": {
+          "engine": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "wall_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "runtime": {
+            "enum": [
+              "process",
+              "docker"
+            ]
+          },
+          "asset_sha256": {
+            "type": "object"
+          },
+          "software": {
+            "type": "object"
+          }
+        }
+      }
+    },
     "required": [
-      "evidence_kind"
-    ]
+      "evidence_kind",
+      "artifacts",
+      "backbones",
+      "warning",
+      "provenance"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {},
   "license_id": "SEE_THIRD_PARTY.md",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Need a fixed-length binder backbone around a complete target."
+  ],
+  "when_not_to_use": [
+    "Only optimizing an existing sequence or seeking final validated affinity."
+  ],
+  "cost_hint": "Separate GPU worker; expensive generation; explicit num_designs and timeout.",
+  "output_semantics": "Fixed-length, fully mutable binder; target structure must cover the full declared target. No scaffold poly-G sequence is returned as a final candidate.",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Need a fixed-length binder backbone around a complete target.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "see_also": "docs/TOOL_CONTRACTS.md"
+    }
+  ]
 }

@@ -33,6 +33,10 @@ def attach(directory: str, args) -> Campaign:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="proteinrsi")
     sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("sandbox-check", help="Probe Linux Landlock/seccomp prerequisites; no model or API calls")
+    prompts = sub.add_parser("prompts", help="Inspect role prompt templates and snapshot versions")
+    prompts.add_argument("--campaign")
+    prompts.add_argument("--role", default="all")
     init = sub.add_parser("init", help="Initialize one persistent campaign")
     init.add_argument("--task", required=True)
     init.add_argument("--out", required=True)
@@ -86,14 +90,29 @@ def main(argv: list[str] | None = None) -> None:
             cmd.add_argument("--file", required=True)
         if name == "replay":
             cmd.add_argument("--dataset", required=True)
+            cmd.add_argument("--execution", choices=["guarded", "inprocess"], default="guarded",
+                help="Guarded research worker is default. inprocess is explicit trusted debugging, not label-isolation validation.")
         if name == "evaluate-meta":
             cmd.add_argument("--cases", required=True)
             cmd.add_argument("--promote", action="store_true")
+            cmd.add_argument("--execution", choices=["guarded", "inprocess"], default="guarded")
         if name == "graph":
             cmd.add_argument("--resume", help="JSON file with explicit approval/measurement payload")
     args = parser.parse_args(argv)
     try:
-        if args.command == "research":
+        if args.command == "sandbox-check":
+            from proteinrsi.replay.sandbox import probe
+            output = probe()
+        elif args.command == "prompts":
+            from proteinrsi.prompting import packaged_prompts
+            data = (Store(args.campaign).get("configuration", "prompt_bundle") if args.campaign else None)
+            texts = data["templates"] if data else packaged_prompts()
+            if args.role != "all" and args.role not in texts:
+                raise ValueError("Unknown role")
+            output = data or {"templates": texts, "origin": "packaged_defaults"}
+            if args.role != "all":
+                output = {"role": args.role, "text": texts[args.role]}
+        elif args.command == "research":
             from proteinrsi.research.analysis import persist_analysis
             store = Store(args.campaign)
             if store.get("campaign", "state") is None:
@@ -157,6 +176,11 @@ def main(argv: list[str] | None = None) -> None:
                 workflow.tool_names = list(TOOL_NAMES)
                 workflow.skill_names = [*workflow.skill_names, "esmc600m-analysis"]
             if not args.workflow:
+                workflow.tool_names += ["research_fit_predict"]
+                if load_json(args.task).get("candidates"):
+                    workflow.tool_names += ["library_check", "library_sample"]
+                # C may ask, but this upper bound never requires any actual call.
+                workflow.analysis_tool_rounds = 3
                 workflow.tool_names += configured_names(local_config)
                 if any(e.enabled for e in local_config.engines.values()):
                     workflow.analysis_tool_rounds = 2
@@ -219,11 +243,8 @@ def main(argv: list[str] | None = None) -> None:
             elif args.command == "patch":
                 campaign.stage_patch(Patch.model_validate(load_json(args.file)))
             elif args.command == "replay":
-                task = TaskSpec.model_validate(campaign.state["task"])
-                oracle = CSVOracle(args.dataset, task)
-                while (batch := campaign.prepare()) is not None:
-                    campaign.approve(batch.batch_id, operator="explicit-replay-driver")
-                    campaign.ingest(oracle.measure(batch))
+                from proteinrsi.replay.controller import run_replay
+                run_replay(campaign, args.dataset, guarded=args.execution == "guarded")
             elif args.command == "evaluate-meta":
                 from proteinrsi.evaluation import evaluate_meta, read_cases
                 def factory(store):
@@ -232,6 +253,9 @@ def main(argv: list[str] | None = None) -> None:
                     if args.tools:
                         from proteinrsi.integrations.mcp import load_bindings
                         load_bindings(tools, args.tools)
+                    if args.execution == "guarded":
+                        from proteinrsi.replay.broker import GuardedTeam
+                        return GuardedTeam(store, llm, tools)
                     return Team(store, llm, tools)
                 output = evaluate_meta(campaign, read_cases(args.cases), promote=args.promote, team_factory=factory)
                 print(json.dumps(output, ensure_ascii=False, indent=2))

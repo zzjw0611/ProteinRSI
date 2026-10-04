@@ -45,6 +45,9 @@ class BudgetSpec(Model):
 
 class TaskSpec(Model):
     name: str = Field(min_length=1, max_length=120)
+    objective_description: str = Field(default="", max_length=12000)
+    initial_observation_policy: Literal["none", "parent_once"] = "none"
+    candidate_access: Literal["pool", "catalogue"] = "pool"
     kind: TaskKind = TaskKind.VARIANT
     reference_sequence: str
     target_sequence: str | None = None
@@ -72,6 +75,10 @@ class TaskSpec(Model):
 
     @model_validator(mode="after")
     def consistency(self) -> TaskSpec:
+        if self.initial_observation_policy == "parent_once" and self.controls_per_batch:
+            raise ValueError("parent_once requires controls_per_batch=0; no implicit repeated parent queries")
+        if self.initial_observation_policy == "parent_once" and self.kind not in (TaskKind.VARIANT, TaskKind.RANKING):
+            raise ValueError("parent_once is supported for variant design/ranking")
         if self.controls_per_batch >= self.batch_size:
             raise ValueError("A batch must leave room for research candidates")
         if len(set(self.mutable_positions)) != len(self.mutable_positions):
@@ -186,6 +193,7 @@ class Batch(Model):
     meta_version: str
     samples: list[Sample]
     patch_id: str | None = None
+    phase: Literal["research", "initialization"] = "research"
 
 
 class Patch(Model):

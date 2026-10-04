@@ -37,11 +37,151 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "artifacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "enum": [
+                "pdb",
+                "cif",
+                "a3m",
+                "fasta",
+                "json"
+              ]
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "filename": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ref",
+            "sha256",
+            "kind",
+            "bytes"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1
+      },
+      "metrics": {
+        "type": "object",
+        "properties": {
+          "total_energy": {
+            "type": "object",
+            "properties": {
+              "value": {
+                "type": "number"
+              },
+              "unit": {
+                "const": "REU"
+              }
+            },
+            "required": [
+              "value",
+              "unit"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "total_energy"
+        ],
+        "additionalProperties": false
+      },
+      "input_residue_mapping": {
+        "type": "object"
+      },
+      "provenance": {
+        "type": "object",
+        "required": [
+          "engine",
+          "job_id",
+          "revision",
+          "wall_seconds",
+          "runtime"
+        ],
+        "properties": {
+          "engine": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "wall_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "runtime": {
+            "enum": [
+              "process",
+              "docker"
+            ]
+          },
+          "asset_sha256": {
+            "type": "object"
+          },
+          "software": {
+            "type": "object"
+          }
+        }
+      }
+    },
     "required": [
-      "evidence_kind"
-    ]
+      "evidence_kind",
+      "artifacts",
+      "metrics",
+      "input_residue_mapping",
+      "warning",
+      "provenance"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {},
   "license_id": "SEE_THIRD_PARTY.md",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Need local physical relaxation of an actual complete structure."
+  ],
+  "when_not_to_use": [
+    "Need experimental proof or missing-atom reconstruction."
+  ],
+  "cost_hint": "Licensed worker; CPU cost scales with repeats and protein size.",
+  "output_semantics": "Operator-installed licensed PyRosetta required; energies in REU, not affinity.",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Need local physical relaxation of an actual complete structure.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "see_also": "docs/TOOL_CONTRACTS.md"
+    }
+  ]
 }

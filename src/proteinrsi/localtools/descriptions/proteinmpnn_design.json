@@ -68,14 +68,182 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "candidates": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "sequence": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "predicted_value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "uncertainty": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "evidence_kind": {
+              "enum": [
+                "none",
+                "proxy",
+                "calibrated_prediction"
+              ]
+            }
+          },
+          "required": [
+            "sequence"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1
+      },
+      "artifacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "enum": [
+                "pdb",
+                "cif",
+                "a3m",
+                "fasta",
+                "json"
+              ]
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "filename": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ref",
+            "sha256",
+            "kind",
+            "bytes"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1
+      },
+      "input_residue_mapping": {
+        "type": "object"
+      },
+      "provenance": {
+        "type": "object",
+        "required": [
+          "engine",
+          "job_id",
+          "revision",
+          "wall_seconds",
+          "runtime"
+        ],
+        "properties": {
+          "engine": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "wall_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "runtime": {
+            "enum": [
+              "process",
+              "docker"
+            ]
+          },
+          "asset_sha256": {
+            "type": "object"
+          },
+          "software": {
+            "type": "object"
+          }
+        }
+      }
+    },
     "required": [
-      "evidence_kind"
-    ]
+      "evidence_kind",
+      "candidates",
+      "artifacts",
+      "input_residue_mapping",
+      "provenance"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {
     "reference": "reference_sequence",
     "mutable_positions": "mutable_positions"
   },
   "license_id": "SEE_THIRD_PARTY.md",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Have a full fixed backbone and want to redesign one explicit chain."
+  ],
+  "when_not_to_use": [
+    "Have no backbone or need a different length/topology."
+  ],
+  "cost_hint": "Separate GPU/CPU worker; number of sequences and length affect runtime; no measured estimate supplied.",
+  "output_semantics": "One designed chain. Fixed-length, canonical protein only. Complete N/CA/C/O backbone. Sequence predictions are not experiments.",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Have a full fixed backbone and want to redesign one explicit chain.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "arguments": {
+        "backbone_ref": "artifact:0000000000000000000000000000000000000000000000000000000000000000.pdb",
+        "reference": "ACDE",
+        "mutable_positions": [
+          2
+        ],
+        "design_chain": "B",
+        "num_sequences": 4,
+        "temperature": 0.1,
+        "seed": 17
+      }
+    }
+  ]
 }

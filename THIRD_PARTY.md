@@ -139,3 +139,10 @@ protocol document is redistributed.
 Upstream source and license:
 - https://github.com/snap-stanford/Biomni/blob/400c1f366b96a35ca253e13c9b06c5076af41d65/biomni/model/retriever.py
 - https://github.com/snap-stanford/Biomni/blob/400c1f366b96a35ca253e13c9b06c5076af41d65/LICENSE
+
+## User-provided architecture asset
+
+`docs/assets/proteinrsi-architecture-zh.svg` was supplied by the repository owner for
+README inclusion and copied unchanged. Its SHA256/source filename are recorded beside it.
+It is not copied from Biomni or another paper, and does not establish scientific efficacy.
+No independent third-party asset license was asserted; preserve the provenance record.

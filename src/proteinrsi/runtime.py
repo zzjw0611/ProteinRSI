@@ -14,14 +14,14 @@ from proteinrsi.improvement import ExperienceMemory, apply_patch, evaluate_trial
 from proteinrsi.lab import export_batch
 from proteinrsi.llm import LLMError
 from proteinrsi.storage import BudgetExceeded, Conflict, Store
-from proteinrsi.tasks import validate_task
+from proteinrsi.tasks import validate_task, validate_candidate
 
 
 class Campaign:
     def __init__(self, store: Store, team: Team | None = None, meta_agent: MetaAgent | None = None):
         self.store = store
         self.team = team or Team(store)
-        self.meta_agent = meta_agent or MetaAgent(self.team.llm)
+        self.meta_agent = meta_agent or MetaAgent(self.team.llm, store)
         self.memory = ExperienceMemory(store)
 
     @classmethod
@@ -34,6 +34,8 @@ class Campaign:
             if store.get("campaign", "state") is not None:
                 raise Conflict("Campaign already exists; use resume/status, not init")
             workflow, meta, gate = workflow or Workflow(), meta or MetaPolicy(), gate or GatePolicy()
+            from proteinrsi.prompting import snapshot_prompts
+            snapshot_prompts(store)
             resources = task.budget.model_dump()
             if protein_config is not None:
                 from proteinrsi.protein.esmc import ESMCConfig
@@ -56,7 +58,9 @@ class Campaign:
                 "workflow": workflow.model_dump(), "meta": meta.model_dump(), "gate": gate.model_dump(),
                 "round_index": 0, "status": "ready", "observations": [], "history": [],
                 "pending_batch": None, "pending_patch": None, "pending_meta": None,
-                "last_patch_round": -100, "considered_round": -1, "planning_attempt": 0}
+                "last_patch_round": -100, "considered_round": -1, "planning_attempt": 0,
+                "execution_semantics": "on-demand-v1", "initialization_done": False,
+                "first_round_spent": 0}
             store.put("campaign", "state", state)
             store.put("workflow_versions", workflow.version, workflow.model_dump(), immutable=True)
             store.put("meta_versions", meta.version, meta.model_dump(), immutable=True)
@@ -92,6 +96,8 @@ class Campaign:
     def prepare(self) -> Batch | None:
         with self.store.lock():
             state = self.state
+            if state.get("execution_semantics") != "on-demand-v1":
+                raise Conflict("Legacy campaign: keep the old executable or start a new v0.5 campaign; no silent semantic migration")
             if state["pending_batch"]:
                 return Batch.model_validate(self.store.get("batches", state["pending_batch"]))
             if state["status"] == "complete":
@@ -100,12 +106,30 @@ class Campaign:
                 raise Conflict("Campaign is not ready to plan")
             view = self.view(state)
             task = view.task
-            n = min(task.batch_size, view.remaining_wells)
+            remaining_round = task.batch_size - (state.get("first_round_spent", 0) if state["round_index"] == 0 else 0)
+            n = min(remaining_round, view.remaining_wells)
             if state["round_index"] >= task.max_rounds or n <= task.controls_per_batch:
                 state["status"] = "complete"
                 self.store.put("campaign", "state", state)
                 return None
+            if task.initial_observation_policy == "parent_once" and not state.get("initialization_done"):
+                batch_id = "b-initial-" + digest({"campaign": state["campaign_id"], "attempt": state["planning_attempt"]})[:16]
+                batch = Batch(batch_id=batch_id, campaign_id=state["campaign_id"], round_index=0,
+                    evidence_version=view.evidence_version, meta_version=view.meta.version, phase="initialization",
+                    samples=[Sample(sample_id=batch_id+"-000", arm="control", workflow_version=view.workflow.version,
+                        candidate=Candidate(sequence=task.reference_sequence, source="initial_parent"))])
+                self.store.reserve("lab-"+batch_id, "experimental_wells", 1, batch.model_dump())
+                self.store.put("batches", batch_id, batch.model_dump(), immutable=True)
+                state["pending_batch"], state["status"] = batch_id, "awaiting_approval"
+                self.store.put("campaign", "state", state)
+                export_batch(batch, task, self.store.root/"batches"/batch_id)
+                self.store.event("initial_parent_prepared", {"batch_id": batch_id})
+                return batch
+            # This is the complete label-free eligible catalogue, not the LLM preview.
+            full_task = TaskSpec.model_validate(state["task"])
             baseline = self.team.run(view)
+            for candidate in baseline:
+                validate_candidate(full_task, candidate)
             measured = {o.sequence for o in view.observations}
             excluded = measured | {task.reference_sequence}
             if task.kind == TaskKind.AFFINITY:
@@ -122,6 +146,8 @@ class Campaign:
                 per_arm = slots // 2
                 if per_arm >= gate.min_per_arm:
                     challenger = self.team.run(self.view(state, challenger_workflow))
+                    for candidate in challenger:
+                        validate_candidate(full_task, candidate)
                     challenger = [c for c in challenger if c.sequence not in excluded]
                     # Equal budgets, shared evidence, disjoint submitted variants. Alternate
                     # which policy wins a collision by a prespecified round-based order.
@@ -145,6 +171,9 @@ class Campaign:
             if not trial_patch:
                 chosen = [(c, "baseline", view.workflow.version) for c in baseline[:slots]]
             if not chosen:
+                if set(full_task.candidates) - excluded:
+                    self.store.event("no_valid_proposal", {"round": state["round_index"]})
+                    raise ValueError("No unmeasured proposal returned, but the catalogue is not exhausted")
                 state["status"] = "complete"
                 self.store.event("candidate_space_exhausted", {"round": state["round_index"]})
                 self.store.put("campaign", "state", state)
@@ -240,6 +269,15 @@ class Campaign:
                 "prediction_mae": float(np.mean(errors)) if errors else None,
                 "workflow": Workflow.model_validate(state["workflow"]).version, "meta": batch.meta_version}
             state["observations"].extend(normalized)
+            if batch.phase == "initialization":
+                state["initialization_done"] = True
+                state["first_round_spent"] = len(batch.samples)
+                state["pending_batch"] = None
+                state["status"] = "ready" if self.store.remaining("experimental_wells") else "complete"
+                self.store.put("campaign", "state", state)
+                self.store.event("initial_parent_revealed", {"batch_id": batch_id, "charged_queries": len(batch.samples),
+                    "round_index_unchanged": 0})
+                return state
             if batch.patch_id:
                 trial = self.store.get("trials", batch_id)
                 patch = Patch.model_validate(trial["patch"])
@@ -258,6 +296,7 @@ class Campaign:
             research_config = self.store.get("configuration", "research", {})
             if research_config.get("enabled"):
                 from proteinrsi.research.analysis import persist_analysis
+                # Lightweight QC reporting only; no automatic scientific model fitting.
                 analysis = persist_analysis(self.view(state), self.store)
                 # Trace references are scoped to the evidence used for this submitted batch.
                 trace_summaries = [{"run_id": r["run_id"], "workflow": r["workflow_version"],
@@ -310,6 +349,7 @@ class Campaign:
         current = Workflow.model_validate(state["workflow"]) if patch.target == "workflow" else MetaPolicy.model_validate(state["meta"])
         candidate = apply_patch(current, patch)
         if patch.target == "workflow":
+            self.team.bind_tools(self.view(state, candidate))
             self.team.tools.catalog(task, candidate.tool_names)
             skill_text(candidate.skill_names)
         if self.store.get("patches", patch.patch_id):
@@ -332,7 +372,8 @@ class Campaign:
         task = TaskSpec.model_validate(state["task"])
         values = [o["value"] for o in state["observations"] if o["qc"] == "valid"]
         best = (max(values) if task.direction == "maximize" else min(values)) if values else None
-        return {"campaign_id": state["campaign_id"], "status": state["status"],
+        from proteinrsi.reporting import study_details
+        return {**study_details(self), "campaign_id": state["campaign_id"], "status": state["status"],
                 "completed_rounds": state["round_index"],
                 "research_config": self.store.get("configuration", "research"),
                 "protein_model": self.store.get("configuration", "protein_model"),

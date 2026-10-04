@@ -40,15 +40,108 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "model": {
+        "type": "object",
+        "required": [
+          "model_id",
+          "revision"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          }
+        }
+      },
+      "candidates": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "sequence": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+            },
+            "rationale": {
+              "type": "string"
+            },
+            "source": {
+              "type": "string"
+            },
+            "predicted_value": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "uncertainty": {
+              "type": [
+                "number",
+                "null"
+              ],
+              "minimum": 0
+            },
+            "evidence_kind": {
+              "enum": [
+                "none",
+                "proxy",
+                "calibrated_prediction"
+              ]
+            }
+          },
+          "required": [
+            "sequence"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 0
+      }
+    },
     "required": [
+      "evidence_kind",
       "model",
-      "evidence_kind"
-    ]
+      "candidates"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {
     "reference": "reference_sequence",
     "positions": "mutable_positions"
   },
   "license_id": "SEE_THIRD_PARTY.md",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Need single-substitution proposals at allowed positions."
+  ],
+  "when_not_to_use": [
+    "Need de novo backbone, insertions, or a restricted library without postchecking membership."
+  ],
+  "cost_hint": "One tool call; masked inputs per requested position; does not measure fitness.",
+  "output_semantics": "",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Need single-substitution proposals at allowed positions.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "arguments": {
+        "reference": "ACDE",
+        "positions": [
+          2
+        ],
+        "top_k": 3
+      }
+    }
+  ]
 }

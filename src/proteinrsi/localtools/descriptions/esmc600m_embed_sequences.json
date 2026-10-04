@@ -30,12 +30,83 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "model": {
+        "type": "object",
+        "required": [
+          "model_id",
+          "revision"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          }
+        }
+      },
+      "artifact_ref": {
+        "type": "string",
+        "pattern": "^embedding_artifacts/[0-9a-f]{64}$"
+      },
+      "shape": {
+        "type": "array",
+        "prefixItems": [
+          {
+            "type": "integer",
+            "minimum": 0
+          },
+          {
+            "const": 1152
+          }
+        ],
+        "minItems": 2,
+        "maxItems": 2
+      },
+      "pooling": {
+        "const": "final_layer_residue_mean"
+      }
+    },
     "required": [
+      "evidence_kind",
       "model",
-      "evidence_kind"
-    ]
+      "artifact_ref",
+      "shape",
+      "pooling"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {},
   "license_id": "SEE_THIRD_PARTY.md",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Need frozen features for an explicitly chosen downstream analysis."
+  ],
+  "when_not_to_use": [
+    "Need a fitness value directly; embeddings alone are not predictions."
+  ],
+  "cost_hint": "One tool call; one uncached model input per distinct full sequence.",
+  "output_semantics": "",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Need frozen features for an explicitly chosen downstream analysis.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "arguments": {
+        "sequences": [
+          "ACDE",
+          "AVDE"
+        ]
+      }
+    }
+  ]
 }

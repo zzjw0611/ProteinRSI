@@ -152,3 +152,35 @@ class Store:
                 result[row[0]] = {"limit": row[1], "committed": counts.get("committed", 0),
                                   "reserved": counts.get("reserved", 0)}
             return result
+
+
+class SponsoredStore(Store):
+    """Private child caches, local comparison caps, but all actual resources charge a study sponsor.
+
+    Reservation IDs are stable per evaluation arm. No refund after execution. This
+    is trusted controller code, not a worker ability to choose its budget sponsor.
+    """
+    def __init__(self, directory, sponsor: Store, prefix: str):
+        super().__init__(directory)
+        self.sponsor, self.prefix = sponsor, prefix
+
+    def reserve(self, key, resource, amount, payload):
+        sponsor_key = "meta-" + self.prefix + "-" + key
+        # Local reservation enforces equal per-case limits before using global budget.
+        super().reserve(key, resource, amount, payload)
+        try:
+            self.sponsor.reserve(sponsor_key, resource, amount,
+                                 {"evaluation_arm": self.prefix, "request": payload})
+        except Exception:
+            with self.connect() as con:
+                state = con.execute("SELECT state FROM charges WHERE key=?", (key,)).fetchone()
+            if state and state[0] == "reserved":
+                super().settle(key, release=True)
+            raise
+
+    def settle(self, key, *, release=False):
+        self.sponsor.settle("meta-" + self.prefix + "-" + key, release=release)
+        super().settle(key, release=release)
+
+    def remaining(self, resource):
+        return min(super().remaining(resource), self.sponsor.remaining(resource))

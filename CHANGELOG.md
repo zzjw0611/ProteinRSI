@@ -1,3 +1,16 @@
+# Changes in v0.5.0
+
+- Actual LLM paths use scientific tools only on explicit request; no implicit ESMC/Ridge.
+- Centralized, snapshotted role prompts and documented prompt/design provenance.
+- Full required result schemas, scientific meanings, use/non-use conditions and cost hints.
+- Paid parent-once initialization within round one, full catalogue eligibility vs preview.
+- Shared study accounting for independent Meta evaluations, including initial labels.
+- Fail-closed guarded replay/capability RPC; unsupported-kernel limitation stated explicitly.
+- Best sequence/mutations, progress, unique/repeated queries and actual tool/LLM audit reports.
+- Owner-provided SVG replaces README architecture diagram without alteration.
+- Preserved the owner's Responses protocol and protein engine compatibility changes.
+- New campaigns required for changed semantics; no retroactive model/prompt mutation.
+
 # Changelog
 
 ## 0.4.0 — resource-aware research execution

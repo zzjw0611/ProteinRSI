@@ -1,0 +1,97 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape" width="1600" height="1020" viewBox="0 0 1600 1020" version="1.1" id="protein-agent-architecture-cn" role="img" aria-labelledby="fig-title fig-description">
+  <title id="fig-title">实验反馈驱动的自改进蛋白智能体</title>
+  <desc id="fig-description">中文可编辑项目架构图。上层为蛋白研究任务、蛋白智能体团队、设计与预测、真实实验反馈的任务内闭环。下层从反馈进入自改进与RSI探索，再将验证结果沉淀为带适用范围的方法经验，供新蛋白和新任务复用。新机制经验证后用于下一轮改进。箭头均沿模块外的独立通道连接，不穿过文字或非目标模块。以用户既有项目概念为基础，主要修订语言、层级及布局，未增加实验结果或已验证能力声明。</desc>
+  <metadata>{"basis": "用户提供的单栏SVG及此前项目说明", "language": "zh-CN", "editing": "文字、框体、箭头分别可编辑；无位图、无文字转曲、无外部资源", "research_status": "研究构想；RSI与迁移收益待验证", "sizes_px": {"title": 36, "section": 25, "node_title": 25, "node_body": 21, "edge_label": 20, "note": 19}}</metadata>
+  <defs id="definitions">
+    <marker id="arrow-blue" markerWidth="11" markerHeight="10" refX="10.0" refY="5.0" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 11 10">
+      <path d="M 0 0.8 L 10 5 L 0 9.2 Z" fill="#6B879F"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="11" markerHeight="10" refX="10.0" refY="5.0" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 11 10">
+      <path d="M 0 0.8 L 10 5 L 0 9.2 Z" fill="#6F9087"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="11" markerHeight="10" refX="10.0" refY="5.0" orient="auto" markerUnits="userSpaceOnUse" viewBox="0 0 11 10">
+      <path d="M 0 0.8 L 10 5 L 0 9.2 Z" fill="#8A7B9B"/>
+    </marker>
+  </defs>
+  <g id="background" inkscape:groupmode="layer" inkscape:label="00｜背景与分区">
+    <rect id="white-background" x="0" y="0" width="1600" height="1020" rx="0" ry="0" fill="#FFFFFF"/>
+    <rect id="inner-panel" x="110" y="160" width="1390" height="352" rx="16" ry="16" fill="#FCFDFE" stroke="#D9E0E6" stroke-width="1.5"/>
+    <rect id="outer-panel" x="110" y="568" width="1390" height="371" rx="16" ry="16" fill="#FCFDFE" stroke="#D9E0E6" stroke-width="1.5"/>
+  </g>
+  <g id="headings" inkscape:groupmode="layer" inkscape:label="01｜标题与分区说明">
+    <text id="main-title" x="80" y="76" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="36" font-weight="700" fill="#25313D" text-anchor="start" data-type="label">实验反馈驱动的自改进蛋白智能体</text>
+    <text id="subtitle" x="82" y="118" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="22" font-weight="400" fill="#5B6874" text-anchor="start" data-type="label">多类蛋白任务 · 真实实验反馈 · 方法经验复用</text>
+    <text id="inner-heading" x="142" y="203" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="start" data-type="label">内环｜当前任务优化</text>
+    <text id="inner-subheading" x="474" y="201" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="start" data-type="label">用实验反馈更新候选与研究判断</text>
+    <text id="outer-heading" x="142" y="610" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="start" data-type="label">外环｜方法积累与自改进</text>
+    <text id="outer-subheading" x="556" y="608" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="start" data-type="label">跨蛋白、跨任务复用经验证的方法</text>
+  </g>
+  <g id="connections" inkscape:groupmode="layer" inkscape:label="02｜独立通道中的箭头">
+    <path id="task-to-team" d="M 389 319 L 459 319" fill="none" stroke="#6B879F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)" data-type="connector"/>
+    <path id="team-to-design" d="M 777 319 L 847 319" fill="none" stroke="#6B879F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)" data-type="connector"/>
+    <path id="design-to-feedback" d="M 1075 319 L 1145 319" fill="none" stroke="#6B879F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)" data-type="connector"/>
+    <path id="current-task-feedback" d="M 1250 394 L 1250 484 L 687 484 L 687 394" fill="none" stroke="#6B879F" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-blue)" data-type="connector"/>
+    <path id="cross-task-reuse-return" d="M 144 750 L 80 750 L 80 433 L 545 433 L 545 394" fill="none" stroke="#6F9087" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-green)" data-type="connector"/>
+    <path id="feedback-to-improvement" d="M 1370 394 L 1370 661" fill="none" stroke="#8A7B9B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)" data-type="connector"/>
+    <path id="validated-methods-to-memory" d="M 1094 750 L 956 750" fill="none" stroke="#6F9087" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-green)" data-type="connector"/>
+    <path id="memory-to-reuse" d="M 604 750 L 466 750" fill="none" stroke="#6F9087" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-green)" data-type="connector"/>
+    <path id="rsi-next-improvement" d="M 1463 780 L 1535 780 L 1535 876 L 1280 876 L 1280 839" fill="none" stroke="#8A7B9B" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrow-purple)" data-type="connector"/>
+  </g>
+  <g id="nodes" inkscape:groupmode="layer" inkscape:label="03｜模块框体与中文文字">
+    <g id="protein-task" inkscape:label="蛋白研究任务">
+      <rect id="protein-task-box" x="145" y="250" width="238" height="138" rx="12" ry="12" fill="#F0F5F8" stroke="#ACBECD" stroke-width="1.7"/>
+      <text id="protein-task-title" x="264.0" y="293" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="middle" data-type="label">蛋白研究任务</text>
+      <text id="protein-task-body-1" x="264.0" y="330" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">突变优化 · 靶点设计</text>
+      <text id="protein-task-body-2" x="264.0" y="363" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">亲和力预测</text>
+    </g>
+    <g id="protein-agent-team" inkscape:label="蛋白智能体团队">
+      <rect id="protein-agent-team-box" x="465" y="250" width="306" height="138" rx="12" ry="12" fill="#F0F5F8" stroke="#ACBECD" stroke-width="1.7"/>
+      <text id="protein-agent-team-title" x="618.0" y="293" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="middle" data-type="label">蛋白智能体团队</text>
+      <text id="protein-agent-team-body-1" x="618.0" y="330" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">LLM 分工 · 直接设计</text>
+      <text id="protein-agent-team-body-2" x="618.0" y="363" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">按需调用专业工具</text>
+    </g>
+    <g id="design-prediction" inkscape:label="设计 / 预测">
+      <rect id="design-prediction-box" x="853" y="250" width="216" height="138" rx="12" ry="12" fill="#F0F5F8" stroke="#ACBECD" stroke-width="1.7"/>
+      <text id="design-prediction-title" x="961.0" y="293" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="middle" data-type="label">设计 / 预测</text>
+      <text id="design-prediction-body-1" x="961.0" y="330" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">候选生成与排序</text>
+      <text id="design-prediction-body-2" x="961.0" y="363" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">性质判断</text>
+    </g>
+    <g id="measured-feedback" inkscape:label="真实实验反馈">
+      <rect id="measured-feedback-box" x="1151" y="250" width="306" height="138" rx="12" ry="12" fill="#EFF5F2" stroke="#AFC7BE" stroke-width="1.7"/>
+      <text id="measured-feedback-title" x="1304.0" y="293" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="middle" data-type="label">真实实验反馈</text>
+      <text id="measured-feedback-body-1" x="1304.0" y="330" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">已有实测标签／湿实验</text>
+      <text id="measured-feedback-body-2" x="1304.0" y="363" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">结果与执行轨迹</text>
+    </g>
+    <g id="cross-task-reuse" inkscape:label="跨任务复用">
+      <rect id="cross-task-reuse-box" x="150" y="667" width="310" height="166" rx="12" ry="12" fill="#EFF5F2" stroke="#AFC7BE" stroke-width="1.7"/>
+      <text id="cross-task-reuse-title" x="305.0" y="709" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="middle" data-type="label">跨任务复用</text>
+      <text id="cross-task-reuse-body-1" x="305.0" y="754" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">新蛋白 · 新任务</text>
+      <text id="cross-task-reuse-body-2" x="305.0" y="792" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">检索 · 适配 · 再验证</text>
+    </g>
+    <g id="method-memory" inkscape:label="方法经验积累">
+      <rect id="method-memory-box" x="610" y="667" width="340" height="166" rx="12" ry="12" fill="#EFF5F2" stroke="#AFC7BE" stroke-width="1.7"/>
+      <text id="method-memory-title" x="780.0" y="709" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="middle" data-type="label">方法经验积累</text>
+      <text id="method-memory-body-1" x="780.0" y="754" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">有效策略与适用范围</text>
+      <text id="method-memory-body-2" x="780.0" y="792" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="21" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">失败案例与未知条件</text>
+    </g>
+    <g id="self-improvement" inkscape:label="自改进与 RSI 探索">
+      <rect id="self-improvement-box" x="1100" y="667" width="357" height="166" rx="12" ry="12" fill="#F3F0F6" stroke="#C4B9CF" stroke-width="1.7"/>
+      <text id="self-improvement-title" x="1278.5" y="709" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="25" font-weight="700" fill="#25313D" text-anchor="middle" data-type="label">自改进与 RSI 探索</text>
+      <text id="self-improvement-body-1" x="1278.5" y="748" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">调整分工、工具与决策规则</text>
+      <text id="self-improvement-body-2" x="1278.5" y="781" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">改进诊断、提案与验证机制</text>
+      <text id="self-improvement-body-3" x="1278.5" y="814" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#5B6874" text-anchor="middle" data-type="label">独立检验产生改进的能力</text>
+    </g>
+  </g>
+  <g id="annotations" inkscape:groupmode="layer" inkscape:label="04｜独立留白区中的连线说明">
+    <text id="reuse-return-label" x="306" y="414" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#6F9087" text-anchor="middle" data-type="label">检索、适配与再验证</text>
+    <text id="task-feedback-label" x="954" y="465" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#6B879F" text-anchor="middle" data-type="label">反馈更新当前候选</text>
+    <text id="evidence-label" x="1340" y="548" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#8A7B9B" text-anchor="end" data-type="label">实测结果与轨迹</text>
+    <text id="memory-write-label" x="1025" y="728" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#6F9087" text-anchor="middle" data-type="label">验证后沉淀</text>
+    <text id="memory-read-label" x="535" y="728" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#6F9087" text-anchor="middle" data-type="label">按范围共享</text>
+    <text id="rsi-loop-label" x="1357" y="909" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="20" font-weight="400" fill="#8A7B9B" text-anchor="middle" data-type="label">新机制经验证后用于下一轮</text>
+  </g>
+  <g id="footer" inkscape:groupmode="layer" inkscape:label="05｜起步条件与预算说明">
+    <text id="research-note" x="112" y="985" font-family="'Noto Sans CJK SC', 'Microsoft YaHei', 'PingFang SC', sans-serif" font-size="19" font-weight="400" fill="#5B6874" text-anchor="start" data-type="label">研究构想｜初期基于已有实测数据构建虚拟实验环境；候选优化与方法验证共享实验预算。</text>
+  </g>
+</svg>

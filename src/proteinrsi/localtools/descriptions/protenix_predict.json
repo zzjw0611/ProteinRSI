@@ -98,11 +98,138 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "artifacts": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "ref": {
+              "type": "string",
+              "pattern": "^artifact:[0-9a-f]{64}\\.(pdb|cif|a3m|fasta|json)$"
+            },
+            "sha256": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{64}$"
+            },
+            "kind": {
+              "enum": [
+                "pdb",
+                "cif",
+                "a3m",
+                "fasta",
+                "json"
+              ]
+            },
+            "bytes": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "filename": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "ref",
+            "sha256",
+            "kind",
+            "bytes"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1
+      },
+      "input_entities": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+        }
+      },
+      "msa_mode": {
+        "enum": [
+          "none",
+          "precomputed"
+        ]
+      },
+      "provenance": {
+        "type": "object",
+        "required": [
+          "engine",
+          "job_id",
+          "revision",
+          "wall_seconds",
+          "runtime"
+        ],
+        "properties": {
+          "engine": {
+            "type": "string"
+          },
+          "job_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "wall_seconds": {
+            "type": "number",
+            "minimum": 0
+          },
+          "runtime": {
+            "enum": [
+              "process",
+              "docker"
+            ]
+          },
+          "asset_sha256": {
+            "type": "object"
+          },
+          "software": {
+            "type": "object"
+          }
+        }
+      }
+    },
     "required": [
-      "evidence_kind"
-    ]
+      "evidence_kind",
+      "artifacts",
+      "input_entities",
+      "msa_mode",
+      "warning",
+      "provenance"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {},
   "license_id": "SEE_THIRD_PARTY.md",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Need predicted structure or complex evidence for actual candidates."
+  ],
+  "when_not_to_use": [
+    "Need calibrated Kd or fabricated MSA; not every sequence task requires structures."
+  ],
+  "cost_hint": "Separate GPU worker; seeds × samples × diffusion steps; no measured estimate supplied.",
+  "output_semantics": "Canonical proteins only; B is candidate and A is immutable target in complex mode. No automatic MSA/template service. Requires locally staged data and weights.",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Need predicted structure or complex evidence for actual candidates.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "see_also": "docs/TOOL_CONTRACTS.md"
+    }
+  ]
 }

@@ -1,3 +1,16 @@
+# v0.5 validation scope
+
+Run `pytest -q --cov=proteinrsi`. New tests cover explicit/no-call model use, strict result
+contracts, prompt snapshots, parent accounting, eligibility preflight, shared budgets,
+capability restrictions and the supplied SVG checksum. Test data and scripted models are
+fixtures, not GB1 experimental outcomes. This environment does not support Landlock;
+guarded integration tests are skipped, while fail-closed behaviour is tested.
+Optional dependencies and pretrained weight tests retain their own explicit skips.
+Current run totals are recorded in RELEASE_VALIDATION.md after actual execution.
+
+The remaining sections are HISTORICAL records, not a claim of rerunning their external
+models/CI in v0.5. No new real LLM/GPU/wet-lab/RSI gain is claimed.
+
 # v0.4 local validation — 2026-10-04
 
 Local source suite: **142 passed, 5 skipped**, **78% statement coverage**.

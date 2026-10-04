@@ -12,3 +12,8 @@ include CHANGELOG.md
 
 recursive-include licenses *.txt
 recursive-include src/proteinrsi/research/know_how *.md
+
+recursive-include src/proteinrsi/prompts *.md
+recursive-include docs/assets *.svg *.json
+
+recursive-include docs/validation *.txt

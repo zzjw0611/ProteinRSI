@@ -1,6 +1,6 @@
 # ESMC-600M: installation, configuration and scientific semantics
 
-ProteinRSI 0.2 has a real local protein backend, not just an MCP configuration
+ProteinRSI has a real local protein backend (introduced in 0.2; on-demand in 0.5), not just an MCP configuration
 example. The conversational A/B/C/M LLM still uses `PROTEINRSI_*` environment
 variables. **Do not set PROTEINRSI_MODEL to esmc_600m.**
 
@@ -68,8 +68,9 @@ proteinrsi demo --out runs/artificial-demo
 
 The demo is always synthetic and offline. The Python `Campaign.initialize` API
 retains its old model-free default unless given `protein_config=ESMCConfig()`.
-Old 0.1 campaigns without protein configuration retain their original backend;
-start a new campaign to compare the ESMC route without corrupting pending batches.
+Old campaigns remain readable, but v0.5 refuses to continue pre-v0.5 campaigns
+with changed execution semantics. Use the old executable or start a new campaign;
+never migrate an in-flight experiment silently.
 
 ## Call the protein tools without an LLM
 
@@ -112,12 +113,19 @@ LLM prompts. The artifact reference can be read with `store.get(namespace, key)`
 ## Inner loop and prediction meaning
 
 ```
-A plans -> B proposes legal variants (or requests ESMC suggestions)
-  -> ESMC scores post-design variants
-  -> with >=2 unique valid measured variants: ESMC embeddings + ridge head
-  -> C reviews evidence -> A selects -> approved experiment -> measurement
-  -> head refits using revealed data -> next round
+A plans -> B proposes legal variants
+  -> Optional explicit ESMC scoring/suggestions/embeddings when the LLM requests them
+  -> Optional research_fit_predict(features=mutation|esmc), using revealed data
+  -> C ranks using visible evidence (without any automatic PLM/Ridge preprocessing)
+  -> A selects -> approved experiment -> measurement -> next round
 ```
+
+A complete LLM round with zero protein model calls is valid. Merely loading config,
+listing a tool or constructing a cache key does not load/run ESMC. Predictions are
+attached only from a current explicitly obtained task-prediction artifact.
+The explicitly selected `--agent deterministic` numerical baseline retains the
+older automatic ranking; do not report that baseline as autonomous LLM behavior.
+
 
 For position i, mask that residue in the **reference** sequence and compute
 `log P(mutant_aa | masked reference) - log P(reference_aa | masked reference)`.
@@ -132,13 +140,14 @@ lightweight task head uses these embeddings plus the workflow's additive or
 pairwise mutation encoding. Feature centering/scaling and phenotype fitting use
 revealed valid measurements only; technical replicates are averaged by sequence.
 All observations must match metric, unit, assay protocol and evidence source.
-The head is refit after feedback; ESMC weights remain frozen. The dimensionality
+The head is refit only when explicitly requested again after feedback; ESMC weights remain frozen. The dimensionality
 of the small head, ridge strength and exploration settings do not calibrate its
 uncertainty automatically. We return `uncertainty=null`, not a fictitious confidence.
 
-Before two distinct measured variants, `predicted_value=null` and the prior is
-stored separately. Afterwards `predicted_value` is an **uncalibrated task-head
-prediction**, never a measured result or validated Kd. Actual affinity and
+Without an explicitly obtained task-prediction artifact, `predicted_value=null`,
+even when ESMC priors exist. The requested task head also returns null before two
+distinct measured variants. Its outputs are **uncalibrated task-head predictions**,
+never measured results or validated Kd. Actual affinity and
 structure/binder design still need appropriate external models and validation.
 
 ## Double loop, RSI and reproducibility

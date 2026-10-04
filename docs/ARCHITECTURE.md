@@ -1,10 +1,11 @@
-# Current architecture (v0.4)
+# Current architecture (v0.5)
 
 The new optional typed inner-loop runtime is documented in [RESEARCH_RUNTIME](RESEARCH_RUNTIME.md).
-New CLI tasks enable it by default; old campaigns retain their prior fixed runner.
+New CLI tasks enable it by default; pre-v0.5 campaigns are readable but require their original
+executable to continue. New runs snapshot prompt templates and on-demand execution semantics.
 A resource selector, explicit plan ledger and read-only analyses are shared by A/B/C;
 no new permanent Agent, NIM service or unrestricted interpreter is added. M and the
-trusted experiment/promotion boundaries remain unchanged. [REUSE](REUSE.md) records
+trusted experiment/promotion boundaries are extended with guarded replay and shared Meta charging. [REUSE](REUSE.md) records
 what was actually adapted/imported versus merely inspired by other projects.
 
 The following sections retain the baseline architecture and still describe its
@@ -32,7 +33,10 @@ A round boundary permits a new workflow version. A submitted batch records immut
 
 ## Data and budgets
 
-TaskView includes only visible measurements. The full oracle table and its path never enter the agent context. Historical datasets remain evaluator-owned. A bounded candidate shortlist is sampled without phenotype labels when a finite library is large.
+TaskView includes only visible measurements. The full oracle table and its path never enter the agent context. Formal `replay` defaults to a
+fresh guarded research worker with controller-mediated tool and LLM RPC; unsupported kernels fail closed. Historical datasets remain evaluator-owned. A bounded candidate preview is sampled without phenotype labels when a finite library is large.
+With `candidate_access=catalogue`, it is not a restriction on legal proposals: label-free
+`library_check`/`library_sample` expose existence/identities, and submission uses the full catalogue.
 
 `Store` keeps campaign state, immutable batches/measurements, experiment trials, version archives, model/tool results, and audit events in SQLite. File locks serialize campaign writers; transactions make resource reservations atomic. Identical calls/imports are idempotent. An uncertain external call is not blindly repeated.
 
@@ -50,7 +54,9 @@ Collision handling and correlated variants mean this is an exploratory policy tr
 
 ## Meta evaluation
 
-A queued meta patch is tested separately. Evaluator-owned cases supply a common initial W and visible data. Each frozen M proposes a descendant W; each descendant receives the same new measurement quota and call limits. Cases from the same group are aggregated before the paired comparison.
+A queued meta patch is tested in separate child caches but under the same sponsor study ledger.
+Initial disclosures and subsequent queries from both arms are charged, as are actual LLM/tool/PLM calls.
+No evaluation can reset the main query cap; failed evaluation attempts remain recorded. Evaluator-owned cases supply a common initial W and visible data. Each frozen M proposes a descendant W; each descendant receives the same new measurement quota and call limits. Cases from the same group are aggregated before the paired comparison.
 
 This isolates one-step improvement ability. A complete campaign additionally exercises accepted M successors over subsequent generations. These are distinct evaluation settings. A mechanism test with artificial data does not establish persistent scientific RSI.
 
@@ -62,10 +68,17 @@ Operator-only `configuration/protein_model` selects ESMC-600M. The exact resolve
 HF snapshot is frozen in `protein_backend/snapshot`. Neither is in a Workflow or
 MetaPolicy patch. `Team` loads the backend lazily, registers its local tools and
 includes its identity (plus conversational provider/model) in team result caches.
-C analyzes generated candidates using priors and an observed-data-only task head.
+In LLM mode, no scientific model is automatically executed. C can rank without models,
+or explicitly request ESMC priors or `research_fit_predict`. Only the separately labeled
+deterministic numerical baseline retains automatic pre-ranking.
 The PLM embedding cache never substitutes for new experimental measurements.
 
 The experiment controller and graph continue using the same operations. All
 offspring-evaluation stores receive identical protein configuration/checkpoint
-and model-input limits. Existing campaigns without a model configuration remain
-on the old baseline; initialization is not an in-place experiment migration.
+and model-input limits. Start new campaigns to use v0.5 semantics; initialization is not an in-place experiment migration.
+
+## Operational details
+
+See [PROMPTS](PROMPTS.md), [TOOL_CONTRACTS](TOOL_CONTRACTS.md) and
+[REPLAY_SECURITY](REPLAY_SECURITY.md). The user-supplied SVG in README is an
+architecture/intent overview, not a claim of wet-lab or cross-protein RSI validation.

@@ -36,14 +36,85 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "model": {
+        "type": "object",
+        "required": [
+          "model_id",
+          "revision"
+        ],
+        "properties": {
+          "model_id": {
+            "type": "string"
+          },
+          "revision": {
+            "type": "string"
+          }
+        }
+      },
+      "scores": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "sequence": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+            },
+            "masked_marginal_log_odds": {
+              "type": "number"
+            }
+          },
+          "required": [
+            "sequence",
+            "masked_marginal_log_odds"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1
+      }
+    },
     "required": [
+      "evidence_kind",
       "model",
-      "evidence_kind"
-    ]
+      "scores",
+      "warning"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {
     "reference": "reference_sequence"
   },
   "license_id": "SEE_THIRD_PARTY.md",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Need a sequence-compatibility prior for specific substitutions."
+  ],
+  "when_not_to_use": [
+    "Need experimental activity, structure or joint epistasis."
+  ],
+  "cost_hint": "One tool call; one uncached masked model input per changed reference position; cached positions reused.",
+  "output_semantics": "Multi-site scores are additive WT-context priors, not epistasis or calibrated fitness.",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Need a sequence-compatibility prior for specific substitutions.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "arguments": {
+        "reference": "ACDE",
+        "sequences": [
+          "AVDE"
+        ]
+      }
+    }
+  ]
 }

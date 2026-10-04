@@ -37,13 +37,106 @@
   },
   "output_schema": {
     "type": "object",
+    "properties": {
+      "evidence_kind": {
+        "type": "string"
+      },
+      "warning": {
+        "type": "string"
+      },
+      "qc": {
+        "type": "array",
+        "items": {
+          "type": "object",
+          "properties": {
+            "sequence": {
+              "type": "string",
+              "minLength": 1,
+              "pattern": "^[ACDEFGHIKLMNPQRSTVWY]+$"
+            },
+            "length": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "substitutions": {
+              "type": [
+                "array",
+                "null"
+              ],
+              "items": {
+                "type": "object",
+                "properties": {
+                  "position": {
+                    "type": "integer",
+                    "minimum": 1
+                  },
+                  "from": {
+                    "type": "string"
+                  },
+                  "to": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "position",
+                  "from",
+                  "to"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "entropy_bits": {
+              "type": "number"
+            },
+            "cysteine_count": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "canonical": {
+              "const": true
+            }
+          },
+          "required": [
+            "sequence",
+            "length",
+            "substitutions",
+            "entropy_bits",
+            "cysteine_count",
+            "canonical"
+          ],
+          "additionalProperties": false
+        },
+        "minItems": 1
+      }
+    },
     "required": [
-      "evidence_kind"
-    ]
+      "evidence_kind",
+      "qc",
+      "warning"
+    ],
+    "additionalProperties": false
   },
   "protected_inputs": {
     "reference": "reference_sequence"
   },
   "license_id": "MIT",
-  "data_egress": false
+  "data_egress": false,
+  "when_to_use": [
+    "Need an explicit check of sequence, structure or alignment input."
+  ],
+  "when_not_to_use": [
+    "Need a calibrated phenotype prediction."
+  ],
+  "cost_hint": "One tool call; local CPU validation/geometry, no experimental query.",
+  "output_semantics": "",
+  "result_schema_version": "2",
+  "validation_level": "contract_tested; deployment inference verification is separate",
+  "examples": [
+    {
+      "purpose": "Need an explicit check of sequence, structure or alignment input.",
+      "illustrative_only": true,
+      "note": "Use actual campaign sequences and registered artifact references; this is not a scientific result.",
+      "see_also": "docs/TOOL_CONTRACTS.md"
+    }
+  ]
 }

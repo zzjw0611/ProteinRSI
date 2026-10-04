@@ -154,6 +154,8 @@ def persist_analysis(view: TaskView, store) -> dict:
 
 def register_analysis_tools(gateway, view: TaskView) -> list[str]:
     """Context-bound functions: an LLM cannot supply observations, SQL, paths or labels."""
+    if getattr(gateway, "remote_context_tools", False):
+        return list(ANALYSIS_TOOLS)
     from proteinrsi.contracts import TaskKind
     def register(name, properties, required, fn, description):
         spec = ToolSpec(name=name, capability="evidence.analyze", description=description,

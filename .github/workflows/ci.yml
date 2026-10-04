@@ -33,6 +33,8 @@ jobs:
       - run: proteinrsi demo --out runs/ci-demo --rounds 3
       - run: proteinrsi demo --adaptive --out runs/ci-research-demo --rounds 3
       - run: proteinrsi research plans --campaign runs/ci-research-demo/campaign
+      - run: proteinrsi sandbox-check
+      - run: proteinrsi prompts --role designer
       - run: python -m build
 
   esmc-native:
