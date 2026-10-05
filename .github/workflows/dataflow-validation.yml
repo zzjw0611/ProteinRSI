@@ -1,0 +1,38 @@
+name: dataflow-validation
+on:
+  push:
+    branches: [feat/typed-dataflow-protocols]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+      - name: Archive tracked implementation (no experiment records or datasets)
+        run: |
+          python - <<'PY'
+          import subprocess, zipfile
+          from pathlib import Path
+          with zipfile.ZipFile('validation-source.zip', 'w', zipfile.ZIP_DEFLATED) as archive:
+              for name in subprocess.check_output(['git', 'ls-files', '-z']).decode().split('\0'):
+                  if not name or name.startswith(('experiments/', 'data/', 'runs/')):
+                      continue
+                  path = Path(name)
+                  if path.is_file() and not path.is_symlink():
+                      archive.write(path, name)
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: validation-source
+          path: validation-source.zip
+          retention-days: 7
+      - run: pip install -e '.[dev,graph,gepa,mcp]' 'biopython>=1.84,<2'
+      - run: ruff check .
+      - run: pytest -q --cov=proteinrsi --cov-report=term-missing
+      - run: python -m build
