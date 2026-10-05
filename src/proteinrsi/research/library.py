@@ -14,6 +14,8 @@ def register_library_tools(gateway, view):
     if getattr(gateway, "remote_context_tools", False):
         return
     task = catalogue_task(gateway.store, view)
+    if task.candidate_access == "open":
+        return  # Replay availability is private; never expose a menu or free membership oracle.
     universe = set(task.candidates)
     measured = {o.sequence for o in view.observations}
     for name in LIBRARY_TOOLS:
@@ -28,7 +30,7 @@ def register_library_tools(gateway, view):
         return {"availability": [{"sequence": s, "available": s in universe, "already_observed": s in measured}
                                  for s in a["sequences"]], "evidence_kind": "catalogue_metadata"}
     def sample(a):
-        eligible = sorted(universe-measured-{task.reference_sequence})
+        eligible = sorted(universe if task.repeat_policy == "allow" else universe-measured-{task.reference_sequence})
         rng = np.random.default_rng(a["seed"])
         indices = rng.choice(len(eligible), min(a["count"], len(eligible)), replace=False)
         return {"sequences": [eligible[int(i)] for i in indices], "evidence_kind": "catalogue_metadata"}

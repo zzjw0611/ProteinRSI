@@ -1,0 +1,53 @@
+{
+  "batch_id": "b-9da73c9ae4f2e32755b1",
+  "campaign_id": "24732b5c-6814-4cc5-97bc-2bbbebae3ece",
+  "evidence_version": "4b3ec29cd4f732f7e833901712fbcc5d85ea5bf8f70b93a70cde5bc8c56cb555",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 4,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39L/D40W/G41A/V54A：在当前最佳40W/41A/54A背景中检验39L的局部收益。V39L单点实测fitness为1.690163554，高于母本1.0，支持优先查询；四点组合收益尚未知。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLWAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-9da73c9ae4f2e32755b1-000",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39I/D40W/G41A/V54A：保持当前最佳三点背景，检验39I是否提供进一步收益。V39I单点实测fitness为1.445905086，但不能将该单点效应加到最佳背景上预测四点fitness。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIWAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-9da73c9ae4f2e32755b1-001",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39M/D40W/G41A/V54A：检验另一种疏水侧链在最佳背景中的局部作用。V39M单点实测fitness为1.170549883，提供探索依据；是否改善四点组合需由实际反馈确定。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMWAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-9da73c9ae4f2e32755b1-002",
+      "workflow_version": "w-065f689c980923d5"
+    }
+  ]
+}

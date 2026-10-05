@@ -58,6 +58,10 @@ def main():
             clone = RemoteGateway(self.store, allow_egress=self.allow_egress)
             clone._tools = dict(self._tools)
             return clone
+        def catalog(self, task, allowed):
+            # The controller already checked all configured workflow bindings and
+            # sent only the subset compatible with this task and egress policy.
+            return super().catalog(task, [name for name in allowed if name in self._tools])
         def call(self, call, task, *, allowed, context_key):
             if call.name not in allowed:
                 raise PermissionError("Tool not allowed in this role")

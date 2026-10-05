@@ -1,0 +1,67 @@
+{
+  "batch_id": "b-8edbf0897b571ffd70e1",
+  "campaign_id": "24732b5c-6814-4cc5-97bc-2bbbebae3ece",
+  "evidence_version": "b1166be3555b31c95157af31625eeb7982ec1cd21340ef8481a64260ef48b995",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 2,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40W/G41A/V54A：检验母本背景中有利的D40W替换能否进一步提高已测G41A/V54A背景的fitness。D40W单点及D40W/V54C的实测结果支持优先查询，但不能预测此三点组合的收益。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8edbf0897b571ffd70e1-000",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40Y/G41A/V54A：检验D40Y的有利单点效应是否能迁移至G41A/V54A背景，并与D40W三点组合比较；组合fitness尚未知。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8edbf0897b571ffd70e1-001",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40H/G41A/V54A：加入母本背景中有利的D40H替换，检验该背景的收益是否适用于不同D40残基；不从单点值外推三点fitness。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8edbf0897b571ffd70e1-002",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40F/G41A/V54A：检验D40F在同一G41A/V54A背景上的作用，完成预先指定的四残基面板；有利单点不保证组合改善。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8edbf0897b571ffd70e1-003",
+      "workflow_version": "w-065f689c980923d5"
+    }
+  ]
+}

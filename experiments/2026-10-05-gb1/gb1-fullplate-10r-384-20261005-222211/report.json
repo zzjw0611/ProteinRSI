@@ -1,0 +1,178 @@
+{
+  "objective": "使用GB1历史实测景观开展自主变体设计研究，运行10轮，每轮必须用满384孔，提交384个不同的新序列，总查询预算3840。不能将未用孔位结转到以后轮次；可以同板安排多个假设或探索方向，具体比例由Agent决定。目标是在总预算内寻找原始实测fitness尽可能高的变体。使用数据集核验的完整母本及其已知实测fitness作为免费的初始证据；只允许修改母本第39、40、41、54位，最多4个替换，其余位置不变。使用原始reported_assay_fitness及数据集单位和实验协议，不重新归一化。由Agent自主生成完整序列或显式突变、选择方法、可选调用蛋白工具或编写Python；不提供候选目录，不把实验数据库当作待筛选菜单。所有蛋白工具可选，不要求必须使用；根据能否改善设计和查询决策评估辅助工具价值，工具预测不能代替实验反馈。每个提交查询占用一个名额，包括返回unavailable的无历史记录序列；无记录不能当作低fitness或实验失败。允许M基于证据提出并验证工作流和自身策略修改，新增验证共享每轮384和总3840预算，不要求每轮修改。新研究只使用已知母本初始测量，不导入任何旧研究的查询结果。最终报告最佳实测序列、逐轮表现、有效测量及无记录查询数量、工具与LLM成本和完整轨迹。",
+  "best_variant": {
+    "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTATE",
+    "mutations": [
+      "G41A",
+      "V54A"
+    ],
+    "value": 4.157983125,
+    "sample_id": "b-8346b07728710c25f37d-086",
+    "batch_id": "b-8346b07728710c25f37d",
+    "source": "measured_replay"
+  },
+  "round_progress": [
+    {
+      "round": 1,
+      "phase": "research",
+      "batch_id": "b-8346b07728710c25f37d",
+      "batch_queries": 384,
+      "plate_capacity": 384,
+      "plate_utilization": 1.0,
+      "cumulative_campaign_queries": 384,
+      "unique_variants": 385,
+      "best_measured_value": 4.157983125,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTATE"
+    }
+  ],
+  "unique_measured_variants": 369,
+  "returned_observations": 384,
+  "unavailable_queries": 16,
+  "valid_query_measurements": 368,
+  "provided_initial_observations": 1,
+  "initial_evidence": {
+    "charged_queries": 0,
+    "observations": [
+      {
+        "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+        "batch_id": "provided-initial-evidence",
+        "metric": "reported_assay_fitness",
+        "qc": "valid",
+        "sample_id": "provided-parent",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTVTE",
+        "source": "measured_replay",
+        "unit": "source_assay_units",
+        "value": 1.0
+      }
+    ],
+    "source_ref": "GB1; reported experimental parent; SHA256 7ab39b0918bc933030c711a723ca05b316b2e27e703af26d9c4a91064eafa7bd"
+  },
+  "repeat_queries": 0,
+  "initial_observation_policy": "provided_parent",
+  "candidate_access": "open",
+  "batch_fill_policy": "full_plate",
+  "capacity": {
+    "remaining_rounds": 9,
+    "plate_wells": 384,
+    "remaining_query_budget": 3456,
+    "usable_queries_before_round_limit": 3456,
+    "unusable_query_budget": 0,
+    "required_plate_wells": 384,
+    "unused_wells_carry_to_future_rounds": false
+  },
+  "workflow_validation_outcomes": {},
+  "tool_summary": {
+    "completed_by_name": {
+      "research_evidence_summary": 2,
+      "research_prediction_errors": 2,
+      "research_python": 1
+    },
+    "failed_jobs": 0,
+    "generated_code_failures": 0,
+    "requests": [
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "cc0feade6e7b54af16d900c6335f8dfbe6b518a13848dbc44db10182daf76a78",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "cc0feade6e7b54af16d900c6335f8dfbe6b518a13848dbc44db10182daf76a78",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "3bb96012f66d23eb609777b88494850a363649d4c76c5fb5b2befeb764515562",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "3bb96012f66d23eb609777b88494850a363649d4c76c5fb5b2befeb764515562",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_python",
+        "purpose": "Generate the 96 matched groups using the specified balancing algorithm, complete the same plate with 96 complementary exploration designs, and verify all 384 identities against the exact parent and every supplied exclusion. Return explicit sequences, group labels and coverage tables without phenotype predictions.",
+        "context": "3bb96012f66d23eb609777b88494850a363649d4c76c5fb5b2befeb764515562",
+        "cache_hit": false
+      }
+    ]
+  },
+  "provider_reported_tokens": {
+    "input_tokens": 774959,
+    "output_tokens": 47727,
+    "total_tokens": 822686
+  },
+  "monetary_cost": null,
+  "monetary_cost_note": "Token counts are not prices; no invented currency total.",
+  "prompt_bundle_version": "prompts-078ee05a53a902af",
+  "execution_semantics": "on-demand-v1",
+  "measurement_note": "Historical replay values are not new wet-lab measurements; repeated lookups are not independent repeats.",
+  "campaign_id": "c3a202a3-a197-4596-b9b2-31eacced4e23",
+  "status": "ready",
+  "completed_rounds": 1,
+  "research_config": {
+    "enable_generated_code": true,
+    "enabled": true,
+    "max_context_chars": 16000,
+    "max_executed_steps": 20,
+    "max_plan_steps": 12,
+    "max_resources": 24,
+    "max_revisions": 2,
+    "resource_selection": "llm",
+    "review_after_step": true
+  },
+  "protein_model": {
+    "batch_size": 1,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "max_masked_positions": 128,
+    "max_model_inputs": 4096,
+    "max_residues": 2046,
+    "model_id": "biohub/ESMC-600M-hf",
+    "revision": "0fb34e7e5fe1f85d0abaa3d35e2671107c0b458c",
+    "worker_python": "/home/zjw/proteinrsi-tools/envs/esmc600m/bin/python",
+    "worker_timeout_seconds": 1800
+  },
+  "protein_snapshot": null,
+  "evidence_source": "measured_replay",
+  "workflow_version": "w-065f689c980923d5",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "best_measured_value": 4.157983125,
+  "metric": "reported_assay_fitness",
+  "unit": "source_assay_units",
+  "budget": {
+    "experimental_wells": {
+      "limit": 3840,
+      "committed": 384,
+      "reserved": 0
+    },
+    "llm_calls": {
+      "limit": 1000,
+      "committed": 17,
+      "reserved": 0
+    },
+    "tool_calls": {
+      "limit": 400,
+      "committed": 5,
+      "reserved": 0
+    },
+    "plm_inputs": {
+      "limit": 4096,
+      "committed": 0,
+      "reserved": 0
+    }
+  },
+  "pending_batch": null,
+  "pending_workflow_patch": null,
+  "pending_meta_patch": null,
+  "workflow_trials": {},
+  "meta_evaluations": {},
+  "execution_mode": "experimental",
+  "computational_iterations": {},
+  "final_computational_candidates": []
+}

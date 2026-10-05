@@ -7,7 +7,7 @@ from typing import Any
 
 from pydantic import Field
 
-from proteinrsi.contracts import Candidate, Model, Patch, TaskKind, TaskView, Workflow
+from proteinrsi.contracts import Candidate, DecisionNotes, Model, Patch, TaskKind, TaskView, Workflow
 from proteinrsi.llm import JSONLLM
 from proteinrsi.storage import Store
 from proteinrsi.prompting import compose, prompt_version
@@ -18,27 +18,32 @@ from proteinrsi.tools import ToolCall, ToolGateway
 
 class Plan(Model):
     rationale: str
+    decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
 
 
 class Design(Model):
+    decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     candidates: list[Candidate] = Field(default_factory=list, max_length=384)
     edits: list[list[dict[str, Any]]] = Field(default_factory=list, max_length=384)
     tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
 
 
 class Analysis(Model):
+    decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     ranking: list[str]
     summary: str
     prediction_refs: dict[str, str] = Field(default_factory=dict)
 
 
 class FeedbackAnalysis(Model):
+    decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     summary: str
     alternatives: list[str] = Field(default_factory=list)
 
 
 class MetaResponse(Model):
+    decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     reason: str
     patch: Patch | None = None
 
@@ -71,12 +76,10 @@ class PrincipalAgent:
     def finalize(self, view: TaskView, ranked: list[Candidate]) -> list[Candidate]:
         if self.llm is None:
             return ranked
-        result = Analysis.model_validate(self.llm.complete("A-selection",
+        from proteinrsi.ranking import request_ranking
+        result = request_ranking(self.llm, self.store, "A-selection",
             compose(self.store, "principal_selection", view.workflow.principal_prompt),
-            {"view": view.model_dump(mode="json"), "ranked_candidates": [c.model_dump() for c in ranked]},
-            Analysis.model_json_schema()))
-        if len(result.ranking) != len(ranked) or set(result.ranking) != {c.sequence for c in ranked}:
-            raise ValueError("Principal selection must be a permutation of the supplied candidates")
+            {"view": view.model_dump(mode="json")}, "ranked_candidates", ranked, Analysis)
         by_seq = {c.sequence: c for c in ranked}
         return [by_seq[s] for s in result.ranking]
 
@@ -121,12 +124,11 @@ class AnalystAgent:
         # No implicit ESMC/Ridge/predictive scoring in the LLM path, even on cache hits.
         ranked = [c.model_copy(update={"predicted_value": None, "uncertainty": None,
                                      "evidence_kind": "none"}) for c in ranked]
-        response = Analysis.model_validate(self.llm.complete("C",
+        from proteinrsi.ranking import request_ranking
+        response = request_ranking(self.llm, self.store, "C",
             compose(self.store, "analyst", view.workflow.analyst_prompt),
-            {"view": view.model_dump(mode="json"), "candidates": [c.model_dump() for c in ranked],
-             "tool_results": tool_results}, Analysis.model_json_schema()))
-        if len(response.ranking) != len(ranked) or set(response.ranking) != {c.sequence for c in ranked}:
-            raise ValueError("Analyst ranking must be a permutation of candidate sequences")
+            {"view": view.model_dump(mode="json"), "tool_results": tool_results},
+            "candidates", ranked, Analysis)
         by_seq = {c.sequence: c for c in ranked}
         from proteinrsi.research.prediction import attach_predictions
         attach_predictions(by_seq, response.prediction_refs, view, tool_results, self.store)
@@ -168,6 +170,8 @@ class Team:
         self.tools = self.tools.fork()
         register_prediction_tool(self.tools, view, self.protein_model)
         register_library_tools(self.tools, view)
+        from proteinrsi.research.code import register_code_tool
+        register_code_tool(self.tools, view)
 
     def run(self, view: TaskView) -> list[Candidate]:
         self.bind_tools(view)
@@ -268,7 +272,8 @@ class MetaAgent:
         if self.llm:
             instructions = compose(self.store, "meta", policy.prompt)
             return MetaResponse.model_validate(self.llm.complete("M", instructions,
-                {"view": view.model_dump(mode="json"), "workflow_schema": Workflow.model_json_schema(),
+                {"view": view.model_dump(mode="json"), "compute_usage": self.store.usage() if self.store else {},
+                 "workflow_schema": Workflow.model_json_schema(),
                  "meta_schema": type(policy).model_json_schema()}, MetaResponse.model_json_schema()))
         # Explicit scripted baseline: useful for mechanism testing, not an LLM/scientific claim.
         recent = view.history[-1] if view.history else {}

@@ -1,0 +1,347 @@
+{
+  "batch_id": "b-8dd1d4789129b6898874",
+  "campaign_id": "5dd3b2dc-d698-4067-928e-63e09aab96a2",
+  "evidence_version": "29dbe62ddb11367e3a6ea7275c21b6f8ce199a837d8ec00338bce3b91bafda8b",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 1,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W01；距赢家2；新增4个位点-残基对。检验保留F39/R40的邻域。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRHEWTYDDATKTFTKTE",
+        "source": "catalogue_preview:28",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-000",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P01；距母本2；新增4个位点-残基对。检验保留V39/D40的邻域。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTTTE",
+        "source": "catalogue_preview:59",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-001",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W02；距赢家2；新增3个位点-残基对。检验保留F39/F41的邻域。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFEFEWTYDDATKTFTTTE",
+        "source": "catalogue_preview:70",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-002",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P02；距母本3；新增4个位点-残基对。保留G41并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCGGEWTYDDATKTFTITE",
+        "source": "catalogue_preview:9",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-003",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W03；距赢家2；新增3个位点-残基对。检验保留F39/V54的邻域。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFKKEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:75",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-004",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P03；距母本3；新增4个位点-残基对。保留V54并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGALSEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:22",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-005",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W04；距赢家2；新增2个位点-残基对。检验保留R40/V54的邻域。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRRMEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:81",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-006",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P04；距母本3；新增3个位点-残基对。保留D40并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMDEEWTYDDATKTFTHTE",
+        "source": "catalogue_preview:15",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-007",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W05；距赢家2；新增2个位点-残基对。检验保留F39/F41的另一组合。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFLFEWTYDDATKTFTETE",
+        "source": "catalogue_preview:98",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-008",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P05；距母本3；新增3个位点-残基对。保留G41并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSPGEWTYDDATKTFTGTE",
+        "source": "catalogue_preview:37",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-009",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W06；距赢家3；新增3个位点-残基对。保留V54并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGQWEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:12",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-010",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P06；距母本3；新增3个位点-残基对。保留V39并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVKTEWTYDDATKTFTSTE",
+        "source": "catalogue_preview:45",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-011",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W07；距赢家3；新增3个位点-残基对。保留R40并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKRSEWTYDDATKTFTCTE",
+        "source": "catalogue_preview:16",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-012",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P07；距母本3；新增3个位点-残基对。保留D40并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDREWTYDDATKTFTPTE",
+        "source": "catalogue_preview:47",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-013",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W08；距赢家3；新增3个位点-残基对。保留V54并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTYCEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:19",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-014",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P08；距母本3；新增3个位点-残基对。保留V54并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDVKEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:53",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-015",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W09；距赢家3；新增3个位点-残基对。保留V54并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCTPEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:35",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-016",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P09；距母本3；新增3个位点-残基对。保留V39并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWLEWTYDDATKTFTWTE",
+        "source": "catalogue_preview:92",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-017",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W10；距赢家3；新增3个位点-残基对。保留R40并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNRGEWTYDDATKTFTFTE",
+        "source": "catalogue_preview:60",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-018",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P10；距母本3；新增3个位点-残基对。保留D40并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDMEWTYDDATKTFTFTE",
+        "source": "catalogue_preview:94",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-019",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W11；距赢家3；新增3个位点-残基对。保留F41并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPNFEWTYDDATKTFTYTE",
+        "source": "catalogue_preview:85",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-020",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P11；距母本3；新增3个位点-残基对。保留G41并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWYGEWTYDDATKTFTYTE",
+        "source": "catalogue_preview:123",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-021",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "赢家组W12；距赢家3；新增3个位点-残基对。保留F39并扩展组内覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFCAEWTYDDATKTFTLTE",
+        "source": "catalogue_preview:104",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-022",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "母本组P12；距母本3；新增2个位点-残基对。保留D40；覆盖并列时按原目录顺序选择。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKDEEWTYDDATKTFTATE",
+        "source": "catalogue_preview:95",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8dd1d4789129b6898874-023",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 {
   "enabled": true,
-  "resource_selection": "rules",
+  "resource_selection": "llm",
   "max_resources": 24,
   "max_context_chars": 16000,
   "max_plan_steps": 12,

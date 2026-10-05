@@ -1,0 +1,347 @@
+{
+  "batch_id": "b-bfdceb5ba310095f4493",
+  "campaign_id": "5dd3b2dc-d698-4067-928e-63e09aab96a2",
+  "evidence_version": "bc09dba10567451fade6854d1aed3dfb2ea071e53f7d392d5c8bf51ad5da61d3",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 0,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40Q/V54L: retains V39 and G41; tests charge removal with a conservative hydrophobic substitution.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVQGEWTYDDATKTFTLTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-000",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39A/V54M: retains D40 and G41; tests altered hydrophobic side-chain sizes.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADGEWTYDDATKTFTMTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-001",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40A/V54N: retains V39 and G41; tests removal of the acidic side chain paired with a polar residue at 54.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVAGEWTYDDATKTFTNTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-002",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39T/V54S: retains D40 and G41; tests introduction of hydroxyl-bearing side chains.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDGEWTYDDATKTFTSTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-003",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39M/G41P/V54E: retains D40; explores proline at 41 and an acidic residue at 54.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMDPEWTYDDATKTFTETE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-004",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39E/D40L/V54K: retains G41; explores redistributed charge around a hydrophobic residue at 40.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGELGEWTYDDATKTFTKTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-005",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39C/D40E/V54M: retains G41; tests cysteine at 39 while retaining an acidic residue at 40.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCEGEWTYDDATKTFTMTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-006",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39N/G41R/V54K: retains D40; explores polar 39 and basic substitutions at 41 and 54.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNDREWTYDDATKTFTKTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-007",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40P/G41V/V54P: retains V39; explores proline substitutions at two distinct sites.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVPVEWTYDDATKTFTPTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-008",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39S/D40I/V54R: retains G41; adds a distinct polar, hydrophobic and basic combination.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSIGEWTYDDATKTFTRTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-009",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39G/D40G/G41V: retains V54; tests relocation of small residues within the mutable triplet.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGGVEWTYDDATKTFTVTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-010",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39W/D40L/V54R: retains G41; tests a bulky aromatic residue at 39.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWLGEWTYDDATKTFTRTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-011",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40G/G41N/V54F: retains V39; tests a small/polar pair with an aromatic residue at 54.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVGNEWTYDDATKTFTFTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-012",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39Q/D40K/G41Y: retains V54; explores polar, basic and aromatic substitutions at the other sites.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQKYEWTYDDATKTFTVTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-013",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40R/G41C/V54S: retains V39; adds cysteine at 41 to the retained-parent-residue component.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVRCEWTYDDATKTFTSTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-014",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39Q/G41A/V54N: retains D40; tests a small replacement at 41 with polar residues at 39 and 54.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQDAEWTYDDATKTFTNTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-015",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39F/D40R/G41F: retains V54; tests an aromatic-rich combination with a basic residue at 40.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTVTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-016",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39A/D40M/V54S: retains G41; expands hydrophobic residue coverage at 40.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGAMGEWTYDDATKTFTSTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-017",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "V39H/G41P/V54S: retains D40; expands residue coverage at 39 and provides another proline-containing context.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHDPEWTYDDATKTFTSTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-018",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "Exploration: V39I/D40K/G41A/V54H adds isoleucine at 39 and histidine at 54.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIKAEWTYDDATKTFTHTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-019",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "Exploration: V39T/D40W/G41V/V54A adds tryptophan at 40 and alanine at 54.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTWVEWTYDDATKTFTATE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-020",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "Exploration: V39Y/D40S/G41Y/V54F adds tyrosine at 39 and serine at 40.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYSYEWTYDDATKTFTFTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-021",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "Exploration: V39W/D40Y/G41Y/V54W tests an aromatic combination and adds tyrosine at 40 and tryptophan at 54.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWYYEWTYDDATKTFTWTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-022",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "Exploration: V39R/D40S/G41C/V54N adds arginine at 39 in a distinct polar/cysteine combination.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRSCEWTYDDATKTFTNTE",
+        "source": "supplied_catalogue",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-bfdceb5ba310095f4493-023",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    }
+  ]
+}

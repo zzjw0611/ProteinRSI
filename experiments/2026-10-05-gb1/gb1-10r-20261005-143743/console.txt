@@ -1,0 +1,374 @@
+[14:37:45] llm_started round=None role=goal-intake
+[14:37:55] llm_completed role=goal-intake
+{
+  "campaign": "/home/zjw/ProteinRSI/runs/gb1-10r-20261005-143743",
+  "goal": "使用GB1历史实测景观，最多10轮，共240个新查询，每轮最多24个，寻找原始实测fitness尽可能高的变体。使用数据集核验的完整母本及已有母本实测fitness作为免费初始证据；只修改第39、40、41、54位，其余位置保持不变。使用原始reported_assay_fitness及其数据集单位和实验协议，不重新归一化。所有蛋白设计工具和Python分析代码均可选，由Agent根据证据决定。允许提出并验证工作流和M自身策略修改，验证查询计入共同预算，不要求每轮修改。最终报告最好已测候选、逐轮表现、实际成本及轨迹。",
+  "rounds": 10,
+  "new_queries": 240,
+  "batch_size": 24,
+  "task_kind": "variant_design",
+  "route": "measured_replay",
+  "parent_fitness": 1.0,
+  "parent_query_cost": 0,
+  "resource_selection": "llm",
+  "llm_call_limit": 500,
+  "tool_call_limit": 200
+}
+[14:38:10] run_started
+[14:38:12] replay_started
+[14:38:12] run_failed error_type=ValueError
+proteinrsi: ValueError: Duplicate tool binding
+proteinrsi: RuntimeError: Guarded worker failed: ValueError: Unconfigured tools: ['rfdiffusion_binder', 'rosetta_interface']
+[14:41:38] run_started
+[14:41:40] replay_started
+[14:41:40] agent_state round=0 phase=round_input
+[14:41:42] llm_started round=None role=A-resources
+[14:41:49] llm_completed role=A-resources
+[14:41:49] resources_selected
+[14:41:50] llm_started round=0 role=A-plan
+[14:42:17] llm_completed role=A-plan
+[14:42:17] research_plan_created
+[14:42:18] research_step_started
+[14:42:18] tool_requested tool=research_evidence_summary
+[14:42:19] tool_completed tool=research_evidence_summary
+[14:42:19] tool_requested tool=research_prediction_errors
+[14:42:21] tool_completed tool=research_prediction_errors
+[14:42:22] research_step_completed
+[14:42:23] llm_started round=0 role=A-review
+[14:42:36] llm_completed role=A-review
+[14:42:37] research_step_started
+[14:42:37] llm_started round=0 role=B
+[14:43:33] llm_completed role=B
+[14:43:34] research_step_completed
+[14:43:35] llm_started round=0 role=A-review
+[14:43:45] llm_completed role=A-review
+[14:43:46] research_step_started
+[14:43:47] llm_started round=0 role=C-tools
+[14:44:04] llm_completed role=C-tools
+[14:44:05] llm_started round=0 role=C
+[14:44:40] llm_completed role=C
+[14:44:40] analyst_decision round=0
+[14:44:41] research_step_completed
+[14:44:42] llm_started round=0 role=A-review
+[14:44:54] llm_completed role=A-review
+[14:44:54] research_step_started
+[14:44:55] llm_started round=0 role=A-selection
+[14:45:22] llm_completed role=A-selection
+[14:45:23] research_step_completed
+[14:45:24] team_completed round=0
+[14:45:24] guarded_worker_completed
+[14:45:26] batch_prepared wells=24 batch_id=b-bfdceb5ba310095f4493
+[14:45:26] agent_state round=0 phase=awaiting_approval
+[14:45:27] batch_approved batch_id=b-bfdceb5ba310095f4493
+[14:45:29] feedback_ingested round=0 batch_id=b-bfdceb5ba310095f4493
+[14:45:30] agent_state round=1 phase=feedback_committed
+[14:45:32] llm_started round=1 role=C-feedback
+[14:46:03] llm_completed role=C-feedback
+[14:46:04] guarded_worker_completed
+[14:46:04] agent_state round=1 phase=improver_input
+[14:46:06] llm_started round=1 role=M
+[14:46:23] llm_completed role=M
+[14:46:23] guarded_worker_completed
+[14:46:24] meta_decision round=1
+[14:46:25] agent_state round=1 phase=round_input
+[14:46:27] llm_started round=None role=A-resources
+[14:46:33] llm_completed role=A-resources
+[14:46:33] resources_selected
+[14:46:34] llm_started round=1 role=A-plan
+[14:47:08] llm_completed role=A-plan
+[14:47:09] research_plan_created
+[14:47:09] research_step_started
+[14:47:09] tool_requested tool=research_evidence_summary
+[14:47:10] tool_completed tool=research_evidence_summary
+[14:47:11] tool_requested tool=research_prediction_errors
+[14:47:12] tool_completed tool=research_prediction_errors
+[14:47:13] research_step_completed
+[14:47:14] llm_started round=1 role=A-review
+[14:47:28] llm_completed role=A-review
+[14:47:28] research_step_started
+[14:47:29] llm_started round=1 role=B
+[14:48:58] llm_completed role=B
+[14:48:59] research_step_completed
+[14:49:01] llm_started round=1 role=A-review
+[14:49:16] llm_completed role=A-review
+[14:49:17] research_step_started
+[14:49:18] llm_started round=1 role=C-tools
+[14:49:36] llm_completed role=C-tools
+[14:49:37] llm_started round=1 role=C
+[14:50:12] llm_completed role=C
+[14:50:13] analyst_decision round=1
+[14:50:13] research_step_completed
+[14:50:14] llm_started round=1 role=A-review
+[14:50:31] llm_completed role=A-review
+[14:50:32] research_step_started
+[14:50:32] llm_started round=1 role=A-selection
+[14:51:17] llm_completed role=A-selection
+[14:51:17] research_step_completed
+[14:51:18] team_completed round=1
+[14:51:18] guarded_worker_completed
+[14:51:20] batch_prepared wells=24 batch_id=b-8dd1d4789129b6898874
+[14:51:20] agent_state round=1 phase=awaiting_approval
+[14:51:21] batch_approved batch_id=b-8dd1d4789129b6898874
+[14:51:23] feedback_ingested round=1 batch_id=b-8dd1d4789129b6898874
+[14:51:23] agent_state round=2 phase=feedback_committed
+[14:51:26] llm_started round=2 role=C-feedback
+[14:51:57] llm_completed role=C-feedback
+[14:51:58] guarded_worker_completed
+[14:51:58] agent_state round=2 phase=improver_input
+[14:52:01] llm_started round=2 role=M
+[14:52:24] llm_completed role=M
+[14:52:24] guarded_worker_completed
+[14:52:25] patch_staged
+[14:52:26] meta_decision round=2
+[14:52:27] agent_state round=2 phase=round_input
+[14:52:30] llm_started round=None role=A-resources
+[14:52:35] llm_completed role=A-resources
+[14:52:36] resources_selected
+[14:52:36] llm_started round=2 role=A-plan
+[14:53:13] llm_completed role=A-plan
+[14:53:13] research_plan_created
+[14:53:13] research_step_started
+[14:53:14] tool_requested tool=research_evidence_summary
+[14:53:15] tool_completed tool=research_evidence_summary
+[14:53:16] tool_requested tool=research_prediction_errors
+[14:53:17] tool_completed tool=research_prediction_errors
+[14:53:18] research_step_completed
+[14:53:19] llm_started round=2 role=A-review
+[14:53:35] llm_completed role=A-review
+[14:53:35] research_step_started
+[14:53:36] llm_started round=2 role=B
+[14:55:30] llm_completed role=B
+[14:55:31] research_step_completed
+[14:55:32] llm_started round=2 role=A-review
+[14:55:49] llm_completed role=A-review
+[14:55:50] research_step_started
+[14:55:51] llm_started round=2 role=C-tools
+[14:56:08] llm_completed role=C-tools
+[14:56:08] llm_started round=2 role=C
+[14:56:51] llm_completed role=C
+[14:56:51] analyst_decision round=2
+[14:56:52] research_step_completed
+[14:56:53] llm_started round=2 role=A-review
+[14:57:10] llm_completed role=A-review
+[14:57:12] research_step_started
+[14:57:15] llm_started round=2 role=A-selection
+[14:57:52] llm_completed role=A-selection
+[14:57:53] research_step_completed
+[14:57:54] team_completed round=2
+[14:57:55] guarded_worker_completed
+[14:57:57] llm_cache_hit role=A-resources
+[14:57:57] resources_selected
+[14:58:00] llm_started round=2 role=A-plan
+[14:58:39] llm_completed role=A-plan
+[14:58:40] research_plan_created
+[14:58:41] research_step_started
+[14:58:42] tool_requested tool=research_evidence_summary
+[14:58:45] tool_completed tool=research_evidence_summary
+[14:58:46] tool_requested tool=research_prediction_errors
+[14:58:49] tool_completed tool=research_prediction_errors
+[14:58:50] research_step_completed
+[14:58:51] llm_started round=2 role=A-review
+[14:59:05] llm_completed role=A-review
+[14:59:06] research_step_started
+[14:59:08] llm_started round=2 role=B
+[15:00:46] llm_completed role=B
+[15:00:47] research_step_completed
+[15:00:48] llm_started round=2 role=A-review
+[15:01:08] llm_completed role=A-review
+[15:01:08] research_step_started
+[15:01:09] llm_started round=2 role=C-tools
+[15:01:34] llm_completed role=C-tools
+[15:01:38] llm_started round=2 role=C
+[15:02:19] llm_completed role=C
+[15:02:20] analyst_decision round=2
+[15:02:22] research_step_completed
+[15:02:24] llm_started round=2 role=A-review
+[15:02:46] llm_completed role=A-review
+[15:02:48] research_step_started
+[15:02:50] llm_started round=2 role=A-selection
+[15:03:25] llm_completed role=A-selection
+[15:03:26] research_step_completed
+[15:03:27] team_completed round=2
+[15:03:28] guarded_worker_completed
+[15:03:30] batch_prepared wells=24 batch_id=b-808d228715151969f6ac
+[15:03:30] agent_state round=2 phase=awaiting_approval
+[15:03:32] batch_approved batch_id=b-808d228715151969f6ac
+[15:03:33] workflow_trial_completed batch_id=b-808d228715151969f6ac decision=inconclusive
+[15:03:36] feedback_ingested round=2 batch_id=b-808d228715151969f6ac
+[15:03:37] agent_state round=3 phase=feedback_committed
+[15:03:39] llm_started round=3 role=C-feedback
+[15:06:40] llm_failed role=C-feedback error_type=ReadTimeout
+[15:06:41] meta_change_blocked round=3 error_type=LLMError
+[15:06:44] agent_state round=3 phase=round_input
+[15:06:47] llm_started round=None role=A-resources
+[15:06:53] llm_completed role=A-resources
+[15:06:54] resources_selected
+[15:06:55] llm_started round=3 role=A-plan
+[15:07:36] llm_completed role=A-plan
+[15:07:37] research_plan_created
+[15:07:38] research_step_started
+[15:07:38] tool_requested tool=research_evidence_summary
+[15:07:41] tool_completed tool=research_evidence_summary
+[15:07:41] tool_requested tool=research_prediction_errors
+[15:07:44] tool_completed tool=research_prediction_errors
+[15:07:45] research_step_completed
+[15:07:46] llm_started round=3 role=A-review
+[15:08:07] llm_completed role=A-review
+[15:08:09] research_step_started
+[15:08:10] llm_started round=3 role=B
+[15:10:51] llm_completed role=B
+[15:10:53] research_step_completed
+[15:10:56] llm_started round=3 role=A-review
+[15:11:11] llm_completed role=A-review
+[15:11:12] research_step_started
+[15:11:13] llm_started round=3 role=C-tools
+[15:11:32] llm_completed role=C-tools
+[15:11:35] llm_started round=3 role=C
+[15:12:18] llm_completed role=C
+[15:12:19] analyst_decision round=3
+[15:12:20] research_step_completed
+[15:12:22] llm_started round=3 role=A-review
+[15:12:49] llm_completed role=A-review
+[15:12:51] llm_started round=None role=A-resources
+[15:13:01] llm_completed role=A-resources
+[15:13:02] resources_selected
+[15:13:03] research_plan_revised
+[15:13:03] research_step_started
+[15:13:04] llm_started round=3 role=C-tools
+[15:13:20] llm_completed role=C-tools
+[15:13:21] llm_started round=3 role=C
+[15:13:59] llm_completed role=C
+[15:13:59] analyst_decision round=3
+[15:14:01] research_step_completed
+[15:14:03] llm_started round=3 role=A-review
+[15:14:31] llm_completed role=A-review
+[15:14:33] llm_started round=None role=A-resources
+[15:14:43] llm_completed role=A-resources
+[15:14:45] resources_selected
+[15:14:46] research_plan_revised
+[15:14:46] research_step_started
+[15:14:47] llm_started round=3 role=C-tools
+[15:15:04] llm_completed role=C-tools
+[15:15:05] llm_started round=3 role=C
+[15:15:46] llm_completed role=C
+[15:15:46] analyst_decision round=3
+[15:15:48] research_step_completed
+[15:15:50] research_step_started
+[15:15:52] llm_started round=3 role=A-selection
+[15:16:35] llm_completed role=A-selection
+[15:16:36] research_step_completed
+[15:16:37] team_completed round=3
+[15:16:37] guarded_worker_completed
+[15:16:39] batch_prepared wells=24 batch_id=b-5445ce764da04cddba9e
+[15:16:40] agent_state round=3 phase=awaiting_approval
+[15:16:42] batch_approved batch_id=b-5445ce764da04cddba9e
+[15:16:44] feedback_ingested round=3 batch_id=b-5445ce764da04cddba9e
+[15:16:45] agent_state round=4 phase=feedback_committed
+[15:16:48] llm_started round=4 role=C-feedback
+[15:17:24] llm_completed role=C-feedback
+[15:17:25] guarded_worker_completed
+[15:17:28] agent_state round=4 phase=improver_input
+[15:17:33] llm_started round=4 role=M
+[15:18:06] llm_completed role=M
+[15:18:06] guarded_worker_completed
+[15:18:08] patch_staged
+[15:18:10] meta_decision round=4
+[15:18:11] agent_state round=4 phase=round_input
+[15:18:14] llm_started round=None role=A-resources
+[15:18:23] llm_completed role=A-resources
+[15:18:23] resources_selected
+[15:18:25] llm_started round=4 role=A-plan
+[15:19:28] llm_completed role=A-plan
+[15:19:29] research_plan_created
+[15:19:29] research_step_started
+[15:19:29] tool_requested tool=research_evidence_summary
+[15:19:31] tool_completed tool=research_evidence_summary
+[15:19:32] tool_requested tool=research_prediction_errors
+[15:19:34] tool_completed tool=research_prediction_errors
+[15:19:36] research_step_completed
+[15:19:37] llm_started round=4 role=A-review
+[15:19:54] llm_completed role=A-review
+[15:19:55] research_step_started
+[15:19:56] llm_started round=4 role=B
+[15:20:33] llm_completed role=B
+[15:20:34] tool_requested tool=research_python
+[15:20:38] artifact_registered
+[15:20:38] generated_code_completed
+[15:20:39] tool_completed tool=research_python
+[15:20:41] llm_started round=4 role=B
+[15:21:53] llm_completed role=B
+[15:21:56] research_step_completed
+[15:22:00] llm_started round=4 role=A-review
+[15:22:13] llm_completed role=A-review
+[15:22:14] research_step_started
+[15:22:15] tool_requested tool=research_python
+[15:22:18] generated_code_completed
+[15:22:19] tool_completed tool=research_python
+[15:22:21] research_step_completed
+[15:22:22] llm_started round=4 role=A-review
+[15:22:38] llm_completed role=A-review
+[15:22:39] research_step_started
+[15:22:41] llm_started round=4 role=C-tools
+[15:23:00] llm_completed role=C-tools
+[15:23:02] llm_started round=4 role=C
+[15:23:46] llm_completed role=C
+[15:23:47] analyst_decision round=4
+[15:23:50] research_step_completed
+[15:23:52] llm_started round=4 role=A-review
+[15:24:10] llm_completed role=A-review
+[15:24:10] research_step_started
+[15:24:12] llm_started round=4 role=A-selection
+[15:24:43] llm_completed role=A-selection
+[15:24:44] research_step_completed
+[15:24:45] team_completed round=4
+[15:24:46] guarded_worker_completed
+[15:24:48] llm_started round=None role=A-resources
+[15:24:59] llm_completed role=A-resources
+[15:25:00] resources_selected
+[15:25:02] llm_started round=4 role=A-plan
+[15:25:48] llm_completed role=A-plan
+[15:25:50] research_plan_created
+[15:25:51] research_step_started
+[15:25:51] tool_requested tool=research_evidence_summary
+[15:25:54] tool_completed tool=research_evidence_summary
+[15:25:55] tool_requested tool=research_prediction_errors
+[15:25:56] tool_completed tool=research_prediction_errors
+[15:25:57] research_step_completed
+[15:25:59] llm_started round=4 role=A-review
+[15:26:15] llm_completed role=A-review
+[15:26:15] research_step_started
+[15:26:16] tool_requested tool=research_evidence_summary
+[15:26:16] tool_requested tool=research_prediction_errors
+[15:26:17] research_step_completed
+[15:26:18] llm_started round=4 role=A-review
+[15:26:23] llm_failed role=A-review error_type=HTTPStatusError
+[15:26:24] run_failed error_type=LLMError
+proteinrsi: LLMError: Provider call failed (HTTPStatusError); no silent mock fallback
+
+=== Resume after bounded LLM retry fix 2026-10-05T16:22:04.313581 ===
+[16:22:05] run_started
+[16:22:07] replay_started
+[16:22:07] agent_state round=4 phase=round_input
+[16:22:09] llm_cache_hit role=A-resources
+[16:22:09] resources_selected
+[16:22:10] llm_started round=4 role=A-plan attempt=1
+[16:23:03] llm_completed role=A-plan attempt=1
+[16:23:03] research_plan_created
+[16:23:03] research_step_started
+[16:23:03] tool_requested tool=research_evidence_summary
+[16:23:04] tool_completed tool=research_evidence_summary
+[16:23:04] tool_requested tool=research_prediction_errors
+[16:23:05] tool_completed tool=research_prediction_errors
+[16:23:06] research_step_completed
+[16:23:07] llm_started round=4 role=A-review attempt=1
+[16:23:32] llm_completed role=A-review attempt=1
+[16:23:32] research_step_started
+[16:23:33] llm_started round=4 role=B attempt=1
+[16:26:32] llm_completed role=B attempt=1
+[16:26:33] research_step_completed
+[16:26:35] llm_started round=4 role=A-review attempt=1
+[16:26:57] llm_completed role=A-review attempt=1
+[16:26:57] research_step_started
+[16:26:57] llm_started round=4 role=C-tools attempt=1
+[16:27:25] llm_completed role=C-tools attempt=1
+[16:27:25] llm_started round=4 role=C attempt=1

@@ -40,6 +40,7 @@ def evidence_summary(view: TaskView) -> dict:
         wt = [float(o.value) for o in valid if o.sequence == view.task.reference_sequence]
         report.append({"batch_id": batch_id, "n": len(obs), "n_valid": len(valid),
             "n_failed": sum(o.qc == "failed" for o in obs),
+            "n_unavailable": sum(o.qc == "unavailable" for o in obs),
             "n_inconclusive": sum(o.qc == "inconclusive" for o in obs),
             "unique_valid_sequences": len({o.sequence for o in valid}), "wt_measurements": _stats(wt)})
     return {"evidence_version": view.evidence_version, "source": view.task.feedback_source,

@@ -1,0 +1,41 @@
+{
+  "name": "Natural-language protein research",
+  "objective_description": "使用GB1历史实测景观开展自主变体设计研究，最多10轮，每轮可以提交最多384个不同的新序列，总查询预算3840。每轮实际提交数量由Agent根据证据和方案决定，不要求填满384孔。目标是在总预算内寻找原始实测fitness尽可能高的变体。使用数据集核验的完整母本及其已知实测fitness作为免费的初始证据；只允许修改母本第39、40、41、54位，最多4个替换，其余位置不变。使用原始reported_assay_fitness及数据集单位和实验协议，不重新归一化。由Agent自主生成完整序列或显式突变、选择方法、可选调用蛋白工具或编写Python；不提供候选目录，不把实验数据库当作待筛选菜单。所有蛋白工具可选，不要求必须使用；根据能否改善设计和查询决策评估辅助工具价值，工具预测不能代替实验反馈。每个提交查询占用一个名额，包括返回unavailable的无历史记录序列；无记录不能当作低fitness或实验失败。允许M基于证据提出并验证工作流和自身策略修改，新增验证共享每轮384和总3840预算，不要求每轮修改。新研究只使用已知母本初始测量，不导入旧研究的96个查询结果。最终报告最佳实测序列、逐轮表现、有效测量及无记录查询数量、工具与LLM成本和完整轨迹。",
+  "initial_observation_policy": "provided_parent",
+  "initial_parent_measurement": {
+    "value": 1.0,
+    "source_ref": "GB1; reported experimental parent; SHA256 7ab39b0918bc933030c711a723ca05b316b2e27e703af26d9c4a91064eafa7bd"
+  },
+  "candidate_access": "open",
+  "kind": "variant_design",
+  "reference_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTVTE",
+  "target_sequence": null,
+  "mutable_positions": [
+    39,
+    40,
+    41,
+    54
+  ],
+  "max_mutations": 4,
+  "execution_mode": "experimental",
+  "allow_indels": false,
+  "min_length": null,
+  "max_length": null,
+  "repeat_policy": "exclude",
+  "candidates": [],
+  "metric": "reported_assay_fitness",
+  "unit": "source_assay_units",
+  "direction": "maximize",
+  "feedback_source": "measured_replay",
+  "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+  "batch_size": 384,
+  "controls_per_batch": 0,
+  "max_rounds": 10,
+  "seed": 17,
+  "proposal_pool_size": 128,
+  "budget": {
+    "experimental_wells": 3840,
+    "llm_calls": 1000,
+    "tool_calls": 400
+  }
+}

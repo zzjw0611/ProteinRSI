@@ -176,7 +176,7 @@ query匹配A3M。没有MSA的运行可用于流程测试，但不保证与有MSA
 
 结构适配目前限制为典型规范蛋白、单模型PDB、完整N/CA/C/O骨架。
 Protenix适配只封装蛋白单体/蛋白复合物，不宣称覆盖该模型的所有配体、核酸和修饰能力。
-Binder保持固定长度；RFD骨架生成仅支持完整固定靶点与全可变Binder。
+de novo Binder 可由 Agent 在任务长度范围内选择本次生成长度；每次 RFD 调用仍生成该长度的骨架，要求完整固定靶点。已有 scaffold 按其任务约束执行。
 旧的部分可变Binder任务可继续做ProteinMPNN骨架重设计，不强行走RFD。
 
 ## RSI保持独立

@@ -1,0 +1,1803 @@
+{
+  "batch_id": "b-8ca94c6596318517972e",
+  "campaign_id": "24732b5c-6814-4cc5-97bc-2bbbebae3ece",
+  "evidence_version": "bc09dba10567451fade6854d1aed3dfb2ea071e53f7d392d5c8bf51ad5da61d3",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 0,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>A. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-000",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>A. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVAGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-001",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>A. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-002",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>A. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-003",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>C. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-004",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>C. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVCGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-005",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>C. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDCEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-006",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>C. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTCTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-007",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>D. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-008",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>E. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVEGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-009",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>D. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDDEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-010",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>D. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTDTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-011",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>E. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-012",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>F. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-013",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>E. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDEEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-014",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>E. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTETE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-015",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>F. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-016",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>G. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVGGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-017",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>F. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDFEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-018",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>F. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTFTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-019",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>G. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-020",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>H. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-021",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>H. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDHEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-022",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>G. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTGTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-023",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>H. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-024",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>I. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVIGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-025",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>I. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDIEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-026",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>H. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTHTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-027",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>I. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-028",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>K. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVKGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-029",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>K. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDKEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-030",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>I. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTITE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-031",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>K. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-032",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>L. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-033",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>L. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDLEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-034",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>K. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTKTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-035",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>L. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-036",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>M. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVMGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-037",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>M. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDMEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-038",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>L. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTLTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-039",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>M. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-040",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>N. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVNGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-041",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>N. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDNEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-042",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>M. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTMTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-043",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>N. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-044",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>P. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVPGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-045",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>P. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDPEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-046",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>N. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTNTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-047",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>P. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-048",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>Q. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVQGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-049",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>Q. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDQEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-050",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>P. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTPTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-051",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>Q. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-052",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>R. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVRGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-053",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>R. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDREWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-054",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>Q. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTQTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-055",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>R. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-056",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>S. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVSGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-057",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>S. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDSEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-058",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>R. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTRTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-059",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>S. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-060",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>T. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVTGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-061",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>T. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDTEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-062",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>S. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTSTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-063",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>T. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-064",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>V. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVVGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-065",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>V. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDVEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-066",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>T. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTTTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-067",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>W. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-068",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>W. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-069",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>W. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDWEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-070",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>W. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTWTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-071",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 39V>Y. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYDGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-072",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 40D>Y. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-073",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 41G>Y. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDYEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-074",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "single: 54V>Y. Measure the individual substitution effect to establish a complete local baseline; benefit is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTYTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-075",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>A, 40D>A. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGAAGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-076",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>A, 41G>A. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADAEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-077",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>A, 54V>A. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADGEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-078",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>A, 41G>A. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVAAEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-079",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>A, 54V>A. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVAGEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-080",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 41G>A, 54V>A. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-081",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>F, 40D>F. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFFGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-082",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>F, 41G>F. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDFEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-083",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>F, 54V>F. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDGEWTYDDATKTFTFTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-084",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>F, 41G>F. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFFEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-085",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>F, 54V>F. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFGEWTYDDATKTFTFTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-086",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 41G>F, 54V>F. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDFEWTYDDATKTFTFTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-087",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>W, 40D>W. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWWGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-088",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>W, 41G>W. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWDWEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-089",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>W, 54V>W. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWDGEWTYDDATKTFTWTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-090",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>W, 41G>W. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWWEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-091",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>W, 54V>W. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTWTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-092",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 41G>W, 54V>W. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDWEWTYDDATKTFTWTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-093",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>Y, 40D>Y. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYYGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-094",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>Y, 41G>Y. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYDYEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-095",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>Y, 54V>Y. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYDGEWTYDDATKTFTYTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-096",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>Y, 41G>Y. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYYEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-097",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>Y, 54V>Y. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYGEWTYDDATKTFTYTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-098",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 41G>Y, 54V>Y. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDYEWTYDDATKTFTYTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-099",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>L, 40D>I. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLIGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-100",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>L, 41G>I. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDIEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-101",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>L, 54V>I. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDGEWTYDDATKTFTITE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-102",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>L, 41G>I. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLIEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-103",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>L, 54V>I. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLGEWTYDDATKTFTITE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-104",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 41G>L, 54V>I. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDLEWTYDDATKTFTITE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-105",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>I, 40D>L. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGILGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-106",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>I, 41G>L. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDLEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-107",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>I, 54V>L. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDGEWTYDDATKTFTLTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-108",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>I, 41G>L. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVILEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-109",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>I, 54V>L. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVIGEWTYDDATKTFTLTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-110",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 41G>I, 54V>L. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDIEWTYDDATKTFTLTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-111",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>S, 40D>T. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSTGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-112",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>S, 41G>T. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSDTEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-113",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>S, 54V>T. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSDGEWTYDDATKTFTTTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-114",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>S, 41G>T. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVSTEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-115",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>S, 54V>T. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVSGEWTYDDATKTFTTTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-116",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 41G>S, 54V>T. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDSEWTYDDATKTFTTTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-117",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>T, 40D>S. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTSGEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-118",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>T, 41G>S. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDSEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-119",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 39V>T, 54V>S. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDGEWTYDDATKTFTSTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-120",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>T, 41G>S. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVTSEWTYDDATKTFTVTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-121",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 40D>T, 54V>S. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVTGEWTYDDATKTFTSTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-122",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "double: 41G>T, 54V>S. Explore small, aromatic, hydrophobic or polar residue combinations and compare with the measured constituent singles; interaction is unknown.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDTEWTYDDATKTFTSTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-123",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "quadruple: 39V>A, 40D>A, 41G>A, 54V>A. Probe a four-position combination spanning different side-chain compositions; this is exploratory and has no established fitness advantage.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGAAAEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-124",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "quadruple: 39V>F, 40D>L, 41G>A, 54V>I. Probe a four-position combination spanning different side-chain compositions; this is exploratory and has no established fitness advantage.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFLAEWTYDDATKTFTITE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-125",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "quadruple: 39V>W, 40D>Y, 41G>A, 54V>F. Probe a four-position combination spanning different side-chain compositions; this is exploratory and has no established fitness advantage.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWYAEWTYDDATKTFTFTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-126",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "quadruple: 39V>Y, 40D>F, 41G>S, 54V>L. Probe a four-position combination spanning different side-chain compositions; this is exploratory and has no established fitness advantage.",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYFSEWTYDDATKTFTLTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8ca94c6596318517972e-127",
+      "workflow_version": "w-065f689c980923d5"
+    }
+  ]
+}

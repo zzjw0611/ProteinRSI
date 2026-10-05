@@ -29,6 +29,9 @@ def reader_roots():
     import sysconfig
     roots.add(sysconfig.get_path("stdlib"))
     roots.add(str(Path(__file__).resolve().parents[2]))  # src/proteinrsi
+    # Conda extension modules need the matching shared libraries (e.g. SQLite),
+    # not a fallback to incompatible system libraries after filesystem isolation.
+    roots.update(str(p.resolve()) for p in (Path(sys.base_prefix)/"lib").glob("*.so*") if p.is_file())
     for p in ("/usr/lib", "/usr/lib64", "/lib", "/lib64"):
         if Path(p).exists():
             roots.add(str(Path(p).resolve()))
@@ -65,6 +68,8 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
     core = register_analysis_tools(gateway, view)
     register_prediction_tool(gateway, view, team.protein_model)
     register_library_tools(gateway, view)
+    from proteinrsi.research.code import register_code_tool
+    register_code_tool(gateway, view)
     allowed = list(dict.fromkeys([*view.workflow.tool_names, *core]))
     catalogue = [t for t in gateway.catalog(view.task, allowed) if not t["data_egress"] or gateway.allow_egress]
     allowed = [t["name"] for t in catalogue]
@@ -73,6 +78,8 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
         env = {"PATH": "/usr/bin:/bin", "HOME": work, "TMPDIR": work, "LANG": "C.UTF-8",
             "PYTHONPATH": str(Path(__file__).resolve().parents[2]), "PYTHONDONTWRITEBYTECODE": "1",
             "PYTHONNOUSERSITE": "1", "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"}
+        if (Path(sys.base_prefix)/"lib").is_dir():
+            env["LD_LIBRARY_PATH"] = str(Path(sys.base_prefix)/"lib")
         start = {"work": work, "read_roots": reader_roots(), "operation": operation,
             "view": view.model_dump(mode="json"), "last_patch_round": last_patch_round,
             "tools": catalogue, "allow_egress": gateway.allow_egress,
@@ -132,7 +139,7 @@ def dispatch(team, gateway, view, allowed, msg):
         if op == "get" and ns == "protein_backend" and msg["key"] == "snapshot":
             return store.get(ns,msg["key"],msg.get("default"))
         if op == "get" and ns == "campaign" and msg["key"] == "state":
-            # Needed solely for label-free catalogue membership; never give a DB handle.
+            # Only explicit user libraries are available here; open design has no replay index.
             state = store.get(ns,msg["key"])
             return {"task": state["task"]} if state else None
         if op == "put":
@@ -146,7 +153,7 @@ def dispatch(team, gateway, view, allowed, msg):
         # Worker records cannot impersonate experiment/budget/promotion events.
         safe = {"resources_selected","research_plan_created","research_plan_revised","research_step_started",
                 "research_step_completed","research_blocked","team_completed","analyst_decision",
-                "design_tool_result","candidate_validation_feedback"}
+                "design_tool_result","candidate_validation_feedback","ranking_repair_requested"}
         if msg["kind"] not in safe:
             raise PermissionError("Unapproved audit event kind")
         return store.event(msg["kind"],msg["payload"])
@@ -159,9 +166,14 @@ def dispatch(team, gateway, view, allowed, msg):
 
 class GuardedTeam(Team):
     guarded = True
-    def __init__(self, store, llm=None, tools=None, protein_model=None):
-        super().__init__(store,llm,tools,protein_model)
+    def __init__(self, store, llm=None, tools=None, protein_model=None, *, register_tools=True):
+        super().__init__(store, llm, tools, protein_model, register_tools=register_tools)
         self.analyst = GuardedFeedback(self)
+    @classmethod
+    def from_team(cls, team):
+        guarded = cls(team.store, team.llm, team.tools, register_tools=False)
+        guarded.protein_model = team.protein_model
+        return guarded
     def run(self, view):
         self.bind_tools(view)
         return [Candidate.model_validate(c) for c in invoke_worker(self,view,"team")]

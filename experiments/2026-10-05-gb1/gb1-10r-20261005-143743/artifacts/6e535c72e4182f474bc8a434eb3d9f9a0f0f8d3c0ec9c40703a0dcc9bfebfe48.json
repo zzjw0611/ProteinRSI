@@ -1,0 +1,1728 @@
+{
+  "checks_passed": true,
+  "common_quota": {
+    "3": 3,
+    "4": 9
+  },
+  "constraint_violations": 0,
+  "depth_histograms": {
+    "multi_anchor": {
+      "3": 3,
+      "4": 9
+    },
+    "single_winner": {
+      "3": 3,
+      "4": 9
+    }
+  },
+  "eligible_count": 128,
+  "eligible_depth_counts": {
+    "1": 1,
+    "2": 3,
+    "3": 18,
+    "4": 106
+  },
+  "experimental_measurements_created": 0,
+  "group_size": 12,
+  "limitations": [
+    "Computed identity and selection checks are not experimental fitness evidence.",
+    "SHA256 identifies sequence text; it does not independently authenticate catalogue provenance.",
+    "Single-winner selection precedes and restricts multi-anchor selection.",
+    "Historical frozen group labels are unavailable."
+  ],
+  "manifest": [
+    {
+      "catalogue_index_1based": 4,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "F"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "R"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "M"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 1,
+      "multi_anchor_distance": 1,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTMTE",
+      "sha256": "3c62018f0a4dd2622badc18906be5ee09dd5c98672e1704a4e35a81099f608de",
+      "winner_distance": 1
+    },
+    {
+      "catalogue_index_1based": 93,
+      "coverage_increment": 2,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "P"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "R"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "A"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 2,
+      "multi_anchor_distance": 2,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPRFEWTYDDATKTFTATE",
+      "sha256": "a274d623ef3d3eaaa94f3985e1f7bae3e7b2d493335a813755ea74bceeabc061",
+      "winner_distance": 2
+    },
+    {
+      "catalogue_index_1based": 47,
+      "coverage_increment": 4,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "Y"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "F"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "Y"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 3,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYFYEWTYDDATKTFTVTE",
+      "sha256": "6e564e3f124b905682bdda916124c2ebe09e4196fccbb9727d6133cd378a549d",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 24,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "N"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "P"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "W"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 4,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNPFEWTYDDATKTFTWTE",
+      "sha256": "d8b3f20bf3aeae395b614699ec237bd7a0c82967e743349efffd319e15d8f829",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 48,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "I"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "E"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "E"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 5,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIEFEWTYDDATKTFTETE",
+      "sha256": "ead97292c35d31eea959a50871ff23d0e239f4b97cd661aee8a9532a11a03254",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 50,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "M"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "R"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "L"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "T"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 6,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMRLEWTYDDATKTFTTTE",
+      "sha256": "f35fdaa09a0df495b2da3a5b45f4afadce988221ecd362831ccf0bc3a389cf90",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 63,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "F"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "Y"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "D"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "R"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 7,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F",
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFYDEWTYDDATKTFTRTE",
+      "sha256": "4ea21905f9b8e5a1152a6cd538c944ee8c2e192b17fa4fab3593e7e442843752",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 71,
+      "coverage_increment": 3,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "T"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "H"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "E"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 8,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTHEEWTYDDATKTFTVTE",
+      "sha256": "819c5a65a63a810ff75bcf190723b931e264e58a781afbf6377d322d62fe9486",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 102,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "H"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "V"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "K"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 9,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHVFEWTYDDATKTFTKTE",
+      "sha256": "9db8e6e360f19bcf2286be87a1a1b2b6383226ff502a2e1328adf697f8aacfe2",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 103,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "D"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "C"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "C"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 10,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDCFEWTYDDATKTFTCTE",
+      "sha256": "9506a74a6bef989cb6b5ec13c136c0917fec108bb3ae713302d0d42dd657cd23",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 115,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "R"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "A"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "Q"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 11,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F",
+        "D40A/V54N"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRAFEWTYDDATKTFTQTE",
+      "sha256": "63caafe2cee620894c0fda82569a476b21daf9b0e38e5a76451f140e7c79ee00",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 33,
+      "coverage_increment": 2,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "Y"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "R"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "P"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 12,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F",
+        "D40A/V54N",
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYRGEWTYDDATKTFTPTE",
+      "sha256": "6850e6a99f7063634892cad5b44a3e483060e8bb150dbe6986d69399970ba7ad",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 104,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "C"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "Y"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "S"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "Y"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 1,
+      "multi_anchor_distance": 2,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCYSEWTYDDATKTFTYTE",
+      "sha256": "c8a28d23ecb6d8f30beb0c2ffd2b77a22e790bcfc894fed99045d0f819a46467",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 1,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "W"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "G"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "V"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "C"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 2,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWGVEWTYDDATKTFTCTE",
+      "sha256": "497105d54e5cbd18e98c5a418b9c822c09b9775dbbcf348df4d4db94534a9c36",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 6,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "N"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "M"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "N"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "N"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 3,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "D40A/V54N"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNMNEWTYDDATKTFTNTE",
+      "sha256": "c5d4912c1924c4bb6658a4e029a78eb6dda071a17be3fc88662f2c919d7a0047",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 19,
+      "coverage_increment": 4,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "Q"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "W"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "W"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 4,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "D40A/V54N",
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQWGEWTYDDATKTFTWTE",
+      "sha256": "09db3b24032a05db41d14a724c5f688577064fdb654b36d6072c40219c4db14b",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 35,
+      "coverage_increment": 4,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "P"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "C"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "W"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 5,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPCWEWTYDDATKTFTVTE",
+      "sha256": "1b6c2caf97effa54476bd3472f8f6e9269ff01a31f89b2aacfd8fe3f174e8910",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 38,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "F"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "A"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "K"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "M"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 6,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F",
+        "D40A/V54N"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFAKEWTYDDATKTFTMTE",
+      "sha256": "2d6c172c8254fb9fc4b1fa4df6402a713528561a8af943ebe9ab970dbb8e6c47",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 58,
+      "coverage_increment": 4,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "I"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "T"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 7,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDFEWTYDDATKTFTTTE",
+      "sha256": "a4e40f1fd2c5efd5d5153c65f8e13f4d4246feaac130da3030029d7d6ae85597",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 31,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "W"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "E"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "M"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "G"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 8,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWEMEWTYDDATKTFTGTE",
+      "sha256": "8a668a96d722c7515cb108f1a0fcde6409da814dbd0ca5aed754b35de926588f",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 43,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "L"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "Y"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "T"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "E"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 9,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLYTEWTYDDATKTFTETE",
+      "sha256": "0750d456de5629858b7be46d2aaa7986f74d2a7b5ec794753f82a40aaeaee80a",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 53,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "W"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "S"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "R"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "A"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 10,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWSREWTYDDATKTFTATE",
+      "sha256": "fc5e72831467c7a87fc9ea8a5d9bdf6b2ab2ab65f549361e8dfe1ac5e344687d",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 90,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "Y"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "K"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "D"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "N"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 11,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "D40A/V54N"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYKDEWTYDDATKTFTNTE",
+      "sha256": "07fec9a7409bd7d81122dc99ce20b07ea56f4776b217f36bb1ffb7ec58c42a3a",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 25,
+      "coverage_increment": 2,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "W"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "G"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "H"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "F"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 12,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWGHEWTYDDATKTFTFTE",
+      "sha256": "05a8a949e98f6fa26d2807e4783f824c8d03da5b9677ff0f1160f685167bd5b8",
+      "winner_distance": 4
+    }
+  ],
+  "paired_capacity": {
+    "1": 0,
+    "2": 1,
+    "3": 9,
+    "4": 53
+  },
+  "planned_new_queries": 24,
+  "predicted_value": null,
+  "primary_endpoint": "Within each group, fraction of valid raw reported_assay_fitness values > 1.0; null if no valid results",
+  "ranking": [
+    {
+      "catalogue_index_1based": 4,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "F"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "R"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "M"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 1,
+      "multi_anchor_distance": 1,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTMTE",
+      "sha256": "3c62018f0a4dd2622badc18906be5ee09dd5c98672e1704a4e35a81099f608de",
+      "winner_distance": 1
+    },
+    {
+      "catalogue_index_1based": 104,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "C"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "Y"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "S"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "Y"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 1,
+      "multi_anchor_distance": 2,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCYSEWTYDDATKTFTYTE",
+      "sha256": "c8a28d23ecb6d8f30beb0c2ffd2b77a22e790bcfc894fed99045d0f819a46467",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 93,
+      "coverage_increment": 2,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "P"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "R"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "A"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 2,
+      "multi_anchor_distance": 2,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPRFEWTYDDATKTFTATE",
+      "sha256": "a274d623ef3d3eaaa94f3985e1f7bae3e7b2d493335a813755ea74bceeabc061",
+      "winner_distance": 2
+    },
+    {
+      "catalogue_index_1based": 1,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "W"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "G"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "V"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "C"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 2,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWGVEWTYDDATKTFTCTE",
+      "sha256": "497105d54e5cbd18e98c5a418b9c822c09b9775dbbcf348df4d4db94534a9c36",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 47,
+      "coverage_increment": 4,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "Y"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "F"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "Y"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 3,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYFYEWTYDDATKTFTVTE",
+      "sha256": "6e564e3f124b905682bdda916124c2ebe09e4196fccbb9727d6133cd378a549d",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 6,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "N"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "M"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "N"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "N"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 3,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "D40A/V54N"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNMNEWTYDDATKTFTNTE",
+      "sha256": "c5d4912c1924c4bb6658a4e029a78eb6dda071a17be3fc88662f2c919d7a0047",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 24,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "N"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "P"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "W"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 4,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNPFEWTYDDATKTFTWTE",
+      "sha256": "d8b3f20bf3aeae395b614699ec237bd7a0c82967e743349efffd319e15d8f829",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 19,
+      "coverage_increment": 4,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "Q"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "W"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "W"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 4,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "D40A/V54N",
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQWGEWTYDDATKTFTWTE",
+      "sha256": "09db3b24032a05db41d14a724c5f688577064fdb654b36d6072c40219c4db14b",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 48,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "I"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "E"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "E"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 5,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIEFEWTYDDATKTFTETE",
+      "sha256": "ead97292c35d31eea959a50871ff23d0e239f4b97cd661aee8a9532a11a03254",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 35,
+      "coverage_increment": 4,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "P"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "C"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "W"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 5,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPCWEWTYDDATKTFTVTE",
+      "sha256": "1b6c2caf97effa54476bd3472f8f6e9269ff01a31f89b2aacfd8fe3f174e8910",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 50,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "M"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "R"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "L"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "T"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 6,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMRLEWTYDDATKTFTTTE",
+      "sha256": "f35fdaa09a0df495b2da3a5b45f4afadce988221ecd362831ccf0bc3a389cf90",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 38,
+      "coverage_increment": 4,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "F"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "A"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "K"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "M"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 6,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F",
+        "D40A/V54N"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFAKEWTYDDATKTFTMTE",
+      "sha256": "2d6c172c8254fb9fc4b1fa4df6402a713528561a8af943ebe9ab970dbb8e6c47",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 63,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "F"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "Y"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "D"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "R"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 7,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F",
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFYDEWTYDDATKTFTRTE",
+      "sha256": "4ea21905f9b8e5a1152a6cd538c944ee8c2e192b17fa4fab3593e7e442843752",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 58,
+      "coverage_increment": 4,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "I"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "T"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 7,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDFEWTYDDATKTFTTTE",
+      "sha256": "a4e40f1fd2c5efd5d5153c65f8e13f4d4246feaac130da3030029d7d6ae85597",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 71,
+      "coverage_increment": 3,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "T"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "H"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "E"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 8,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTHEEWTYDDATKTFTVTE",
+      "sha256": "819c5a65a63a810ff75bcf190723b931e264e58a781afbf6377d322d62fe9486",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 31,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "W"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "E"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "M"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "G"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 8,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWEMEWTYDDATKTFTGTE",
+      "sha256": "8a668a96d722c7515cb108f1a0fcde6409da814dbd0ca5aed754b35de926588f",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 102,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "H"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "V"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "K"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 9,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHVFEWTYDDATKTFTKTE",
+      "sha256": "9db8e6e360f19bcf2286be87a1a1b2b6383226ff502a2e1328adf697f8aacfe2",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 43,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "L"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "Y"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "T"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "E"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 9,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLYTEWTYDDATKTFTETE",
+      "sha256": "0750d456de5629858b7be46d2aaa7986f74d2a7b5ec794753f82a40aaeaee80a",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 103,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "D"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "C"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "C"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 10,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDCFEWTYDDATKTFTCTE",
+      "sha256": "9506a74a6bef989cb6b5ec13c136c0917fec108bb3ae713302d0d42dd657cd23",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 53,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "W"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "S"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "R"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "A"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 10,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWSREWTYDDATKTFTATE",
+      "sha256": "fc5e72831467c7a87fc9ea8a5d9bdf6b2ab2ab65f549361e8dfe1ac5e344687d",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 115,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "R"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "A"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "F"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "Q"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 11,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F",
+        "D40A/V54N"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRAFEWTYDDATKTFTQTE",
+      "sha256": "63caafe2cee620894c0fda82569a476b21daf9b0e38e5a76451f140e7c79ee00",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 90,
+      "coverage_increment": 3,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "Y"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "K"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "D"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "N"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 11,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "D40A/V54N"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYKDEWTYDDATKTFTNTE",
+      "sha256": "07fec9a7409bd7d81122dc99ce20b07ea56f4776b217f36bb1ffb7ec58c42a3a",
+      "winner_distance": 4
+    },
+    {
+      "catalogue_index_1based": 33,
+      "coverage_increment": 2,
+      "depth": 3,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "Y"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "R"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "P"
+        }
+      ],
+      "group": "single_winner",
+      "group_order": 12,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39F/D40R/G41F",
+        "D40A/V54N",
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYRGEWTYDDATKTFTPTE",
+      "sha256": "6850e6a99f7063634892cad5b44a3e483060e8bb150dbe6986d69399970ba7ad",
+      "winner_distance": 3
+    },
+    {
+      "catalogue_index_1based": 25,
+      "coverage_increment": 2,
+      "depth": 4,
+      "edits": [
+        {
+          "from": "V",
+          "position": 39,
+          "to": "W"
+        },
+        {
+          "from": "D",
+          "position": 40,
+          "to": "G"
+        },
+        {
+          "from": "G",
+          "position": 41,
+          "to": "H"
+        },
+        {
+          "from": "V",
+          "position": 54,
+          "to": "F"
+        }
+      ],
+      "group": "multi_anchor",
+      "group_order": 12,
+      "multi_anchor_distance": 3,
+      "nearest_anchor_edits": [
+        "V39W/D40Y/V54Y"
+      ],
+      "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWGHEWTYDDATKTFTFTE",
+      "sha256": "05a8a949e98f6fa26d2807e4783f824c8d03da5b9677ff0f1160f685167bd5b8",
+      "winner_distance": 4
+    }
+  ],
+  "remaining_if_all_queried": 120,
+  "uncertainty": null
+}

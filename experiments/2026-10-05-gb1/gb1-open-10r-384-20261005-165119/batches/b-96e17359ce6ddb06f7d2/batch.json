@@ -1,0 +1,53 @@
+{
+  "batch_id": "b-96e17359ce6ddb06f7d2",
+  "campaign_id": "24732b5c-6814-4cc5-97bc-2bbbebae3ece",
+  "evidence_version": "37957c061a6a599329d56f46052ab162426161c15115e5e38048877c1dd72bb3",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 5,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40W/G41S/V54A：固定40W/54A背景，检验41S的小型羟基侧链是否能产生背景补偿收益；组合fitness未知。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWSEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-96e17359ce6ddb06f7d2-000",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40W/G41C/V54A：固定40W/54A背景，以41C的含硫侧链提供化学性质比较；没有结构或测量证据支持具体相互作用。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWCEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-96e17359ce6ddb06f7d2-001",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40W/G41T/V54A：固定40W/54A背景，以41T检验相较S增加甲基和侧链分支后的变化；不假定其提高fitness。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWTEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-96e17359ce6ddb06f7d2-002",
+      "workflow_version": "w-065f689c980923d5"
+    }
+  ]
+}

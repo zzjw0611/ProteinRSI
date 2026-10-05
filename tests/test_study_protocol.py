@@ -122,7 +122,7 @@ def test_guarded_replay_fails_closed_on_unsupported_kernel(campaign,fixture_data
 
 def test_real_guarded_subprocess_when_kernel_supports_it(campaign,fixture_data):
     if not probe()["available"]:
-        pytest.skip("Host kernel lacks Landlock>=3/libseccomp; no unguarded fallback test")
+        pytest.skip("Host kernel lacks Landlock/libseccomp; no unguarded fallback test")
     result=run_replay(campaign,fixture_data[1],guarded=True)
     assert result["status"]=="complete"
     events=campaign.store.events()

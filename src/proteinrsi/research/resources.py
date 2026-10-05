@@ -68,7 +68,9 @@ class ResourceSelector:
 
     def select(self, view: TaskView, tool_catalog: list[dict], *, query: str | None = None) -> dict:
         resources = build_catalog(view, tool_catalog, self.store)
-        query = query or f"{view.task.name}; {view.task.kind.value}; {view.task.metric}; round {view.round_index}"
+        query = query or (f"{view.task.objective_description or view.task.name}; {view.task.kind.value}; "
+                          f"{view.task.metric}; round {view.round_index}; "
+                          f"revealed observations {len(view.observations)}; remaining queries {view.remaining_wells}")
         manifest = {k: [{"id": r["id"], "version": r["version"]} for r in v] for k, v in resources.items()}
         key = digest({"query": query, "resources": manifest, "evidence": view.evidence_version,
                       "config": self.config.model_dump(mode="json"), "llm_model": getattr(self.llm, "model", None),

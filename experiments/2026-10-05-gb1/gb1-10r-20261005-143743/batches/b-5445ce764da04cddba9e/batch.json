@@ -1,0 +1,347 @@
+{
+  "batch_id": "b-5445ce764da04cddba9e",
+  "campaign_id": "5dd3b2dc-d698-4067-928e-63e09aab96a2",
+  "evidence_version": "60e53eaff2069110f8cdcc54a1df1fa740d86d2b03214f43e039470373e2d95b",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 3,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引19（1-based）；四位点PDFV；母本深度2；单赢家距离2，多锚点距离2，最近锚点FRFV；选择时覆盖增量4。检验保留赢家F41/V54的目录近邻。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPDFEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:19;single_winner:1",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-000",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引27；四位点PADN；母本深度4；单赢家距离4，多锚点距离2，最近锚点VAGN；覆盖增量4。检验保留已测成功组合A40/N54的近邻。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPADEWTYDDATKTFTNTE",
+        "source": "catalogue_preview:27;multi_anchor:1",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-001",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引32；四位点FGCV；母本深度3；单赢家距离2，多锚点距离2，最近锚点FRFV；覆盖增量3。检验保留赢家F39/V54的近邻。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFGCEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:32;single_winner:2",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-002",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引99；四位点VMGL；母本深度2；单赢家距离4，多锚点距离2，最近锚点VAGN；覆盖增量4。保留该锚点V39/G41，并满足深度2配额。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVMGEWTYDDATKTFTLTE",
+        "source": "catalogue_preview:99;multi_anchor:2",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-003",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引4；四位点HRQR；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量4。距离并列时增加覆盖并按目录顺序入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHRQEWTYDDATKTFTRTE",
+        "source": "catalogue_preview:4;single_winner:3",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-004",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引126；四位点CYHY；母本深度4；单赢家距离4，多锚点距离2，最近锚点WYGY；覆盖增量4。检验保留已测成功组合Y40/Y54的近邻。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCYHEWTYDDATKTFTYTE",
+        "source": "catalogue_preview:126;multi_anchor:3",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-005",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引10；四位点TRSP；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。按距离、动态覆盖及目录顺序入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTRSEWTYDDATKTFTPTE",
+        "source": "catalogue_preview:10;single_winner:4",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-006",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引41；四位点NWGN；母本深度3；单赢家距离4，多锚点距离2，最近锚点VAGN；覆盖增量2。距离优先，检验保留该锚点G41/N54的近邻。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNWGEWTYDDATKTFTNTE",
+        "source": "catalogue_preview:41;multi_anchor:4",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-007",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引11；四位点FHWL；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。按预定并列规则入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFHWEWTYDDATKTFTLTE",
+        "source": "catalogue_preview:11;single_winner:5",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-008",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引24；四位点KHFR；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量4。多锚点规则仍允许赢家邻域候选，按动态覆盖入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKHFEWTYDDATKTFTRTE",
+        "source": "catalogue_preview:24;multi_anchor:5",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-009",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引18；四位点CRYS；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。按预定并列规则入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCRYEWTYDDATKTFTSTE",
+        "source": "catalogue_preview:18;single_winner:6",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-010",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引30；四位点ERAS；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量4。按距离、动态覆盖及目录顺序入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGERAEWTYDDATKTFTSTE",
+        "source": "catalogue_preview:30;multi_anchor:6",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-011",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引28；四位点RRKI；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。按预定并列规则入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRRKEWTYDDATKTFTITE",
+        "source": "catalogue_preview:28;single_winner:7",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-012",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引44；四位点QCYV；母本深度3；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量4。满足共同深度配额并增加覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQCYEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:44;multi_anchor:7",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-013",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引36；四位点GTTV；母本深度3；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。按预定并列规则入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGTTEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:36;single_winner:8",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-014",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引49；四位点WKRT；母本深度4；单赢家距离4，多锚点距离3，最近锚点WYGY；覆盖增量4。扩展至另一已测成功锚点的邻域。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWKREWTYDDATKTFTTTE",
+        "source": "catalogue_preview:49;multi_anchor:8",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-015",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引48；四位点QPEV；母本深度3；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。按预定并列规则入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQPEEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:48;single_winner:9",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-016",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引51；四位点WIMD；母本深度4；单赢家距离4，多锚点距离3，最近锚点WYGY；覆盖增量3。按预定并列规则入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWIMEWTYDDATKTFTDTE",
+        "source": "catalogue_preview:51;multi_anchor:9",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-017",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引58；四位点KVFK；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。按预定并列规则入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKVFEWTYDDATKTFTKTE",
+        "source": "catalogue_preview:58;single_winner:10",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-018",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引56；四位点HAQA；母本深度4；单赢家距离4，多锚点距离3，最近锚点VAGN；覆盖增量3。扩展至A40/N54成功锚点的邻域，不推断A40的独立效应。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHAQEWTYDDATKTFTATE",
+        "source": "catalogue_preview:56;multi_anchor:10",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-019",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引92；四位点FKHQ；母本深度4；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。按预定并列规则入选。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFKHEWTYDDATKTFTQTE",
+        "source": "catalogue_preview:92;single_winner:11",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-020",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引61；四位点FDAQ；母本深度3；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。完成深度3配额，保留互斥分组。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDAEWTYDDATKTFTQTE",
+        "source": "catalogue_preview:61;multi_anchor:11",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-021",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "单赢家组；目录索引64；四位点FAML；母本深度4；单赢家距离3，多锚点距离3，最近锚点集合为FRFV与VAGN；覆盖增量2。按预定并列规则完成单赢家组。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFAMEWTYDDATKTFTLTE",
+        "source": "catalogue_preview:64;single_winner:12",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-022",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "多锚点组；目录索引83；四位点YFWV；母本深度3；单赢家距离3，多锚点距离3，最近锚点FRFV；覆盖增量3。满足共同深度3配额后，此候选不合格，应由下述修正说明处理。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYFWEWTYDDATKTFTVTE",
+        "source": "catalogue_preview:83;multi_anchor:12",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-5445ce764da04cddba9e-023",
+      "workflow_version": "w-bb4b36a476d9fc9c"
+    }
+  ]
+}

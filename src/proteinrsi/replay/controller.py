@@ -12,6 +12,10 @@ def run_replay(campaign, dataset, *, guarded=True):
     task = TaskSpec.model_validate(campaign.state["task"])
     if task.feedback_source not in ("measured_replay", "synthetic"):
         raise ValueError("Historical data cannot impersonate new wet-lab results")
+    intent = campaign.store.get("configuration", "goal_intent", {})
+    if (intent and task.kind.value == "variant_design" and not intent.get("candidates")
+            and task.candidates):
+        raise ValueError("Legacy replay injected a candidate catalogue into open design; preserve its audit and start a new corrected campaign")
     path = Path(dataset).resolve(strict=True)
     if guarded:
         security = probe()
@@ -21,13 +25,17 @@ def run_replay(campaign, dataset, *, guarded=True):
         if any(path.is_relative_to(Path(root).resolve()) for root in reader_roots()):
             raise ValueError("Move labels outside the worker dependency/source allowlist")
     oracle = CSVOracle(path, task)  # controller-only; worker is spawned by exec, not given this object
-    if not task.candidates:
+    if task.candidate_access != "open" and not task.candidates:
         raise ValueError("Replay requires a label-free eligible catalogue in task.candidates")
     needed = set(task.candidates)
-    if task.controls_per_batch or task.initial_observation_policy == "parent_once":
+    if task.controls_per_batch or task.initial_observation_policy != "none":
         needed.add(task.reference_sequence)
     if any(seq not in oracle._labels for seq in needed):
         raise UnknownMeasurement("Eligible catalogue includes unavailable measurements; repair preparation before spending budget")
+    if task.initial_observation_policy == "provided_parent":
+        value, qc = oracle._labels[task.reference_sequence]
+        if qc != "valid" or value != task.initial_parent_measurement.value:
+            raise ValueError("Provided parent measurement differs from the replay dataset")
     campaign.store.put("configuration", "replay_dataset", {"sha256": file_sha256(path),
         "feedback_source": task.feedback_source}, immutable=True)
     campaign.store.event("replay_started", {"execution": "guarded" if guarded else "inprocess_explicit",
@@ -35,12 +43,18 @@ def run_replay(campaign, dataset, *, guarded=True):
         "security_note": "inprocess is NOT an OS-isolated benchmark" if not guarded else "Landlock + seccomp + capability RPC"})
     if guarded:
         old = campaign.team
-        campaign.team = GuardedTeam(campaign.store, old.llm, old.tools, old.protein_model)
+        campaign.team = GuardedTeam.from_team(old)
         campaign.meta_agent = GuardedMetaAgent(campaign.team)
     while (batch := campaign.prepare()) is not None:
-        # Check complete availability BEFORE approval/settlement; no partial charge or fabricated result.
-        if any(s.candidate.sequence not in oracle._labels for s in batch.samples):
+        # Explicit closed libraries must be fully covered. Open design receives missing-record feedback.
+        if task.candidate_access != "open" and any(s.candidate.sequence not in oracle._labels for s in batch.samples):
             raise UnknownMeasurement("Batch contains an unavailable sequence; not approved, no phenotype returned")
         campaign.approve(batch.batch_id, operator="explicit-guarded-replay" if guarded else "explicit-inprocess-replay")
-        campaign.ingest(oracle.measure(batch))
+        observations = oracle.measure(batch)
+        missing = [o.sample_id for o in observations if o.qc == "unavailable"]
+        if missing:
+            campaign.store.event("replay_unavailable", {"batch_id": batch.batch_id,
+                "sample_ids": missing, "charged_queries": len(missing),
+                "reason": "No historical measurement; not a failed assay or low fitness"})
+        campaign.ingest(observations)
     return campaign.report()

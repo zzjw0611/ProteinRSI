@@ -1,0 +1,480 @@
+{
+  "objective": "使用GB1历史实测景观开展自主变体设计研究，最多10轮，每轮可以提交最多384个不同的新序列，总查询预算3840。每轮实际提交数量由Agent根据证据和方案决定，不要求填满384孔。目标是在总预算内寻找原始实测fitness尽可能高的变体。使用数据集核验的完整母本及其已知实测fitness作为免费的初始证据；只允许修改母本第39、40、41、54位，最多4个替换，其余位置不变。使用原始reported_assay_fitness及数据集单位和实验协议，不重新归一化。由Agent自主生成完整序列或显式突变、选择方法、可选调用蛋白工具或编写Python；不提供候选目录，不把实验数据库当作待筛选菜单。所有蛋白工具可选，不要求必须使用；根据能否改善设计和查询决策评估辅助工具价值，工具预测不能代替实验反馈。每个提交查询占用一个名额，包括返回unavailable的无历史记录序列；无记录不能当作低fitness或实验失败。允许M基于证据提出并验证工作流和自身策略修改，新增验证共享每轮384和总3840预算，不要求每轮修改。新研究只使用已知母本初始测量，不导入旧研究的96个查询结果。最终报告最佳实测序列、逐轮表现、有效测量及无记录查询数量、工具与LLM成本和完整轨迹。",
+  "best_variant": {
+    "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE",
+    "mutations": [
+      "D40W",
+      "G41A",
+      "V54A"
+    ],
+    "value": 6.123804795,
+    "sample_id": "b-8edbf0897b571ffd70e1-000",
+    "batch_id": "b-8edbf0897b571ffd70e1",
+    "source": "measured_replay"
+  },
+  "round_progress": [
+    {
+      "round": 1,
+      "phase": "research",
+      "batch_id": "b-8ca94c6596318517972e",
+      "batch_queries": 128,
+      "cumulative_campaign_queries": 128,
+      "unique_variants": 129,
+      "best_measured_value": 4.157983125,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTATE"
+    },
+    {
+      "round": 2,
+      "phase": "research",
+      "batch_id": "b-8348e9f430cfe16a91f7",
+      "batch_queries": 8,
+      "cumulative_campaign_queries": 136,
+      "unique_variants": 137,
+      "best_measured_value": 4.239155578,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTCTE"
+    },
+    {
+      "round": 3,
+      "phase": "research",
+      "batch_id": "b-8edbf0897b571ffd70e1",
+      "batch_queries": 4,
+      "cumulative_campaign_queries": 140,
+      "unique_variants": 141,
+      "best_measured_value": 6.123804795,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE"
+    },
+    {
+      "round": 4,
+      "phase": "research",
+      "batch_id": "b-390f014cb9b978fcc8b4",
+      "batch_queries": 4,
+      "cumulative_campaign_queries": 144,
+      "unique_variants": 145,
+      "best_measured_value": 6.123804795,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE"
+    },
+    {
+      "round": 5,
+      "phase": "research",
+      "batch_id": "b-9da73c9ae4f2e32755b1",
+      "batch_queries": 3,
+      "cumulative_campaign_queries": 147,
+      "unique_variants": 148,
+      "best_measured_value": 6.123804795,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE"
+    },
+    {
+      "round": 6,
+      "phase": "research",
+      "batch_id": "b-96e17359ce6ddb06f7d2",
+      "batch_queries": 3,
+      "cumulative_campaign_queries": 150,
+      "unique_variants": 151,
+      "best_measured_value": 6.123804795,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE"
+    },
+    {
+      "round": 7,
+      "phase": "research",
+      "batch_id": "b-4ce5021958e1f3913ed0",
+      "batch_queries": 15,
+      "cumulative_campaign_queries": 165,
+      "unique_variants": 166,
+      "best_measured_value": 6.123804795,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE"
+    }
+  ],
+  "unique_measured_variants": 165,
+  "returned_observations": 165,
+  "unavailable_queries": 1,
+  "valid_query_measurements": 164,
+  "provided_initial_observations": 1,
+  "initial_evidence": {
+    "charged_queries": 0,
+    "observations": [
+      {
+        "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+        "batch_id": "provided-initial-evidence",
+        "metric": "reported_assay_fitness",
+        "qc": "valid",
+        "sample_id": "provided-parent",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTVTE",
+        "source": "measured_replay",
+        "unit": "source_assay_units",
+        "value": 1.0
+      }
+    ],
+    "source_ref": "GB1; reported experimental parent; SHA256 7ab39b0918bc933030c711a723ca05b316b2e27e703af26d9c4a91064eafa7bd"
+  },
+  "repeat_queries": 0,
+  "initial_observation_policy": "provided_parent",
+  "candidate_access": "open",
+  "tool_summary": {
+    "completed_by_name": {
+      "research_evidence_summary": 11,
+      "research_prediction_errors": 11,
+      "research_python": 2
+    },
+    "failed_jobs": 0,
+    "generated_code_failures": 0,
+    "requests": [
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "578808c5b9fa6d5b4954dd96d35bbba2a5ac03738b729280e59541530487ee1f",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "578808c5b9fa6d5b4954dd96d35bbba2a5ac03738b729280e59541530487ee1f",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_python",
+        "purpose": "按显式规则生成128个完整GB1变体，并检查母本身份、可变位点、替换数、唯一性、已揭示序列排除及预算；输出按覆盖度排序的候选与1-based替换列表，不估计fitness。",
+        "context": "578808c5b9fa6d5b4954dd96d35bbba2a5ac03738b729280e59541530487ee1f",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_python",
+        "purpose": "将自主设计规则转换为可提交的完整序列，并一次性执行序列、身份和查询预算检查。",
+        "context": "578808c5b9fa6d5b4954dd96d35bbba2a5ac03738b729280e59541530487ee1f",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "3d1eaff95db295dba4f4efb8b7d386cc00617a9652e3a6d9fd4c1b055111c123",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "3d1eaff95db295dba4f4efb8b7d386cc00617a9652e3a6d9fd4c1b055111c123",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "3d1eaff95db295dba4f4efb8b7d386cc00617a9652e3a6d9fd4c1b055111c123",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "3d1eaff95db295dba4f4efb8b7d386cc00617a9652e3a6d9fd4c1b055111c123",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "82f93c865967e6425a429f7673b184eaac23cb16a6487c6269777fcb12c8f573",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "82f93c865967e6425a429f7673b184eaac23cb16a6487c6269777fcb12c8f573",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "82f93c865967e6425a429f7673b184eaac23cb16a6487c6269777fcb12c8f573",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "82f93c865967e6425a429f7673b184eaac23cb16a6487c6269777fcb12c8f573",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "43e5952c2807afc0d70a9e43576f92ef76f66fac179f12d4a91857a14c4361f7",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "43e5952c2807afc0d70a9e43576f92ef76f66fac179f12d4a91857a14c4361f7",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "43e5952c2807afc0d70a9e43576f92ef76f66fac179f12d4a91857a14c4361f7",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "43e5952c2807afc0d70a9e43576f92ef76f66fac179f12d4a91857a14c4361f7",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "3ba0b6656170a8c3f3547a3bac5c22b099973dd3ce149ba9ef009865d10d5781",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "3ba0b6656170a8c3f3547a3bac5c22b099973dd3ce149ba9ef009865d10d5781",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "3ba0b6656170a8c3f3547a3bac5c22b099973dd3ce149ba9ef009865d10d5781",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "3ba0b6656170a8c3f3547a3bac5c22b099973dd3ce149ba9ef009865d10d5781",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "0d823ae96a60405a48cb34ff4566e49af01f1653a0fad1c0f39f0f82e1213ed9",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "0d823ae96a60405a48cb34ff4566e49af01f1653a0fad1c0f39f0f82e1213ed9",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "0d823ae96a60405a48cb34ff4566e49af01f1653a0fad1c0f39f0f82e1213ed9",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "0d823ae96a60405a48cb34ff4566e49af01f1653a0fad1c0f39f0f82e1213ed9",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "ad3df3f1dba4776285d6f5170052d33512fc8a81b3da673e13410529760a72b9",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "ad3df3f1dba4776285d6f5170052d33512fc8a81b3da673e13410529760a72b9",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "ad3df3f1dba4776285d6f5170052d33512fc8a81b3da673e13410529760a72b9",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "ad3df3f1dba4776285d6f5170052d33512fc8a81b3da673e13410529760a72b9",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "0a23eafbce2b4ff3dd76a2a233a21e5940b57bf4ad3b3ebde86ed5bad8b57f1b",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "0a23eafbce2b4ff3dd76a2a233a21e5940b57bf4ad3b3ebde86ed5bad8b57f1b",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "0a23eafbce2b4ff3dd76a2a233a21e5940b57bf4ad3b3ebde86ed5bad8b57f1b",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "0a23eafbce2b4ff3dd76a2a233a21e5940b57bf4ad3b3ebde86ed5bad8b57f1b",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "b63eff4fbd33e6ae957fbed641755c9aec52273847511f7a9c49f015cd9c03c7",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "b63eff4fbd33e6ae957fbed641755c9aec52273847511f7a9c49f015cd9c03c7",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "b63eff4fbd33e6ae957fbed641755c9aec52273847511f7a9c49f015cd9c03c7",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "b63eff4fbd33e6ae957fbed641755c9aec52273847511f7a9c49f015cd9c03c7",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "fa1838a336188d0195a33f9beb25b48b36d0055443fa7cfa12bae0ce020e4774",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "fa1838a336188d0195a33f9beb25b48b36d0055443fa7cfa12bae0ce020e4774",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "fa1838a336188d0195a33f9beb25b48b36d0055443fa7cfa12bae0ce020e4774",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "fa1838a336188d0195a33f9beb25b48b36d0055443fa7cfa12bae0ce020e4774",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "0cf041f08b7022b8718595065af549aea1ff33193124b5471ab31046a0a76bc8",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "0cf041f08b7022b8718595065af549aea1ff33193124b5471ab31046a0a76bc8",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "0cf041f08b7022b8718595065af549aea1ff33193124b5471ab31046a0a76bc8",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "0cf041f08b7022b8718595065af549aea1ff33193124b5471ab31046a0a76bc8",
+        "cache_hit": true
+      }
+    ]
+  },
+  "provider_reported_tokens": {
+    "input_tokens": 5592357,
+    "output_tokens": 159295,
+    "total_tokens": 5751652
+  },
+  "monetary_cost": null,
+  "monetary_cost_note": "Token counts are not prices; no invented currency total.",
+  "prompt_bundle_version": "prompts-0e0efce8c8fb2a05",
+  "execution_semantics": "on-demand-v1",
+  "measurement_note": "Historical replay values are not new wet-lab measurements; repeated lookups are not independent repeats.",
+  "campaign_id": "24732b5c-6814-4cc5-97bc-2bbbebae3ece",
+  "status": "ready",
+  "completed_rounds": 7,
+  "research_config": {
+    "enable_generated_code": true,
+    "enabled": true,
+    "max_context_chars": 16000,
+    "max_executed_steps": 20,
+    "max_plan_steps": 12,
+    "max_resources": 24,
+    "max_revisions": 2,
+    "resource_selection": "llm",
+    "review_after_step": true
+  },
+  "protein_model": {
+    "batch_size": 1,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "max_masked_positions": 128,
+    "max_model_inputs": 4096,
+    "max_residues": 2046,
+    "model_id": "biohub/ESMC-600M-hf",
+    "revision": "0fb34e7e5fe1f85d0abaa3d35e2671107c0b458c",
+    "worker_python": "/home/zjw/proteinrsi-tools/envs/esmc600m/bin/python",
+    "worker_timeout_seconds": 1800
+  },
+  "protein_snapshot": null,
+  "evidence_source": "measured_replay",
+  "workflow_version": "w-065f689c980923d5",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "best_measured_value": 6.123804795,
+  "metric": "reported_assay_fitness",
+  "unit": "source_assay_units",
+  "budget": {
+    "experimental_wells": {
+      "limit": 3840,
+      "committed": 165,
+      "reserved": 0
+    },
+    "llm_calls": {
+      "limit": 1000,
+      "committed": 119,
+      "reserved": 0
+    },
+    "tool_calls": {
+      "limit": 400,
+      "committed": 24,
+      "reserved": 0
+    },
+    "plm_inputs": {
+      "limit": 4096,
+      "committed": 0,
+      "reserved": 0
+    }
+  },
+  "pending_batch": null,
+  "pending_workflow_patch": {
+    "author_backend": "unknown",
+    "base_version": "w-065f689c980923d5",
+    "changes": {
+      "designer_prompt": "Propose legal variants using only the supplied evidence. For local refinement after a batch fails to improve the measured incumbent, use a systematic, background-specific single-position neighborhood instead of another shortlist filtered by parent-background single-mutant fitness. Hold the other positions at the best valid measured sequence, select one allowed mutable position, and enumerate all standard amino-acid alternatives at that position. Exclude every previously submitted identity, including unavailable queries, and retain all remaining legal alternatives in the proposal pool; this produces at most 19 new identities. Prioritize a position with revealed evidence of compensation or effect reversal that has not yet been covered on the incumbent background; otherwise choose the position with the fewest previously submitted single-position neighbors of the incumbent, breaking ties by ascending position. Do not exclude an alternative because its parent-background single-mutant measurement is low. Use measurements on the matching background for priority when available, then a fixed alphabetical order for unsupported alternatives; do not invent numerical fitness predictions. After feedback, update the incumbent only from valid measurements and re-evaluate neighborhood coverage. This is a reusable proposal rule, not experiment approval: sequence, fixed-residue, identity, permission, repeat-exclusion and existing budget checks remain mandatory, and the controller retains submission authority."
+    },
+    "evidence_refs": [
+      "view.history[3].research_traces[0].plan",
+      "view.history[3].analyst_feedback.summary",
+      "view.history[4].research_traces[0].plan",
+      "view.history[4].analyst_feedback.summary",
+      "view.observations[sample_id=b-8ca94c6596318517972e-002]",
+      "view.observations[sample_id=b-8ca94c6596318517972e-081]",
+      "view.observations[sample_id=b-8edbf0897b571ffd70e1-000]",
+      "research_analysis/4ea278c1cb64b849c6c6ee6eb0af119d69c369caee1e91d73cbd4a2c0bfc92c1",
+      "view.remaining_wells"
+    ],
+    "hypothesis": "在局部面板未提升后，按当前最佳实测背景系统覆盖一个位点、保留母本背景低fitness替换，将比继续挑选少量母本有利单点更可能发现新的最佳变体。可见执行中，54位迁移面板的4个结果和39位有利单点扩展的3个结果均未超过6.123804795；与此同时，G41A母本背景单点仅0.120576127，却参与了当前最佳组合，支持避免以母本单点筛除候选。预期收益是减少遗漏补偿替换并提高局部覆盖；代价是一个完整位点面板最多需要19个新查询，可能包含大量无收益变体，并降低跨背景探索的机会。提案须由独立控制器在现有预算和固定评价规则下验证；若相同查询与计算上限下未获得控制器要求的改进，则不采用。当前记录不是策略间对照，不能据此宣布补丁有效。",
+    "target": "workflow",
+    "task_kind": "variant_design"
+  },
+  "pending_meta_patch": null,
+  "workflow_trials": {},
+  "meta_evaluations": {},
+  "execution_mode": "experimental",
+  "computational_iterations": {},
+  "final_computational_candidates": []
+}

@@ -33,6 +33,23 @@ def attach(directory: str, args) -> Campaign:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="proteinrsi")
     sub = parser.add_subparsers(dest="command", required=True)
+    start = sub.add_parser("start", help="Interpret a protein research goal and choose a task and feedback route")
+    start.add_argument("goal", help="Describe the objective, available sequences, iteration limit and feedback expectations")
+    start.add_argument("--input", action="append", default=[], help="Scientific input file (FASTA/PDB/CIF/A3M/JSON); repeatable")
+    start.add_argument("--continue-from", help="Answer a saved intake clarification using the new goal text")
+    start.add_argument("--out", help="New campaign directory; defaults to a timestamped runs directory")
+    start.add_argument("--data-root", default=str(Path.home()/"data"/"ssmula"))
+    start.add_argument("--local-tools", help="Installed tool configuration; local project config is auto-detected")
+    start.add_argument("--llm-calls", type=int, default=200)
+    start.add_argument("--tool-calls", type=int, default=100)
+    start.add_argument("--prepare-only", action="store_true", help="Parse and save the task, without experimental queries")
+    start.add_argument("--full-plate", action="store_true", help="Require exactly batch_size wells before each experimental submission")
+    start.add_argument("--quiet", action="store_true", help="Suppress live event summaries")
+    trace = sub.add_parser("trace", help="Read the persisted operator trajectory without model calls")
+    trace.add_argument("--campaign", required=True)
+    trace.add_argument("--format", choices=["text", "json", "html"], default="text")
+    trace.add_argument("--out")
+    trace.add_argument("--follow", action="store_true")
     sub.add_parser("sandbox-check", help="Probe Linux Landlock/seccomp prerequisites; no model or API calls")
     prompts = sub.add_parser("prompts", help="Inspect role prompt templates and snapshot versions")
     prompts.add_argument("--campaign")
@@ -100,7 +117,88 @@ def main(argv: list[str] | None = None) -> None:
             cmd.add_argument("--resume", help="JSON file with explicit approval/measurement payload")
     args = parser.parse_args(argv)
     try:
-        if args.command == "sandbox-check":
+        if args.command == "start":
+            from datetime import datetime
+            from proteinrsi.goal import prepare_research_goal
+            from proteinrsi.replay.controller import run_replay
+            from proteinrsi.replay.sandbox import probe, SandboxUnavailable
+            if not args.prepare_only:
+                security = probe()
+                if not security["available"]:
+                    raise SandboxUnavailable(security["reason"])
+            out = Path(args.continue_from or args.out) if (args.continue_from or args.out) else Path("runs") / datetime.now().strftime("research-%Y%m%d-%H%M%S-%f")
+            local = Path(args.local_tools) if args.local_tools else None
+            if local is None:
+                options = [Path.cwd()/"configs"/"protein_tools.local.json",
+                           Path(__file__).resolve().parents[2]/"configs"/"protein_tools.local.json"]
+                local = next((p for p in options if p.is_file()), None)
+            from proteinrsi.trajectory import export_html, print_event
+            prepared = prepare_research_goal(args.goal, out=out, data_root=Path(args.data_root),
+                local_tools=local, llm_calls=args.llm_calls, tool_calls=args.tool_calls,
+                event_sink=None if args.quiet else print_event, inputs=args.input,
+                continue_from=bool(args.continue_from), full_plate=args.full_plate)
+            if prepared['questions']:
+                print(json.dumps({'status': 'needs_clarification', **prepared,
+                    'continue': f'proteinrsi start "补充说明" --continue-from {out}'}, ensure_ascii=False, indent=2))
+                return
+            campaign, dataset = prepared['campaign'], prepared['dataset']
+            task = TaskSpec.model_validate(campaign.state["task"])
+            print(json.dumps({"campaign": str(out.resolve()), "goal": task.objective_description,
+                "rounds": task.max_rounds, "new_queries": task.budget.experimental_wells,
+                "batch_size": task.batch_size, "batch_fill_policy": task.batch_fill_policy, "task_kind": task.kind.value, "route": prepared["route"],
+                "parent_fitness": task.initial_parent_measurement.value if task.initial_parent_measurement else None,
+                "parent_query_cost": 0, "resource_selection": "llm",
+                "llm_call_limit": args.llm_calls, "tool_call_limit": args.tool_calls},
+                ensure_ascii=False, indent=2), flush=True)
+            if not args.prepare_only:
+                llm = JSONLLM.from_env(campaign.store)
+                campaign = Campaign(campaign.store, Team(campaign.store, llm), MetaAgent(llm, campaign.store))
+                campaign.store.event("run_started", {})
+                try:
+                    if prepared['route'] == 'measured_replay':
+                        run_replay(campaign, dataset, guarded=True)
+                    elif prepared['route'] == 'computational':
+                        from proteinrsi.computational import run_computational
+                        run_computational(campaign)
+                    else:
+                        from proteinrsi.replay.broker import GuardedTeam, GuardedMetaAgent
+                        campaign.team = GuardedTeam.from_team(campaign.team)
+                        campaign.meta_agent = GuardedMetaAgent(campaign.team)
+                        campaign.prepare()
+                        campaign.store.event('waiting_for_laboratory', {
+                            'batch_id': campaign.state['pending_batch'],
+                            'notice': 'Approve and import actual laboratory results to continue'})
+                except Exception as exc:
+                    campaign.store.event("run_failed", {"error_type": type(exc).__name__})
+                    raise
+                finally:
+                    export_html(out, out/"trajectory.html")
+                    (out/"report.json").write_text(json.dumps(campaign.report(), ensure_ascii=False, indent=2)+"\n")
+            output = campaign.report()
+            output["trajectory"] = export_html(out, out/"trajectory.html")
+            (out/"report.json").write_text(json.dumps(output, ensure_ascii=False, indent=2)+"\n")
+        elif args.command == "trace":
+            from proteinrsi.trajectory import export_html, read_trace, print_event, follow
+            if args.follow:
+                if args.format != "text" or args.out:
+                    raise ValueError("--follow requires text output to the terminal")
+                follow(args.campaign)
+                return
+            if args.format == "html":
+                destination = args.out or str(Path(args.campaign)/"trajectory.html")
+                output = {"trajectory": export_html(args.campaign, destination)}
+            elif args.format == "json":
+                output = read_trace(args.campaign)
+                if args.out:
+                    Path(args.out).write_text(json.dumps(output, ensure_ascii=False, indent=2)+"\n")
+                    return
+            else:
+                import contextlib
+                with (open(args.out, "w") if args.out else contextlib.nullcontext(sys.stdout)) as stream:
+                    for event in read_trace(args.campaign)["events"]:
+                        print_event(event, stream)
+                return
+        elif args.command == "sandbox-check":
             from proteinrsi.replay.sandbox import probe
             output = probe()
         elif args.command == "prompts":
@@ -244,7 +342,18 @@ def main(argv: list[str] | None = None) -> None:
                 campaign.stage_patch(Patch.model_validate(load_json(args.file)))
             elif args.command == "replay":
                 from proteinrsi.replay.controller import run_replay
-                run_replay(campaign, args.dataset, guarded=args.execution == "guarded")
+                from proteinrsi.trajectory import export_html, print_event
+                campaign.store.event_sink = print_event
+                campaign.store.event("run_started", {"resume": True})
+                try:
+                    run_replay(campaign, args.dataset, guarded=args.execution == "guarded")
+                except Exception as exc:
+                    campaign.store.event("run_failed", {"error_type": type(exc).__name__})
+                    raise
+                finally:
+                    directory = campaign.store.root
+                    export_html(directory, directory/"trajectory.html")
+                    (directory/"report.json").write_text(json.dumps(campaign.report(), ensure_ascii=False, indent=2)+"\n")
             elif args.command == "evaluate-meta":
                 from proteinrsi.evaluation import evaluate_meta, read_cases
                 def factory(store):

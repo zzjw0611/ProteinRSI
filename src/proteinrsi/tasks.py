@@ -30,21 +30,20 @@ def apply_mutations(reference: str, edits: Iterable[dict]) -> str:
 
 def validate_candidate(task: TaskSpec, candidate: Candidate, *, enforce_universe: bool = True) -> None:
     seq = candidate.sequence
-    if task.kind in (TaskKind.VARIANT, TaskKind.RANKING):
+    if task.min_length is not None and len(seq) < task.min_length:
+        raise ValueError("Candidate is shorter than the task minimum")
+    if task.max_length is not None and len(seq) > task.max_length:
+        raise ValueError("Candidate is longer than the task maximum")
+    if task.kind == TaskKind.AFFINITY:
+        if seq != task.reference_sequence:
+            raise ValueError("Affinity inputs are immutable")
+    elif task.reference_sequence and not task.allow_indels:
         if len(seq) != len(task.reference_sequence):
-            raise ValueError("Mutation tasks do not allow insertions/deletions")
+            raise ValueError("This task does not allow insertions/deletions")
         changes = {i + 1 for i, (a, b) in enumerate(zip(task.reference_sequence, seq)) if a != b}
-        if changes - set(task.mutable_positions) or len(changes) > task.max_mutations:
+        if (changes - set(task.mutable_positions)
+                or (task.max_mutations is not None and len(changes) > task.max_mutations)):
             raise ValueError("Fixed residues or mutation-count constraints violated")
-    elif task.kind == TaskKind.AFFINITY and seq != task.reference_sequence:
-        raise ValueError("Affinity inputs are immutable")
-    elif task.kind == TaskKind.BINDER:
-        # v0.1 implements fixed-length scaffold redesign, not arbitrary topology design.
-        if len(seq) != len(task.reference_sequence):
-            raise ValueError("This binder adapter requires a fixed-length starting scaffold")
-        changes = {i + 1 for i, (a, b) in enumerate(zip(task.reference_sequence, seq)) if a != b}
-        if changes - set(task.mutable_positions) or len(changes) > task.max_mutations:
-            raise ValueError("Binder scaffold constraints violated")
     if enforce_universe and task.candidates and seq not in task.candidates and seq != task.reference_sequence:
         raise ValueError("Candidate is outside the explicitly allowed library")
 

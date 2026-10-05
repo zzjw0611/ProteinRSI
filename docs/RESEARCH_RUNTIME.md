@@ -34,7 +34,8 @@ Available plan operations:
 optional ToolCall. Owner is inferred by code, not supplied by the LLM. Plans are
 ordered dependency graphs, executed serially; this is not a parallel DAG scheduler.
 Only earlier IDs can be dependencies. There is exactly one terminal finalize step,
-and design/ranking must precede it. Tools/evidence after rank invalidate that ranking.
+and a fresh ranking must precede it. Design is optional for supplied ranking inputs
+or candidates returned by a scientific/generated-code tool. Tools/evidence after rank invalidate that ranking.
 Any newly introduced candidate must pass the task's fixed positions, library,
 sequence and target constraints.
 
@@ -92,7 +93,7 @@ knowledge loader and execution state machine are original MIT implementations.
 ## Read-only analysis semantics
 
 `research_evidence_summary({})` groups current observations by batch, records valid,
-failed and inconclusive counts and descriptive WT statistics. It does not assume all
+failed, inconclusive and unavailable counts and descriptive WT statistics. It does not assume all
 controls are WT, estimate assay drift causally, normalize values or exclude rows.
 
 `research_prediction_errors({})` matches currently revealed rows against predictions
@@ -121,7 +122,9 @@ never replaced with ESMC scores, a fitted head or hidden dataset queries.
 
 All three functions are bound to the current TaskView; the LLM cannot supply input
 measurement tables, SQL, paths or arbitrary numerical labels. Results are persisted
-under `research_analysis`. No unrestricted Python/R/Bash REPL is enabled.
+under `research_analysis`. The optional `research_python` tool runs generated Python
+in a separate bounded process; it has no controller RPC, network, database or label
+authority. No unrestricted R/Bash REPL is enabled.
 
 ## Persistence, failures and experiment boundary
 
@@ -178,3 +181,85 @@ constraints, evidence isolation and accounting, NOT better protein outcomes. Com
 fixed versus adaptive, rules versus LLM retrieval, and single versus multiple research
 roles under matched total budgets in a separate scientific study. The one-Agent
 ablation and statistically powered biological comparisons are not shipped benchmarks.
+
+## Goal-driven research and computational rounds
+
+`goal.py` resolves a natural-language objective against supplied scientific inputs and
+the deployed tool catalog. It asks for missing essentials and selects an experimental
+or computational route. Task-specific sequence constraints live in TaskSpec, not in
+a GB1-specific checker. `computational.py` records each candidate/metric iteration
+and gives actual outputs to the next plan, without creating Observation records or
+lab charges. Purely computed evidence does not pass the measured Meta promotion gate.
+
+`research_python` is available in new goal-driven studies. Programs see only revealed
+context, explicit JSON inputs and selected artifact files. They may compute metrics,
+transform candidates, and return scientific file contents through write_artifact.
+Source is saved in programs/<hash>.py; gateway records include inputs, output, errors
+and provenance. Failures are results the next plan review can repair. Budget and
+fixed CPU/memory/output limits remain outside generated-code control.
+
+
+### LLM 临时故障恢复
+
+LLM 请求默认最多发送 4 次（首次 + 3 次重试），可通过 `PROTEINRSI_LLM_MAX_ATTEMPTS=1..10` 调整。HTTP 408/429/500/502/503/504，以及连接、读写超时或临时网络错误会自动重试；等待时间按 2、4、8 秒增长并加少量随机延迟，参考服务返回的 `Retry-After`（最多等待 60 秒）。认证、参数错误及无效模型输出不自动重试。
+
+每次发送独立计入 LLM 调用预算，失败也不退款；服务未返回 token usage 时不推测 token 或金额。网络超时后的重发可能在服务端产生额外推理费用。实验查询预算不受 LLM 重试影响。
+
+每次尝试保存在 `llm_attempts`，验证分支同步到 `validation_llm_attempts`；轨迹包含尝试次数、等待时间、状态码、请求 ID 和脱敏后的有限长度错误响应。成功结果继续缓存。旧的明确临时失败可在恢复运行时重试，保留原失败记录；重试次数跨恢复累计。已达上限或进程中断留下的 `started` 不明状态仍需检查审计，不会无限重发。调整重试配置不会改变请求或研究缓存身份。
+
+
+## Open design, ranking and experimental feedback
+
+Natural-language design with historical replay now constructs an open TaskSpec:
+`candidate_access=open`, `candidates=[]`. The controller privately loads the assay
+index. It does not put measured sequence identities into a task, sample 128 items,
+or register library browsing tools. Design validity depends on the user's sequence
+constraints; actual historical availability is evaluated only by the feedback backend.
+A/B can generate full sequences, explicit residue edits or use optional scientific
+engines/generated Python. Ranking then orders those generated proposals. Empty
+proposals cannot silently claim that an open design space is exhausted.
+
+A user-requested ranking task retains its explicitly supplied set, including when
+it exceeds the old 128-item preview size. Legacy explicit closed-library tasks remain
+supported. All natural-language entry points and the GB1 preparation helper default
+to open design; `prepare_gb1_run.py --library` is an explicit closed-library override.
+
+Submitted open-replay queries with no historical record return `unavailable` with
+`value=null`. They count toward submitted-query budgets, never enter phenotype
+training or best-fitness calculations, and are separate from assay/QC failures.
+The next round sees the missing identities and can revise its search. Trial results
+with unavailable non-control samples are inconclusive and cannot promote W or M.
+Reports separate valid query measurements, unavailable queries and provided parent
+observations. An unavailable row cannot be labeled as a new wet-lab measurement.
+
+These changes do not certify the scientific quality of a model's design strategy.
+Tests exercise natural-language task construction, HTTP-client role calls, guarded
+workers, generated edits, sparse feedback, next-round adaptation, budget accounting
+and private-index isolation using artificial fixtures, not real benchmark experiments.
+Existing catalogue-screening campaigns retain their recorded evidence and cannot
+silently resume as an open-design experiment.
+
+## 整板实验与候选排序
+
+自然语言目标可明确要求“10 轮，每轮必须用满 384 孔”，启动时还可加
+`--full-plate` 强制启用 `TaskSpec.batch_fill_policy=full_plate`。
+每轮容量由任务的 `batch_size` 决定，不固定为 384；总查询预算必须是整板倍数。
+已提供的母本测量不占孔；显式配置的板内对照占孔，其余孔用于不同的新候选。
+开放设计不再向 Agent 暴露旧的 `proposal_pool_size=128` 字段。
+
+控制器在同一轮内最多发起 6 次候选补齐请求，将多个科学假设的小批次合并成整板。
+不足一板时停止并记录缺口，不提交部分板、不预占实验预算、不推进轮次，
+也不会用随机序列静默填孔；已经发生的 LLM/工具费用仍计费。
+补齐次数跨恢复累计，不会因重新启动而无限重试。
+候选的科学选择、蛋白工具调用和各探索方向的比例仍由 Agent 决定。
+
+W/M 验证按实际可用候选分配等量、不重叠的比较组，满足预设最小样本量，
+不要求各有半板候选。分组在查询前固定；剩余孔标记为 `research`，
+其结果进入后续研究证据，但不进入该次方法优劣检验。
+完全相同的候选优先级不消耗比较查询；不足以比较时记录 inconclusive。
+M 获得已用计算预算和方法验证结果，所有角色可看到剩余轮次、有效查询容量及无法结转的孔位。
+
+排序使用由序列生成的稳定 `candidate_id`，而非要求 LLM 抄写完整蛋白序列。
+非法 ID、遗漏或重复触发有界修复（合计最多 3 次模型调用）；代码不猜测或修改序列。
+板补齐请求、验证分组、排序修复、每轮孔位利用率均进入结构化记录和轨迹。
+这些语义适用于新建整板研究；已有部分板研究的历史不会被重写。

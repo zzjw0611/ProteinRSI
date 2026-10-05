@@ -1,0 +1,56 @@
+{
+  "name": "gb1-10r-20261005-143743",
+  "completed_rounds": 4,
+  "state_status": "ready",
+  "process_status": "stopped",
+  "committed": {
+    "experimental_wells": 96,
+    "llm_calls": 81,
+    "tool_calls": 18
+  },
+  "provided_initial_observations": 1,
+  "valid_query_measurements": 96,
+  "unavailable_queries": 0,
+  "best_measured": {
+    "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+    "batch_id": "b-bfdceb5ba310095f4493",
+    "metric": "reported_assay_fitness",
+    "qc": "valid",
+    "sample_id": "b-bfdceb5ba310095f4493-016",
+    "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTVTE",
+    "source": "measured_replay",
+    "unit": "source_assay_units",
+    "value": 2.169023707
+  },
+  "round_batches": [
+    {
+      "round": 4,
+      "submitted_wells": 24,
+      "batch_id": "b-5445ce764da04cddba9e"
+    },
+    {
+      "round": 3,
+      "submitted_wells": 24,
+      "batch_id": "b-808d228715151969f6ac"
+    },
+    {
+      "round": 2,
+      "submitted_wells": 24,
+      "batch_id": "b-8dd1d4789129b6898874"
+    },
+    {
+      "round": 1,
+      "submitted_wells": 24,
+      "batch_id": "b-bfdceb5ba310095f4493"
+    }
+  ],
+  "last_event": {
+    "kind": "run_stopped",
+    "payload": {
+      "operator": "user",
+      "reason": "User requested stop: investigate 128-sequence pool versus LLM design",
+      "round_index": 4
+    }
+  },
+  "archive_note": "summary.json is derived from current database; report.json is a historical snapshot and may be stale."
+}

@@ -114,10 +114,12 @@ def proteinmpnn_design(arguments: dict, task: TaskSpec, store: Store, config: En
     chain = arguments["design_chain"]
     if chain not in chains:
         raise ValueError("Design chain not present in backbone")
-    reference = task.reference_sequence
+    reference = (chains[chain]["sequence"] if task.allow_indels else
+                 task.reference_sequence or chains[chain]["sequence"])
     if len(chains[chain]["sequence"]) != len(reference):
         raise ValueError("Backbone/design reference lengths differ")
-    mutable = set(task.mutable_positions)
+    mutable = (set(range(1, len(reference)+1)) if not task.reference_sequence or task.allow_indels
+               else set(task.mutable_positions))
     if not mutable:
         raise ValueError("No mutable positions")
     for i, aa in enumerate(chains[chain]["sequence"], 1):
@@ -145,8 +147,12 @@ def proteinmpnn_design(arguments: dict, task: TaskSpec, store: Store, config: En
 def rfdiffusion_binder(arguments: dict, task: TaskSpec, store: Store, config: EngineConfig) -> dict:
     if task.kind != TaskKind.BINDER:
         raise ValueError("This minimal RFdiffusion adapter is for fixed-length binder scaffolds")
-    if arguments["length"] != len(task.reference_sequence) or set(task.mutable_positions) != set(range(1, arguments["length"]+1)):
-        raise ValueError("De novo binder scaffolds require matching length and fully mutable binder")
+    length = arguments["length"]
+    if not task.reference_sequence or task.allow_indels:
+        if not task.min_length <= length <= task.max_length:
+            raise ValueError("Binder length is outside the task bounds")
+    elif length != len(task.reference_sequence) or set(task.mutable_positions) != set(range(1, length+1)):
+        raise ValueError("Scaffold generation requires matching length and fully mutable binder")
     artifacts = ArtifactStore(store)
     chains = read_pdb(artifacts.resolve(arguments["target_ref"], kind="pdb"), complete_backbone=True)
     target_chain = arguments["target_chain"]

@@ -1,0 +1,39 @@
+{
+  "name": "gb1-fullplate-10r-384-20261005-222211",
+  "completed_rounds": 1,
+  "state_status": "ready",
+  "process_status": "stopped",
+  "committed": {
+    "experimental_wells": 384,
+    "llm_calls": 17,
+    "tool_calls": 5
+  },
+  "provided_initial_observations": 1,
+  "valid_query_measurements": 368,
+  "unavailable_queries": 16,
+  "best_measured": {
+    "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+    "batch_id": "b-8346b07728710c25f37d",
+    "metric": "reported_assay_fitness",
+    "qc": "valid",
+    "sample_id": "b-8346b07728710c25f37d-086",
+    "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTATE",
+    "source": "measured_replay",
+    "unit": "source_assay_units",
+    "value": 4.157983125
+  },
+  "round_batches": [
+    {
+      "round": 1,
+      "submitted_wells": 384,
+      "batch_id": "b-8346b07728710c25f37d"
+    }
+  ],
+  "last_event": {
+    "kind": "run_failed",
+    "payload": {
+      "error_type": "RuntimeError"
+    }
+  },
+  "archive_note": "summary.json is derived from current database; report.json is a historical snapshot and may be stale."
+}

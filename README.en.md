@@ -7,7 +7,7 @@ improvement, and bounded successor-improver evaluation.**
 
 This release integrates the delivered v0.3 local tools with resource-aware typed
 planning. It is research software, not a validated protein design product. No NIM
-service is required. No arbitrary generated Python/shell is executed.
+service is required. Generated Python runs only in a separate resource-limited sandbox; generated shell commands are not executed.
 
 ## Four logical roles and one campaign controller
 
@@ -37,15 +37,22 @@ Prompts are inspectable Markdown snapshots in `prompts/`; they are ProteinRSI-au
 not transplanted four-agent prompts. `research_fit_predict` is an explicit context-bound
 operation. All 13 protein manifests have richer usage guidance and strict outputs.
 
-GB1 can start with one paid parent lookup, counted inside round one. Catalogue mode
-separates the LLM preview from the eligible universe. Meta evaluations charge the shared
+GB1 starts with a supplied parent sequence and known experimental fitness at zero new-query cost.
+`proteinrsi start "Optimize GB1 for 2 rounds and 48 new queries, at most 24 per round"`
+uses the configured LLM to parse the goal, prepares the audited local data and starts guarded replay.
+No handwritten task JSON is needed. Resource selection uses the LLM; protein tools remain optional.
+`--prepare-only` parses/saves without querying new labels; parsing itself consumes one LLM call. Open design receives no replay catalogue or sampled candidate menu. The agent generates
+sequences before querying the private replay backend. Missing records return `unavailable`
+with no fitness value and still consume a submitted-query slot. Ranking uses explicitly
+supplied sequences. Meta evaluations charge the shared
 study ledger, including warm-start labels. Reports expose best sequences, query history,
 unique variants and tool/LLM usage without inventing dollar prices.
 
 `replay` defaults to a Linux Landlock/seccomp worker, with controller-only labels and
 capability RPC for LLM/tools. Unsupported kernels fail closed. The explicitly selected
-`--execution inprocess` path is NOT an isolated benchmark. The development environment
-lacks the Landlock syscall, so real guarded-worker tests are skipped, not reported passed.
+`--execution inprocess` path is NOT an isolated benchmark. Landlock ABI 1+ is supported with explicit seccomp protections for truncation, rename/link,
+metadata changes and networking. Unsupported hosts fail closed; enforcement tests skip only
+when the required kernel primitives are unavailable.
 See [PROMPTS](docs/PROMPTS.md), [TOOL_CONTRACTS](docs/TOOL_CONTRACTS.md), and
 [REPLAY_SECURITY](docs/REPLAY_SECURITY.md). Start a new campaign for v0.5 semantics.
 
@@ -99,7 +106,7 @@ paths or hidden labels. Missing constituent measurements are reported as missing
 
 ## Boundaries
 
-Plans are typed serial operations, not arbitrary code or a parallel DAG engine.
+Plans are typed serial operations; custom Python is a budgeted isolated tool, not controller-side execution or a parallel DAG engine.
 Completed steps cannot be rewritten; new evidence after ranking requires reranking.
 Failed/uncertain jobs remain blocked for operator investigation. Model environments
 isolate dependencies but are not OS security sandboxes. No new biological efficacy,
@@ -107,3 +114,46 @@ GPU performance, paid-LLM integration or wet-lab result is claimed. Quantitative
 protein–protein affinity and generalized cross-protein experience transfer remain
 incomplete capabilities. The generic Meta gate still rejects structural-engine cases
 without case-scoped artifact/evaluation support. See [TESTING](docs/TESTING.md).
+
+### Automatic task-local Meta trials and trajectory
+
+New campaigns validate pending MetaPolicy changes in the next batch. Frozen old/new
+improvers share revealed evidence and symmetric compute caps, propose descendant
+workflows, and submit equal disjoint candidate sets. All queries and computation
+charge the campaign ledger. Acceptance promotes only the MetaPolicy. Identical
+descendants or failed/inconclusive trials do not promote; insufficient slots defer.
+This is exploratory current-task evidence, not cross-protein generalization.
+Configured local engines and registered artifacts are available in isolated branches.
+The separate multi-case `evaluate-meta` protocol retains its existing restrictions.
+
+`start` prints live events and exports `trajectory.html`, including on execution
+failure. `proteinrsi trace --campaign RUN --follow` follows events; `--format html`
+exports an offline searchable timeline and `--format json` exports structured records.
+Snapshots capture revealed evidence, policy versions and budgets. LLM audits retain
+requests, returned text, decision summaries, provider-returned reasoning summaries,
+usage and failures, with credentials redacted. Unavailable hidden reasoning is never
+reconstructed. These operator records are not available to the worker through RPC.
+
+### Task-neutral goal intake and generated programs
+
+`start` now asks the configured LLM to infer variant design, supplied-sequence ranking,
+binder design or fixed-input affinity prediction from the goal, input artifacts and
+tool capabilities. It selects computational iteration, verified measured replay or
+wet-lab feedback. Missing information is saved as questions; answer with
+`proteinrsi start "additional details" --continue-from RUN`. Use repeated `--input`
+for FASTA/PDB/CIF/A3M/JSON scientific files. No handwritten task JSON is required.
+
+Ranking can skip design and needs no artificial reference protein. De novo binders
+use supplied targets and task-defined length bounds. Indels and repeated measurement
+are explicit task policies. Agent-generated `research_python` programs can calculate
+metrics, transform candidates and write scientific artifacts; errors are visible for
+plan/code repair. Each call is budgeted, with 10s CPU, 20s wall time and 2GB memory.
+Only revealed evidence, explicit inputs and selected registered artifacts are supplied.
+Source files persist under `programs/`, with inputs/results/errors in the trajectory.
+No network, subprocesses, keys, campaign database, or measurement authority is granted.
+
+Computational rounds pass actual computed outputs into the next iteration without
+creating experimental observations or consuming lab queries. These rounds do not
+automatically promote M using the experimental improvement gate. Wet-lab studies
+prepare a batch and wait for actual approval/import. Verified replay retains its
+query budget and hidden-label boundary.

@@ -1,0 +1,456 @@
+{
+  "format": "proteinrsi-audit-snapshot-v1",
+  "campaigns": [
+    {
+      "name": "gb1-10r-20261005-143743",
+      "completed_rounds": 4,
+      "state_status": "ready",
+      "process_status": "stopped",
+      "committed": {
+        "experimental_wells": 96,
+        "llm_calls": 81,
+        "tool_calls": 18
+      },
+      "provided_initial_observations": 1,
+      "valid_query_measurements": 96,
+      "unavailable_queries": 0,
+      "best_measured": {
+        "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+        "batch_id": "b-bfdceb5ba310095f4493",
+        "metric": "reported_assay_fitness",
+        "qc": "valid",
+        "sample_id": "b-bfdceb5ba310095f4493-016",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTVTE",
+        "source": "measured_replay",
+        "unit": "source_assay_units",
+        "value": 2.169023707
+      },
+      "round_batches": [
+        {
+          "round": 4,
+          "submitted_wells": 24,
+          "batch_id": "b-5445ce764da04cddba9e"
+        },
+        {
+          "round": 3,
+          "submitted_wells": 24,
+          "batch_id": "b-808d228715151969f6ac"
+        },
+        {
+          "round": 2,
+          "submitted_wells": 24,
+          "batch_id": "b-8dd1d4789129b6898874"
+        },
+        {
+          "round": 1,
+          "submitted_wells": 24,
+          "batch_id": "b-bfdceb5ba310095f4493"
+        }
+      ],
+      "last_event": {
+        "kind": "run_stopped",
+        "payload": {
+          "operator": "user",
+          "reason": "User requested stop: investigate 128-sequence pool versus LLM design",
+          "round_index": 4
+        }
+      },
+      "archive_note": "summary.json is derived from current database; report.json is a historical snapshot and may be stale."
+    },
+    {
+      "name": "gb1-fullplate-10r-384-20261005-222211",
+      "completed_rounds": 1,
+      "state_status": "ready",
+      "process_status": "stopped",
+      "committed": {
+        "experimental_wells": 384,
+        "llm_calls": 17,
+        "tool_calls": 5
+      },
+      "provided_initial_observations": 1,
+      "valid_query_measurements": 368,
+      "unavailable_queries": 16,
+      "best_measured": {
+        "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+        "batch_id": "b-8346b07728710c25f37d",
+        "metric": "reported_assay_fitness",
+        "qc": "valid",
+        "sample_id": "b-8346b07728710c25f37d-086",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTATE",
+        "source": "measured_replay",
+        "unit": "source_assay_units",
+        "value": 4.157983125
+      },
+      "round_batches": [
+        {
+          "round": 1,
+          "submitted_wells": 384,
+          "batch_id": "b-8346b07728710c25f37d"
+        }
+      ],
+      "last_event": {
+        "kind": "run_failed",
+        "payload": {
+          "error_type": "RuntimeError"
+        }
+      },
+      "archive_note": "summary.json is derived from current database; report.json is a historical snapshot and may be stale."
+    },
+    {
+      "name": "gb1-open-10r-384-20261005-165119",
+      "completed_rounds": 7,
+      "state_status": "ready",
+      "process_status": "stopped",
+      "committed": {
+        "experimental_wells": 165,
+        "llm_calls": 119,
+        "tool_calls": 24
+      },
+      "provided_initial_observations": 1,
+      "valid_query_measurements": 164,
+      "unavailable_queries": 1,
+      "best_measured": {
+        "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+        "batch_id": "b-8edbf0897b571ffd70e1",
+        "metric": "reported_assay_fitness",
+        "qc": "valid",
+        "sample_id": "b-8edbf0897b571ffd70e1-000",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE",
+        "source": "measured_replay",
+        "unit": "source_assay_units",
+        "value": 6.123804795
+      },
+      "round_batches": [
+        {
+          "round": 4,
+          "submitted_wells": 4,
+          "batch_id": "b-390f014cb9b978fcc8b4"
+        },
+        {
+          "round": 7,
+          "submitted_wells": 15,
+          "batch_id": "b-4ce5021958e1f3913ed0"
+        },
+        {
+          "round": 2,
+          "submitted_wells": 8,
+          "batch_id": "b-8348e9f430cfe16a91f7"
+        },
+        {
+          "round": 1,
+          "submitted_wells": 128,
+          "batch_id": "b-8ca94c6596318517972e"
+        },
+        {
+          "round": 3,
+          "submitted_wells": 4,
+          "batch_id": "b-8edbf0897b571ffd70e1"
+        },
+        {
+          "round": 6,
+          "submitted_wells": 3,
+          "batch_id": "b-96e17359ce6ddb06f7d2"
+        },
+        {
+          "round": 5,
+          "submitted_wells": 3,
+          "batch_id": "b-9da73c9ae4f2e32755b1"
+        }
+      ],
+      "last_event": {
+        "kind": "run_failed",
+        "payload": {
+          "error_type": "RuntimeError"
+        }
+      },
+      "archive_note": "summary.json is derived from current database; report.json is a historical snapshot and may be stale."
+    }
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2570,
+      "sha256": "5657f26af76d99c14c63060de323615b41c6c038564483ac675238ca47313cb4"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/artifacts/6e535c72e4182f474bc8a434eb3d9f9a0f0f8d3c0ec9c40703a0dcc9bfebfe48.json",
+      "bytes": 40023,
+      "sha256": "df4eeb2945d4c2474c5ea45c78edfa30f83e62be742cc1f52b7f25a2d81ee124"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/audit-db.gz",
+      "bytes": 3034137,
+      "sha256": "6146e45a4fc411b9594827e9dde3264414383065069757a9f6113b604a3ba721"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/batches/b-5445ce764da04cddba9e/batch.json",
+      "bytes": 15333,
+      "sha256": "7588d3179202df715993e5d83bed99561d2a9754fe4c1ef0a47836b92febc783"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/batches/b-5445ce764da04cddba9e/results.template.csv",
+      "bytes": 6979,
+      "sha256": "7c6d55149e7d7b4229641199f041619f5164e927071f944828d4e17233412bad"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/batches/b-808d228715151969f6ac/batch.json",
+      "bytes": 13706,
+      "sha256": "72be235d44fbc630717c1f0b2a474b28503b7066a4bf952347586369ec90b5a0"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/batches/b-808d228715151969f6ac/results.template.csv",
+      "bytes": 7003,
+      "sha256": "dc98afa108578cfe00939b106fd668dbd5c456a479a9e94ea88c9714d5b76d82"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/batches/b-8dd1d4789129b6898874/batch.json",
+      "bytes": 12736,
+      "sha256": "7fa8e0a7f443da21afff7ef59e6e03dace6d04dea7d4f54d5ede71474e825133"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/batches/b-8dd1d4789129b6898874/results.template.csv",
+      "bytes": 6979,
+      "sha256": "820356f1bb09d1efeaf328dcf6f1ac6040d45cd4bc10106ab05170d3a2e9b3e5"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/batches/b-bfdceb5ba310095f4493/batch.json",
+      "bytes": 12603,
+      "sha256": "d420afe7d67d83051bbc9240b7b8bca370d4a995512afc1a825e02119349d1df"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/batches/b-bfdceb5ba310095f4493/results.template.csv",
+      "bytes": 6979,
+      "sha256": "b98796218e6d24ead4366ffde4804c9bc32cd35895c2a5456981f5f3fae6eaa5"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/console.txt",
+      "bytes": 16187,
+      "sha256": "7174cdf12cd5df0297c2a2a5d5e248c0d1ddf17d49bd254f6ea1650cd6c8cd7f"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/goal-intake/audit-db.gz",
+      "bytes": 10092,
+      "sha256": "4bc4307654a08eadf9f3c60679a4accaf8272ee127f24d9bf52beebcdbe27b1f"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/launch.json",
+      "bytes": 1449,
+      "sha256": "27917d90953a55aa1146278c9d811da55b4d088a9aa4cec1e7c81ddacae1a277"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/programs/4d4aa510ec8ee3b94e7673c8aabda5a2a05f7c94be4a10345e4f40b2570f8d50.py",
+      "bytes": 4430,
+      "sha256": "fb49215af28c4e5f14200445bf594ed00988b3ee9dda4d8d08bf1d73a14fb571"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/programs/95918139aecbf2cffffdab6b75b60fa25b5f9705d93d63fac5aa2385a79aaf4b.py",
+      "bytes": 5486,
+      "sha256": "bda578093151c31e1ac892393f4420a7e1ad8b16dcd922f3a9083c0d8f23b65e"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/report.json",
+      "bytes": 12521,
+      "sha256": "859e0c6f3c4df815d18922148083894d0ecd957f9fbca5965723785b438997db"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/revealed_measurements.csv",
+      "bytes": 22120,
+      "sha256": "cd8fe5ad39a2bfb25788db27a28e8ff901a385e84c9a1bc57a412394353084fb"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/summary.json",
+      "bytes": 1500,
+      "sha256": "3393db3f07f5925a5a2270e2573eb4f5fdab0ee724810ff212f3ec93bc9c8462"
+    },
+    {
+      "path": "gb1-10r-20261005-143743/task.json.gz",
+      "bytes": 415856,
+      "sha256": "dc3504f8f12d96bd63c8d3117b07813cf754a056c21a2a8a9095773eb88bdee8"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/audit-db.gz",
+      "bytes": 855547,
+      "sha256": "a7735d1b0c5b191505b4642f0f687b4afe544abb6842859111135f1d738b7752"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/batches/b-8346b07728710c25f37d/batch.json",
+      "bytes": 160056,
+      "sha256": "29b08419c6592e4ad7ec00a6331b0efbb9c652b4af5e5e452292ceb86038d93f"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/batches/b-8346b07728710c25f37d/results.template.csv",
+      "bytes": 110299,
+      "sha256": "1dc10afc3f98e0ecff49906673793f3d0c77b81e5c3f61869a30323bfe51b8d9"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/console.txt",
+      "bytes": 11051,
+      "sha256": "559874b90b09716cfd3c3e137509b0c80a1584a29b9f1fd72c6b10ab27ee1268"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/goal-intake/audit-db.gz",
+      "bytes": 17448,
+      "sha256": "fd5cef1bacfbb5ae2a597ab422c09345ae9765ffa025e189be096f3562a35f19"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/launch.json",
+      "bytes": 4037,
+      "sha256": "b58e315469ad14ec4ad1c2061981c8310dc8a5e5352316985b0103ea9f394a9c"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/programs/28691ae43a7cb52a8737f40f08825aa2d81a6d4599a73a5240b70c495d53a8ad.py",
+      "bytes": 5226,
+      "sha256": "4cdcbf0ad8ff594071a0675ecdcc82a5a398f0412345a26f3360e30c57baaa31"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/report.json",
+      "bytes": 7099,
+      "sha256": "c0306a1a7f70de29e8802f4526481dc24aecfece0814dd0c0573a51f3a5e4917"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/revealed_measurements.csv",
+      "bytes": 87783,
+      "sha256": "df80e39614439b44f1eaceed7c7988f35d7db61c7f3b31b89e50906f84a99d31"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/summary.json",
+      "bytes": 1105,
+      "sha256": "2311ae503efdb9119d475b733417a6850d0edcdb5dee9a45e2e75c0ba066f5e7"
+    },
+    {
+      "path": "gb1-fullplate-10r-384-20261005-222211/task.json",
+      "bytes": 2581,
+      "sha256": "5835ece73f16ce01a7b3747b48fa68f07d6b80b991a01fe1f3ae0ae174fb4fb7"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/BATCH_UTILIZATION_ANALYSIS.md",
+      "bytes": 5002,
+      "sha256": "495053bc37e16511b54bdf648c725520d67dbc36e709540f2aa251e5d9bc8d85"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/ROUND_DESIGN_RATIONALES.md",
+      "bytes": 48706,
+      "sha256": "5824fa508e3c0d584d4952a37fb639b505edf15af73543dc29d5dcbac2b95c49"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/audit-db.gz",
+      "bytes": 8164509,
+      "sha256": "735ff978b52b30da4bc8e17e29d9e88f9e4265b65c679ab23626fb815f94e905"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-390f014cb9b978fcc8b4/batch.json",
+      "bytes": 2538,
+      "sha256": "7b666ea16c8e90d5ab69c27fd5cb526ee810a792a6410e9070087e28f08181da"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-390f014cb9b978fcc8b4/results.template.csv",
+      "bytes": 1239,
+      "sha256": "18dbbddcea8fb3a89252675ecbf1c534a72193e0b53487b5d8e1437150ede6f6"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-4ce5021958e1f3913ed0/batch.json",
+      "bytes": 7726,
+      "sha256": "9fbccc99f58c4e78e9e81db956f6bf32c8774c55faadf8aa455742cd0e28f799"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-4ce5021958e1f3913ed0/results.template.csv",
+      "bytes": 4396,
+      "sha256": "3a8269288aaab6e56fadea94b7ca6bcf8176436ca6ffb8cafda60fd66f86485a"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-8348e9f430cfe16a91f7/batch.json",
+      "bytes": 4503,
+      "sha256": "a547b4c6a08d5c489504049741b0cd56dda90e42405837a1dcd6187090712b8c"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-8348e9f430cfe16a91f7/results.template.csv",
+      "bytes": 2387,
+      "sha256": "1d7f57f814c7258722dd03a9c3991cb2d78b44b65146f4a74a36e8647d880b9e"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-8ca94c6596318517972e/batch.json",
+      "bytes": 70476,
+      "sha256": "fea3916199903edb4c70c1cfe2f53de0a280a404c44dab33050bfcccf803c1dc"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-8ca94c6596318517972e/results.template.csv",
+      "bytes": 36827,
+      "sha256": "598ceb8f1c8f4c5b361e5169b9aeb290dc8b73f361d61eedd24eb99bafe3931f"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-8edbf0897b571ffd70e1/batch.json",
+      "bytes": 2607,
+      "sha256": "64d1d5781d3887b1fafa9074561ad60aea5ba452829a35da4ac0bcb2622918b1"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-8edbf0897b571ffd70e1/results.template.csv",
+      "bytes": 1239,
+      "sha256": "6de019239774cbe5588a13593a8c9a7e5e5e64d53cb532fdd77ea87061950f73"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-96e17359ce6ddb06f7d2/batch.json",
+      "bytes": 1944,
+      "sha256": "d38bc6c0b7d1bc4c552cd7c5616a62d236453847aa89bcac18ebb852ddbb0fc0"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-96e17359ce6ddb06f7d2/results.template.csv",
+      "bytes": 952,
+      "sha256": "44e05339f58f1e28cdee6d3604bff92609163dffaf4807da60de9ee5058342ef"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-9da73c9ae4f2e32755b1/batch.json",
+      "bytes": 2142,
+      "sha256": "2651375a9a4008aa75f1ae1f76932d31b077534ef8bc210516d866fa90bd9f5b"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/batches/b-9da73c9ae4f2e32755b1/results.template.csv",
+      "bytes": 952,
+      "sha256": "406b786bb21044bf0fed4c24ad91025bb2bac6967e425e7fbd0ccc1d185df5d9"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/console.txt",
+      "bytes": 32081,
+      "sha256": "ad20dc0da1b9e292b69a503816e2ba01575b3fa169fa6ffabc98fe7db8e465c0"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/goal-intake/audit-db.gz",
+      "bytes": 17155,
+      "sha256": "7dfdaf53109a539c8f9cd0458e4ca56d3f57b49f23edc4fcab335b4bb0b4a440"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/launch.json",
+      "bytes": 3866,
+      "sha256": "110da54b6487a2c9a27e8d7c59e7fe013b02c971f9c3158e9c0fa765514c3265"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/programs/1297b0e9e99f9d7dee26b0d18d0f21bd8560c868633873120514d558eda9cbb2.py",
+      "bytes": 3402,
+      "sha256": "3c937b74b4593d561c98e94bd5449f5b2669b471234c90862852c9fca260a597"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/programs/2ca1e394ff7e69cfd0dd30bc6fdc29db6a5fba52935bc940360c6463e2381fb2.py",
+      "bytes": 1792,
+      "sha256": "cadcbac25017111448275e8f2725c74a7744846e64275f9fc61ac30719216c61"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/report.json",
+      "bytes": 19516,
+      "sha256": "6bf27f9b15aed4baba34cb79c44c27294c46da00121a0c5f7b2aea842ca5e9b4"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/revealed_measurements.csv",
+      "bytes": 38001,
+      "sha256": "1e071167aebf8a7f8f6f29f8684e5be43498f40442cb17ddaf33a700db4e4318"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/summary.json",
+      "bytes": 1714,
+      "sha256": "d33736e0de56e76a310cccd43ae1ddc640809688fcb8ad93b49599913adc5ac0"
+    },
+    {
+      "path": "gb1-open-10r-384-20261005-165119/task.json",
+      "bytes": 2527,
+      "sha256": "87e8ff52cc3da6884a2edd871ba32834d907778d89c9e5ddcc1764cc59bbff62"
+    }
+  ]
+}

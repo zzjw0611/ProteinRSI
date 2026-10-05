@@ -1,0 +1,123 @@
+{
+  "batch_id": "b-8348e9f430cfe16a91f7",
+  "campaign_id": "24732b5c-6814-4cc5-97bc-2bbbebae3ece",
+  "evidence_version": "2780a493ad55e0d45d1a6c40f4165cb67af4fccc33c3b392d4ac3cf4a3ef8168",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 1,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40W/V54C：检验D40W单点实测3.901460756与V54C单点实测1.413935906组合后能否进一步提高fitness；组合效应未知。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTCTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8348e9f430cfe16a91f7-000",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40W/V54A：检验D40W与有利单点V54A的组合，并与D40W/V54C比较第54位的背景依赖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8348e9f430cfe16a91f7-001",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40Y/V54C：检验D40Y单点实测3.891461091与V54C组合是否保留或提高收益；不假定单点效应可加。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYGEWTYDDATKTFTCTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8348e9f430cfe16a91f7-002",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40Y/V54A：与D40Y/V54C形成配对比较，检验第54位A或C在D40Y背景中的组合收益。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYGEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8348e9f430cfe16a91f7-003",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40H/V54C：D40H单点实测3.081165808高于母本；检验这一替换与V54C的组合，扩大局部反馈驱动面板的覆盖。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHGEWTYDDATKTFTCTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8348e9f430cfe16a91f7-004",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40H/V54A：与D40H/V54C比较，检验V54A在D40H背景中是否带来进一步收益。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHGEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8348e9f430cfe16a91f7-005",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40F/V54C：D40F单点实测3.054548651高于母本；检验与V54C组合的收益，避免仅依赖W和Y两个背景。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFGEWTYDDATKTFTCTE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8348e9f430cfe16a91f7-006",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "D40F/V54A：完成D40{W,Y,H,F}与V54{C,A}的8个双点组合，检验V54A在D40F背景中的收益。",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFGEWTYDDATKTFTATE",
+        "source": "agent",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8348e9f430cfe16a91f7-007",
+      "workflow_version": "w-065f689c980923d5"
+    }
+  ]
+}

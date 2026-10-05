@@ -41,3 +41,15 @@ automatic costly retry is permitted. Use the membership tool before expensive ev
 
 Large-model engines remain optional and deployment-specific. This release validates
 contracts and fixture execution, not all GPU kernels, packages or biological performance.
+
+## Generated analysis programs
+
+`research_python` is a context-bound optional tool for LLM-authored Python. Arguments
+are `code`, optional JSON `inputs`, and optional `artifact_refs`. The program sees
+`context` (revealed TaskView), `inputs`, and an `artifacts` ref-to-path mapping; assign
+a JSON object to `result`. Return Candidate objects in `result.candidates` to propose
+sequences, which still undergo current-task validation. Other metrics stay inside
+`output` and carry `evidence_kind=computed_unvalidated`. They cannot supply experimental
+labels. For scientific files, call `write_artifact(name,text,kind)` and return its
+descriptors in `result.artifacts`. Standard Python and NumPy are available; protein
+engines are separate tools. Errors return `status=failed` for code/plan repair.

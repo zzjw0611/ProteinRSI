@@ -1,0 +1,27 @@
+{
+  "pid": 898059,
+  "campaign": "/home/zjw/ProteinRSI/runs/gb1-10r-20261005-143743",
+  "log": "/home/zjw/ProteinRSI/runs/launch-logs/gb1-10r-20261005-143743.log",
+  "goal": "使用GB1历史实测景观，最多10轮，共240个新查询，每轮最多24个，寻找原始实测fitness尽可能高的变体。使用数据集核验的完整母本及已有母本实测fitness作为免费初始证据；只修改第39、40、41、54位，其余位置保持不变。使用原始reported_assay_fitness及其数据集单位和实验协议，不重新归一化。所有蛋白设计工具和Python分析代码均可选，由Agent根据证据决定。允许提出并验证工作流和M自身策略修改，验证查询计入共同预算，不要求每轮修改。最终报告最好已测候选、逐轮表现、实际成本及轨迹。",
+  "round_limit": 10,
+  "query_limit": 240,
+  "batch_limit": 24,
+  "llm_call_limit": 500,
+  "tool_call_limit": 200,
+  "previous_pid": 832560,
+  "resume_reason": "Bounded transient LLM retries with persistent attempt audit and budget accounting",
+  "resumed_at": "2026-10-05T16:22:04.319863",
+  "resume_command": [
+    "/home/zjw/proteinrsi-tools/bin/proteinrsi",
+    "replay",
+    "--campaign",
+    "/home/zjw/ProteinRSI/runs/gb1-10r-20261005-143743",
+    "--dataset",
+    "/home/zjw/data/ssmula/processed/GB1/measurements.csv",
+    "--agent",
+    "llm",
+    "--allow-data-egress",
+    "--execution",
+    "guarded"
+  ]
+}

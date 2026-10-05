@@ -22,6 +22,7 @@ class Conflict(RuntimeError):
 
 class Store:
     def __init__(self, directory: str | Path):
+        self.event_sink = None
         self.root = Path(directory).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "state.sqlite3"
@@ -79,13 +80,17 @@ class Store:
                 "SELECT key,value FROM kv WHERE namespace=? ORDER BY key", (namespace,))}
 
     def event(self, kind: str, payload: dict) -> None:
+        timestamp = time.time()
         with self.connect() as con:
-            con.execute("INSERT INTO events(timestamp,kind,payload) VALUES (?,?,?)",
-                        (time.time(), kind, canonical(payload)))
+            cursor = con.execute("INSERT INTO events(timestamp,kind,payload) VALUES (?,?,?)",
+                                 (timestamp, kind, canonical(payload)))
+            event_id = cursor.lastrowid
+        if self.event_sink is not None:
+            self.event_sink({"id": event_id, "timestamp": timestamp, "kind": kind, "payload": payload})
 
     def events(self) -> list[dict]:
         with self.connect() as con:
-            return [{"id": row["id"], "kind": row["kind"], "payload": json.loads(row["payload"])}
+            return [{"id": row["id"], "timestamp": row["timestamp"], "kind": row["kind"], "payload": json.loads(row["payload"])}
                     for row in con.execute("SELECT * FROM events ORDER BY id")]
 
     def configure_budget(self, resources: dict[str, int]) -> None:
@@ -184,3 +189,14 @@ class SponsoredStore(Store):
 
     def remaining(self, resource):
         return min(super().remaining(resource), self.sponsor.remaining(resource))
+
+    def event(self, kind, payload):
+        super().event(kind, payload)
+        self.sponsor.event("validation_event", {"branch": self.prefix, "kind": kind, "payload": payload})
+
+    def put(self, namespace, key, value, *, immutable=False):
+        super().put(namespace, key, value, immutable=immutable)
+        # These namespaces are operator-only; the worker RPC cannot read them.
+        if namespace in {"llm", "llm_attempts", "tool_jobs", "agent_snapshots", "research_runs", "research_step_outputs", "code_programs"}:
+            self.sponsor.put("validation_"+namespace, self.prefix+"/"+key,
+                             {"branch": self.prefix, **value}, immutable=immutable)

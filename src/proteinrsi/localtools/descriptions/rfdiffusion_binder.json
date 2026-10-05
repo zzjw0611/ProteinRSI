@@ -2,7 +2,7 @@
   "name": "rfdiffusion_binder",
   "capability": "backbone.generate",
   "description": "Generate fixed-length binder backbones against an explicitly supplied fixed target. Use returned backbone_ref and chain roles with ProteinMPNN.",
-  "limitations": "Fixed-length, fully mutable binder; target structure must cover the full declared target. No scaffold poly-G sequence is returned as a final candidate.",
+  "limitations": "Each call chooses one length within the task bounds for a de novo binder, or the fully mutable scaffold length; target structure must cover the full declared target. No scaffold poly-G sequence is returned as a final candidate.",
   "engine": "rfdiffusion",
   "task_kinds": [
     "binder_design"
@@ -191,7 +191,7 @@
     "Only optimizing an existing sequence or seeking final validated affinity."
   ],
   "cost_hint": "Separate GPU worker; expensive generation; explicit num_designs and timeout.",
-  "output_semantics": "Fixed-length, fully mutable binder; target structure must cover the full declared target. No scaffold poly-G sequence is returned as a final candidate.",
+  "output_semantics": "Each call chooses one length within the task bounds for a de novo binder, or the fully mutable scaffold length; target structure must cover the full declared target. No scaffold poly-G sequence is returned as a final candidate.",
   "result_schema_version": "2",
   "validation_level": "contract_tested; deployment inference verification is separate",
   "examples": [

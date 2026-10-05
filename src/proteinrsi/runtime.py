@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 
 from proteinrsi.agents import MetaAgent, Team, skill_text
+from proteinrsi.audit import snapshot
 from proteinrsi.contracts import (Batch, Candidate, GatePolicy, MetaPolicy, Observation, Patch,
     Sample, TaskKind, TaskSpec, TaskView, Workflow, canonical, digest)
 from proteinrsi.improvement import ExperienceMemory, apply_patch, evaluate_trial
@@ -27,7 +28,7 @@ class Campaign:
     @classmethod
     def initialize(cls, directory: str, task: TaskSpec, *, workflow: Workflow | None = None,
                    meta: MetaPolicy | None = None, gate: GatePolicy | None = None,
-                   protein_config=None, local_tools=None, research_config=None) -> Campaign:
+                   protein_config=None, local_tools=None, research_config=None, auto_meta_evaluation=True) -> Campaign:
         validate_task(task)
         store = Store(directory)
         with store.lock():
@@ -42,6 +43,8 @@ class Campaign:
                 protein_config = ESMCConfig.model_validate(protein_config)
                 resources["plm_inputs"] = protein_config.max_model_inputs
             store.configure_budget(resources)
+            store.put("configuration", "auto_meta_evaluation", {"enabled": auto_meta_evaluation,
+                "scope": "current_task_only"}, immutable=True)
             if protein_config is not None:
                 store.put("configuration", "protein_model", protein_config.model_dump(), immutable=True)
             if local_tools is not None:
@@ -61,12 +64,25 @@ class Campaign:
                 "last_patch_round": -100, "considered_round": -1, "planning_attempt": 0,
                 "execution_semantics": "on-demand-v1", "initialization_done": False,
                 "first_round_spent": 0}
+            if task.initial_observation_policy == "provided_parent":
+                initial = Observation(sample_id="provided-parent", batch_id="provided-initial-evidence",
+                    sequence=task.reference_sequence, value=task.initial_parent_measurement.value,
+                    metric=task.metric, unit=task.unit, source=task.feedback_source,
+                    assay_protocol=task.assay_protocol, qc="valid").model_dump(mode="json")
+                state["observations"] = [initial]
+                state["initialization_done"] = True
+                store.put("configuration", "provided_initial_evidence", {
+                    "observations": [initial], "source_ref": task.initial_parent_measurement.source_ref,
+                    "charged_queries": 0}, immutable=True)
+                store.event("initial_evidence_provided", {"count": 1, "charged_queries": 0})
             store.put("campaign", "state", state)
             store.put("workflow_versions", workflow.version, workflow.model_dump(), immutable=True)
             store.put("meta_versions", meta.version, meta.model_dump(), immutable=True)
             store.event("campaign_initialized", {"campaign_id": state["campaign_id"],
                                                   "source": task.feedback_source})
-        return cls(store)
+        campaign = cls(store)
+        snapshot(store, "initialized", campaign.view())
+        return campaign
 
     @property
     def state(self) -> dict[str, Any]:
@@ -78,9 +94,11 @@ class Campaign:
     def view(self, state: dict | None = None, workflow: Workflow | None = None) -> TaskView:
         state = state or self.state
         task = TaskSpec.model_validate(state["task"])
-        if len(task.candidates) > task.proposal_pool_size:
+        if (len(task.candidates) > task.proposal_pool_size and task.kind != TaskKind.RANKING
+                and task.batch_fill_policy != "full_plate"):
             observed = {o["sequence"] for o in state["observations"]}
-            eligible = [s for s in task.candidates if s not in observed and s != task.reference_sequence]
+            eligible = [s for s in task.candidates if task.repeat_policy == "allow"
+                        or (s not in observed and s != task.reference_sequence)]
             rng = np.random.default_rng(task.seed + state["round_index"])
             if len(eligible) > task.proposal_pool_size:
                 chosen = rng.choice(len(eligible), size=task.proposal_pool_size, replace=False)
@@ -91,7 +109,9 @@ class Campaign:
             history=state["history"], remaining_wells=self.store.remaining("experimental_wells"),
             workflow=workflow or Workflow.model_validate(state["workflow"]),
             meta=MetaPolicy.model_validate(state["meta"]), experience=self.memory.retrieve(task.kind),
-            artifacts=list(self.store.all("artifacts").values()))
+            artifacts=list(self.store.all("artifacts").values()),
+            research_context={"workflow_validation_outcomes":
+                list(self.store.all("workflow_validation_outcomes").values())})
 
     def prepare(self) -> Batch | None:
         with self.store.lock():
@@ -106,12 +126,16 @@ class Campaign:
                 raise Conflict("Campaign is not ready to plan")
             view = self.view(state)
             task = view.task
+            if task.execution_mode == "computational":
+                raise ValueError("Use the computational runner; no experimental batch may be submitted")
             remaining_round = task.batch_size - (state.get("first_round_spent", 0) if state["round_index"] == 0 else 0)
             n = min(remaining_round, view.remaining_wells)
             if state["round_index"] >= task.max_rounds or n <= task.controls_per_batch:
                 state["status"] = "complete"
                 self.store.put("campaign", "state", state)
                 return None
+            if task.batch_fill_policy == "full_plate" and n != task.batch_size:
+                raise ValueError("Insufficient budget for a whole plate; no partial plate may be submitted")
             if task.initial_observation_policy == "parent_once" and not state.get("initialization_done"):
                 batch_id = "b-initial-" + digest({"campaign": state["campaign_id"], "attempt": state["planning_attempt"]})[:16]
                 batch = Batch(batch_id=batch_id, campaign_id=state["campaign_id"], round_index=0,
@@ -125,55 +149,80 @@ class Campaign:
                 export_batch(batch, task, self.store.root/"batches"/batch_id)
                 self.store.event("initial_parent_prepared", {"batch_id": batch_id})
                 return batch
-            # This is the complete label-free eligible catalogue, not the LLM preview.
+            # Scientific constraints and any explicitly supplied closed library; open design has no replay index.
             full_task = TaskSpec.model_validate(state["task"])
-            baseline = self.team.run(view)
-            for candidate in baseline:
-                validate_candidate(full_task, candidate)
-            measured = {o.sequence for o in view.observations}
-            excluded = measured | {task.reference_sequence}
-            if task.kind == TaskKind.AFFINITY:
-                excluded = set()  # Explicit replicate predictions, never changed sequences.
-            baseline = [c for c in baseline if c.sequence not in excluded]
+            snapshot(self.store, "round_input", view)
             slots = n - task.controls_per_batch
-            chosen: list[tuple[Candidate, str, str]] = []
-            trial_patch: Patch | None = None
+            chosen = []
+            trial_patch = None
             challenger_workflow = None
-            if state["pending_patch"] and task.kind != TaskKind.AFFINITY:
-                patch = Patch.model_validate(state["pending_patch"])
-                challenger_workflow = apply_patch(view.workflow, patch)
-                gate = GatePolicy.model_validate(state["gate"])
-                per_arm = slots // 2
-                if per_arm >= gate.min_per_arm:
-                    challenger = self.team.run(self.view(state, challenger_workflow))
-                    for candidate in challenger:
-                        validate_candidate(full_task, candidate)
-                    challenger = [c for c in challenger if c.sequence not in excluded]
-                    # Equal budgets, shared evidence, disjoint submitted variants. Alternate
-                    # which policy wins a collision by a prespecified round-based order.
-                    arms = {"baseline": baseline, "challenger": challenger}
-                    used = set(excluded)
-                    for _ in range(per_arm):
-                        order = ["baseline", "challenger"]
-                        if (task.seed + view.round_index) % 2:
-                            order.reverse()
-                        for arm in order:
-                            candidate = next((c for c in arms[arm] if c.sequence not in used), None)
-                            if candidate is None:
-                                break
-                            used.add(candidate.sequence)
-                            version = view.workflow.version if arm == "baseline" else challenger_workflow.version
-                            chosen.append((candidate, arm, version))
-                    if len(chosen) == 2 * per_arm:
-                        trial_patch = patch
+            meta_trial = None
+            excluded = {o.sequence for o in view.observations} | {task.reference_sequence}
+            if (state["pending_meta"] and task.kind != TaskKind.AFFINITY
+                    and self.store.get("configuration", "auto_meta_evaluation", {}).get("enabled")):
+                from proteinrsi.online_meta import prepare_meta_trial
+                planned = prepare_meta_trial(self, state, view, slots)
+                if planned:
+                    chosen, meta_trial = planned
+                    trial_patch = Patch.model_validate(meta_trial["patch"])
+            baseline = []
+            if meta_trial is None:
+                if task.batch_fill_policy == "full_plate":
+                    from proteinrsi.plate import complete_candidates
+                    baseline = complete_candidates(self, view, slots, excluded=excluded)
+                else:
+                    baseline = self.team.run(view)
+                for candidate in baseline:
+                    validate_candidate(full_task, candidate)
+                measured = {o.sequence for o in view.observations}
+                excluded = measured | {task.reference_sequence}
+                if task.kind == TaskKind.AFFINITY or task.repeat_policy == "allow":
+                    excluded = set()  # Explicit replicate predictions, never changed sequences.
+                baseline = [c for c in baseline if c.sequence not in excluded]
+                if state["pending_patch"] and task.kind != TaskKind.AFFINITY:
+                    patch = Patch.model_validate(state["pending_patch"])
+                    challenger_workflow = apply_patch(view.workflow, patch)
+                    gate = GatePolicy.model_validate(state["gate"])
+                    if slots // 2 >= gate.min_per_arm:
+                        challenge_view = self.view(state, challenger_workflow)
+                        challenge_view.research_context = {**challenge_view.research_context,
+                            "validation_request": {"maximum_candidates": slots // 2,
+                                "minimum_candidates": gate.min_per_arm,
+                                "instruction": "Generate a bounded validation panel; the controller fills the remaining plate separately."}}
+                        challenger = self.team.run(challenge_view)
+                        for candidate in challenger:
+                            validate_candidate(full_task, candidate)
+                        from proteinrsi.trial_allocation import allocate_trial
+                        chosen, allocation = allocate_trial(
+                            {"baseline": baseline, "challenger": challenger},
+                            {"baseline": view.workflow.version, "challenger": challenger_workflow.version},
+                            slots, gate.min_per_arm, excluded, task.seed + view.round_index)
+                        self.store.event("workflow_validation_allocation", {"patch_id": patch.patch_id,
+                            "round": view.round_index, **allocation})
+                        if chosen:
+                            trial_patch = patch
+                        else:
+                            self.store.put("workflow_validation_outcomes", patch.patch_id, {
+                                "decision": "inconclusive", "round": view.round_index, **allocation})
+                            state["pending_patch"] = None
+                            self.store.put("campaign", "state", state)
                     else:
-                        chosen = []
-            if not trial_patch:
-                chosen = [(c, "baseline", view.workflow.version) for c in baseline[:slots]]
+                        self.store.event("workflow_validation_deferred", {"patch_id": patch.patch_id,
+                            "round": view.round_index, "reason": "Insufficient equal-arm plate capacity"})
+                if not trial_patch:
+                    chosen = [(c, "baseline", view.workflow.version) for c in baseline[:slots]]
+            if task.batch_fill_policy == "full_plate" and len(chosen) < slots:
+                from proteinrsi.plate import complete_candidates
+                occupied = excluded | {c.sequence for c, _, _ in chosen}
+                extras = complete_candidates(self, view, slots - len(chosen), excluded=occupied,
+                    initial=[c for c in baseline if c.sequence not in occupied])
+                chosen.extend((c, "research" if trial_patch else "baseline", view.workflow.version) for c in extras)
+            if task.batch_fill_policy == "full_plate" and len(chosen) != slots:
+                raise ValueError("Full plate requires the exact number of unique research candidates")
             if not chosen:
-                if set(full_task.candidates) - excluded:
+                if full_task.candidate_access == "open" or set(full_task.candidates) - excluded:
                     self.store.event("no_valid_proposal", {"round": state["round_index"]})
-                    raise ValueError("No unmeasured proposal returned, but the catalogue is not exhausted")
+                    raise ValueError("No new valid proposal returned; search-space exhaustion has not been established")
                 state["status"] = "complete"
                 self.store.event("candidate_space_exhausted", {"round": state["round_index"]})
                 self.store.put("campaign", "state", state)
@@ -193,13 +242,15 @@ class Campaign:
             self.store.reserve("lab-" + batch_id, "experimental_wells", len(samples), batch.model_dump())
             self.store.put("batches", batch_id, batch.model_dump(), immutable=True)
             if trial_patch:
-                self.store.put("trials", batch_id, {"patch": trial_patch.model_dump(mode="json"),
-                    "challenger": challenger_workflow.model_dump(), "gate": state["gate"]}, immutable=True)
+                self.store.put("trials", batch_id, meta_trial or {"target": "workflow",
+                    "patch": trial_patch.model_dump(mode="json"),
+                    "challenger": challenger_workflow.model_dump(), "gate": state["gate"], "allocation": allocation}, immutable=True)
             state["pending_batch"], state["status"] = batch_id, "awaiting_approval"
             self.store.put("campaign", "state", state)
             export_batch(batch, task, self.store.root / "batches" / batch_id)
             self.store.event("batch_prepared", {"batch_id": batch_id, "wells": len(samples),
                 "workflow": view.workflow.version, "meta": view.meta.version, "patch_id": batch.patch_id})
+            snapshot(self.store, "awaiting_approval", self.view(state), batch_id=batch_id)
             return batch
 
     def approve(self, batch_id: str, *, operator: str) -> None:
@@ -213,6 +264,14 @@ class Campaign:
                 return
             if state["status"] != "awaiting_approval":
                 raise Conflict("Batch is not awaiting approval")
+            task = TaskSpec.model_validate(state["task"])
+            if task.batch_fill_policy == "full_plate":
+                batch = Batch.model_validate(self.store.get("batches", batch_id))
+                if len(batch.samples) != task.batch_size:
+                    raise ValueError("Cannot approve an incomplete plate")
+                research = [x.candidate.sequence for x in batch.samples if x.arm != "control"]
+                if len(research) != len(set(research)):
+                    raise ValueError("Cannot fill a plate with duplicate research candidates")
             self.store.settle("lab-" + batch_id)
             state["status"] = "awaiting_results"
             self.store.put("campaign", "state", state)
@@ -265,7 +324,10 @@ class Campaign:
                       if s.arm != "control" and s.candidate.predicted_value is not None
                       and by_id[s.sample_id].qc == "valid"]
             summary = {"round": state["round_index"], "batch_id": batch_id,
-                "qc_failure_fraction": sum(o.qc != "valid" for o in observations) / len(observations),
+                "qc_failure_fraction": sum(o.qc in {"failed", "inconclusive"} for o in observations) / max(1, sum(o.qc != "unavailable" for o in observations)),
+                "unavailable_queries": sum(o.qc == "unavailable" for o in observations),
+                "submitted_wells": len(batch.samples), "plate_capacity": task.batch_size,
+                "plate_utilization": len(batch.samples) / task.batch_size,
                 "prediction_mae": float(np.mean(errors)) if errors else None,
                 "workflow": Workflow.model_validate(state["workflow"]).version, "meta": batch.meta_version}
             state["observations"].extend(normalized)
@@ -286,13 +348,27 @@ class Campaign:
                 self.store.put("trial_results", batch_id, result.model_dump(), immutable=True)
                 self.memory.record(patch, result, campaign_id=state["campaign_id"],
                     observations=len(state["observations"]) - len(normalized), source=task.feedback_source)
+                target = trial.get("target", "workflow")
                 if result.decision == "accepted":
-                    new = Workflow.model_validate(trial["challenger"])
-                    self.store.put("workflow_versions", new.version, new.model_dump(), immutable=True)
-                    state["workflow"] = new.model_dump()
-                state["pending_patch"] = None
-                summary["trial"] = result.model_dump()
-                self.store.event("workflow_trial_completed", {"batch_id": batch_id, **result.model_dump()})
+                    if target == "meta":
+                        new = MetaPolicy.model_validate(trial["challenger_meta"])
+                        self.store.put("meta_versions", new.version, new.model_dump(), immutable=True)
+                        state["meta"] = new.model_dump()
+                    else:
+                        new = Workflow.model_validate(trial["challenger"])
+                        self.store.put("workflow_versions", new.version, new.model_dump(), immutable=True)
+                        state["workflow"] = new.model_dump()
+                state["pending_meta" if target == "meta" else "pending_patch"] = None
+                summary["trial"] = {"target": target, **result.model_dump()}
+                if target == "meta":
+                    evaluation_id = trial["evaluation_id"]
+                    report = {**trial, "batch_id": batch_id, "result": result.model_dump(),
+                        "charged_queries": sum(x.arm in {"baseline", "challenger"} for x in batch.samples),
+                        "total_plate_queries": len(batch.samples), "promoted": result.decision == "accepted"}
+                    self.store.put("meta_evaluations", evaluation_id, report, immutable=True)
+                    attempt = self.store.get("meta_online_attempts", evaluation_id)
+                    self.store.put("meta_online_attempts", evaluation_id, {**attempt, "state": "completed"})
+                self.store.event(target+"_trial_completed", {"batch_id": batch_id, **result.model_dump()})
             research_config = self.store.get("configuration", "research", {})
             if research_config.get("enabled"):
                 from proteinrsi.research.analysis import persist_analysis
@@ -313,6 +389,9 @@ class Campaign:
                 state["status"] = "complete"
             self.store.put("campaign", "state", state)
             self.store.event("feedback_ingested", summary)
+            snapshot(self.store, "feedback_committed", self.view(state))
+            if state["status"] == "complete":
+                self.store.event("campaign_completed", {"rounds": state["round_index"]})
         # Measurements are committed even if subsequent LLM/metacognitive work fails.
         if state["status"] == "ready":
             self.consider_improvement()
@@ -331,6 +410,7 @@ class Campaign:
                 if state["history"]:
                     state["history"][-1]["analyst_feedback"] = feedback.model_dump()
                 view = self.view(state)
+                snapshot(self.store, "improver_input", view)
                 response = self.meta_agent.propose(view, state["last_patch_round"])
                 if response.patch:
                     self._stage_patch(state, response.patch)
@@ -354,6 +434,9 @@ class Campaign:
             skill_text(candidate.skill_names)
         if self.store.get("patches", patch.patch_id):
             return  # Do not repeatedly test the same patch on the same evidence/claim.
+        self.store.put("patch_contexts", patch.patch_id, {"previous_patch_round": state["last_patch_round"],
+            "evidence_version": self.view(state).evidence_version}, immutable=True)
+        self.store.event("patch_staged", {"patch": patch.model_dump(mode="json")})
         state["pending_patch" if patch.target == "workflow" else "pending_meta"] = patch.model_dump(mode="json")
         state["last_patch_round"] = state["round_index"]
         self.store.put("patches", patch.patch_id, patch.model_dump(mode="json"), immutable=True)
@@ -384,4 +467,8 @@ class Campaign:
                 "budget": self.store.usage(), "pending_batch": state["pending_batch"],
                 "pending_workflow_patch": state["pending_patch"], "pending_meta_patch": state["pending_meta"],
                 "workflow_trials": self.store.all("trial_results"),
-                "meta_evaluations": self.store.all("meta_evaluations")}
+                "meta_evaluations": self.store.all("meta_evaluations"),
+                "execution_mode": task.execution_mode,
+                "computational_iterations": self.store.all("computational_iterations"),
+                "final_computational_candidates": (state["history"][-1].get("candidates", [])
+                    if task.execution_mode == "computational" and state["history"] else [])}

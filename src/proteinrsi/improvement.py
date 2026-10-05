@@ -76,7 +76,7 @@ def evaluate_trial(batch: Batch, observations: list[Observation], policy: GatePo
     counts = {"baseline": 0, "challenger": 0}
     failures = {"baseline": 0, "challenger": 0}
     for sample in batch.samples:
-        if sample.arm == "control":
+        if sample.arm not in {"baseline", "challenger"}:
             continue
         counts[sample.arm] += 1
         o = by_id[sample.sample_id]
@@ -86,6 +86,9 @@ def evaluate_trial(batch: Batch, observations: list[Observation], policy: GatePo
             failures[sample.arm] += 1
     if counts["baseline"] != counts["challenger"] or not counts["challenger"]:
         raise ValueError("Unequal planned arm budgets")
+    if any(by_id[s.sample_id].qc == "unavailable" for s in batch.samples if s.arm in {"baseline", "challenger"}):
+        return GateResult(decision="inconclusive", reason="Historical coverage missing; no promotion from a selectively observed subset",
+            n_baseline=len(groups["baseline"]), n_challenger=len(groups["challenger"]))
     if any(failures[a] / counts[a] > policy.max_qc_failure_fraction for a in counts):
         return GateResult(decision="inconclusive", reason="QC failure limit exceeded; do not impute missing values",
             n_baseline=len(groups["baseline"]), n_challenger=len(groups["challenger"]))

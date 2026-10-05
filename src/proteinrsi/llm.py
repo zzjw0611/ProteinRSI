@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import json
 import os
+import random
+from email.utils import parsedate_to_datetime
+import time
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit
@@ -22,7 +25,7 @@ class JSONLLM:
     def __init__(self, store: Store, *, model: str, base_url: str,
                  api_key: str, max_tokens: int = 4096, timeout: float = 90,
                  api_protocol: str = "chat_completions", reasoning_effort: str | None = None,
-                 allow_http: bool = False,
+                 allow_http: bool = False, max_attempts: int = 4,
                  transport: httpx.BaseTransport | None = None):
         parsed = urlsplit(base_url)
         if parsed.scheme != "https" and not (parsed.scheme == "http" and
@@ -39,6 +42,11 @@ class JSONLLM:
         if reasoning_effort is not None and reasoning_effort not in (
                 "none", "minimal", "low", "medium", "high", "xhigh"):
             raise ValueError("Unsupported reasoning effort")
+        if type(max_attempts) is not int or not 1 <= max_attempts <= 10:
+            raise ValueError("LLM max_attempts must be between 1 and 10")
+        if type(max_tokens) is not int or max_tokens < 1:
+            raise ValueError("LLM max_tokens must be a positive integer")
+        self.max_attempts = max_attempts
         self.store, self.model = store, model
         self.base_url, self.api_key = base_url.rstrip("/"), api_key
         self.max_tokens, self.timeout, self.transport = max_tokens, timeout, transport
@@ -64,10 +72,12 @@ class JSONLLM:
         return cls(store, model=os.environ.get("PROTEINRSI_MODEL", ""),
                    base_url=os.environ.get("PROTEINRSI_BASE_URL", ""),
                    api_key=api_key,
+                   max_tokens=int(os.environ.get("PROTEINRSI_LLM_MAX_OUTPUT_TOKENS", "4096")),
                    api_protocol=os.environ.get("PROTEINRSI_API_PROTOCOL", "chat_completions"),
                    reasoning_effort=os.environ.get("PROTEINRSI_REASONING_EFFORT") or None,
                    allow_http=os.environ.get("PROTEINRSI_ALLOW_HTTP", "").lower() == "true",
-                   timeout=float(os.environ.get("PROTEINRSI_LLM_TIMEOUT", "90")))
+                   timeout=float(os.environ.get("PROTEINRSI_LLM_TIMEOUT", "90")),
+                   max_attempts=int(os.environ.get("PROTEINRSI_LLM_MAX_ATTEMPTS", "4")))
 
     def complete(self, role: str, instructions: str, context: dict[str, Any], schema: dict) -> dict:
         # JSON mode is widely supported; independently validate every response at the caller.
@@ -92,18 +102,81 @@ class JSONLLM:
         key = "llm-" + digest({"role": role, "url": cache_url,
                               "request": payload})
         previous = self.store.get("llm", key)
-        if previous is not None:
-            if previous["state"] != "done":
-                raise LLMError("Prior call failed or has uncertain completion; inspect audit before retrying")
-            return previous["result"]
-        self.store.reserve(key, "llm_calls", 1, payload)
-        self.store.settle(key)
-        self.store.put("llm", key, {"state": "started"})
+        while True:
+            if previous is not None:
+                if previous["state"] == "done":
+                    self.store.event("llm_cache_hit", {"role": role, "key": key, "model": self.model})
+                    return previous["result"]
+                attempt = previous.get("attempt", 1)
+                if previous["state"] != "failed" or not self._retryable(previous):
+                    raise LLMError("Prior call failed or has uncertain completion; inspect audit before retrying")
+                if attempt >= self.max_attempts:
+                    raise LLMError(f"Provider retry limit exhausted ({attempt} attempts); inspect audit")
+                # Archive legacy failures as well; never erase the cause on resume.
+                self.store.put("llm_attempts", f"{key}/attempt-{attempt}", previous, immutable=True)
+                delay = self._retry_delay(previous, attempt)
+                self.store.event("llm_retry_scheduled", {"role": role, "key": key,
+                    "attempt": attempt + 1, "delay_seconds": delay,
+                    "http_status": previous.get("http_status"), "error_type": previous.get("error_type")})
+                time.sleep(delay)
+            else:
+                attempt = 0
+            try:
+                return self._attempt(key, attempt + 1, role, context, endpoint, payload)
+            except LLMError:
+                previous = self.store.get("llm", key)
+                if not self._retryable(previous):
+                    raise
+
+    @staticmethod
+    def _retryable(record: dict) -> bool:
+        return (record.get("http_status") in {408, 429, 500, 502, 503, 504}
+                or record.get("error_type") in {"ConnectTimeout", "ReadTimeout", "WriteTimeout",
+                    "PoolTimeout", "ConnectError", "ReadError", "WriteError", "RemoteProtocolError"})
+
+    @staticmethod
+    def _retry_delay(record: dict, attempt: int) -> float:
+        delay = min(30.0, 2 ** attempt) + random.uniform(0, 1)
+        retry_after = record.get("response_headers", {}).get("retry-after")
+        if retry_after:
+            try:
+                seconds = float(retry_after)
+            except ValueError:
+                try:
+                    seconds = parsedate_to_datetime(retry_after).timestamp() - time.time()
+                except (ValueError, TypeError, OverflowError):
+                    seconds = 0
+            delay = max(delay, min(60.0, max(0.0, seconds)))
+        return delay
+
+    def _attempt(self, key: str, attempt: int, role: str, context: dict,
+                 endpoint: str, payload: dict) -> dict:
+        attempt_key = f"{key}/attempt-{attempt}"
+        charge_key = key if attempt == 1 else attempt_key
+        self.store.reserve(charge_key, "llm_calls", 1, payload)
+        self.store.settle(charge_key)
+        from proteinrsi.audit import redact
+        started = time.time()
+        audit = {"attempt": attempt, "request_key": key, "state": "started", "role": role, "model": self.model,
+            "api_protocol": self.api_protocol, "base_url": self.base_url,
+            "request": redact(payload, (self.api_key,)), "started_at": started,
+            "round": context.get("view", {}).get("round_index"),
+            "provider_reasoning_summary": [], "reasoning_note": "Only explicitly returned summaries are recorded; no hidden thoughts inferred."}
+        self.store.put("llm", key, audit)
+        self.store.event("llm_started", {"role": role, "key": key, "model": self.model,
+                                         "round": audit["round"], "attempt": attempt, "attempt_key": attempt_key})
+        content, body, response = None, None, None
         try:
             with httpx.Client(timeout=self.timeout, transport=self.transport,
                               follow_redirects=False, trust_env=False) as client:
                 response = client.post(self.base_url + endpoint, json=payload,
                                        headers={"Authorization": "Bearer " + self.api_key})
+                audit["http_status"] = response.status_code
+                audit["response_headers"] = redact({name: response.headers[name][:1024]
+                    for name in ("x-request-id", "request-id", "cf-ray", "retry-after", "date", "server")
+                    if name in response.headers}, (self.api_key,))
+                if response.is_error:
+                    audit["error_response"] = redact(response.text, (self.api_key,))[:8000]
                 response.raise_for_status()
                 body = response.json()
             if self.api_protocol == "responses":
@@ -111,6 +184,10 @@ class JSONLLM:
                     raise ValueError("Responses API did not complete successfully")
                 parts = []
                 for item in body["output"]:
+                    if item.get("type") == "reasoning":
+                        audit["provider_reasoning_summary"].extend(
+                            part["text"] for part in item.get("summary", [])
+                            if part.get("type") == "summary_text" and isinstance(part.get("text"), str))
                     if item.get("type") != "message" or item.get("role") != "assistant":
                         continue
                     for part in item.get("content", []):
@@ -125,10 +202,21 @@ class JSONLLM:
             if not isinstance(result, dict):
                 raise ValueError("Expected a JSON object")
         except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
-            self.store.put("llm", key, {"state": "failed", "error_type": type(exc).__name__})
-            self.store.event("llm_failed", {"role": role, "key": key, "error_type": type(exc).__name__})
+            audit.update(state="failed", error_type=type(exc).__name__, ended_at=time.time(),
+                         raw_output=content, duration_seconds=time.time()-started)
+            if isinstance(body, dict):
+                audit["usage"] = body.get("usage", {})
+            audit = redact(audit, (self.api_key,))
+            self.store.put("llm_attempts", attempt_key, audit, immutable=True)
+            self.store.put("llm", key, audit)
+            self.store.event("llm_failed", {"role": role, "key": key, "error_type": type(exc).__name__,
+                "http_status": audit.get("http_status"), "attempt": attempt, "attempt_key": attempt_key})
             raise LLMError(f"Provider call failed ({type(exc).__name__}); no silent mock fallback") from None
-        self.store.put("llm", key, {"state": "done", "result": result, "usage": body.get("usage", {})})
+        audit.update(state="done", result=result, raw_output=content, usage=body.get("usage", {}),
+                     ended_at=time.time(), duration_seconds=time.time()-started)
+        audit = redact(audit, (self.api_key,))
+        self.store.put("llm_attempts", attempt_key, audit, immutable=True)
+        self.store.put("llm", key, audit)
         self.store.event("llm_completed", {"role": role, "key": key, "model": self.model,
-                                          "usage": body.get("usage", {})})
+                                          "usage": body.get("usage", {}), "attempt": attempt, "attempt_key": attempt_key})
         return result

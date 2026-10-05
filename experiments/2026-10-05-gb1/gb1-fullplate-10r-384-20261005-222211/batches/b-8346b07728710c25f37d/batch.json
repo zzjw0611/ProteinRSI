@@ -1,0 +1,5387 @@
+{
+  "batch_id": "b-8346b07728710c25f37d",
+  "campaign_id": "c3a202a3-a197-4596-b9b2-31eacced4e23",
+  "evidence_version": "bc09dba10567451fade6854d1aed3dfb2ea071e53f7d392d5c8bf51ad5da61d3",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "patch_id": null,
+  "phase": "research",
+  "round_index": 0,
+  "samples": [
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-000",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVAGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-001",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-002",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-003",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-004",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVCGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-005",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDCEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-006",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-007",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-008",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVEGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-009",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDDEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-010",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-011",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-012",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-013",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDEEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-014",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-015",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-016",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVGGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-017",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDFEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-018",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-019",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-020",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-021",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDHEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-022",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-023",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-024",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVIGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-025",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDIEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-026",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-027",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-028",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVKGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-029",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDKEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-030",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-031",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-032",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-033",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDLEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-034",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-035",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-036",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVMGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-037",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDMEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-038",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-039",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-040",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVNGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-041",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDNEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-042",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-043",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-044",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVPGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-045",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDPEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-046",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-047",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-048",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVQGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-049",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDQEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-050",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-051",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-052",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVRGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-053",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDREWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-054",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-055",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-056",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVSGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-057",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDSEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-058",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-059",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-060",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVTGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-061",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDTEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-062",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-063",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-064",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVVGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-065",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDVEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-066",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-067",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-068",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-069",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDWEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-070",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-071",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYDGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-072",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-073",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDYEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-074",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-075",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGAAGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-076",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGACGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-077",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADAEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-078",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADCEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-079",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADGEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-080",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADGEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-081",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVAAEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-082",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVACEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-083",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVAGEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-084",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVAGEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-085",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-086",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDAEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-087",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCCGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-088",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCEGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-089",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCDCEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-090",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCDDEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-091",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCDGEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-092",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCDGEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-093",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVCCEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-094",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVCDEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-095",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVCGEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-096",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVCGEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-097",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDCEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-098",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDCEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-099",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDEGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-100",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDFGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-101",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDDDEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-102",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDDEEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-103",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDDGEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-104",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDDGEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-105",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVEDEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-106",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVEEEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-107",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVEGEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-108",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVEGEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-109",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDDEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-110",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDDEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-111",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEFGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-112",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEGGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-113",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEDEEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-114",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEDFEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-115",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEDGEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-116",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEDGEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-117",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFEEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-118",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFFEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-119",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFGEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-120",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFGEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-121",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDEEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-122",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDEEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-123",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFGGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-124",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFHGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-125",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDFEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-126",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDHEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-127",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDGEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-128",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDGEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-129",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVGFEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-130",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVGHEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-131",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVGGEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-132",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVGGEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-133",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDFEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-134",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDFEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-135",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGHGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-136",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGIGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-137",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGDHEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-138",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGDIEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-139",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGDGEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-140",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGDGEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-141",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHHEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-142",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHIEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-143",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHGEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-144",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHGEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-145",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDHEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-146",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDHEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-147",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHIGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-148",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHKGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-149",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHDIEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-150",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHDKEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-151",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHDGEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-152",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHDGEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-153",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVIIEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-154",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVIKEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-155",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVIGEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-156",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVIGEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-157",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDIEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-158",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDIEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-159",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIKGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-160",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGILGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-161",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDKEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-162",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDLEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-163",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDGEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-164",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDGEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-165",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVKKEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-166",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVKLEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-167",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVKGEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-168",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVKGEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-169",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDKEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-170",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDKEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-171",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKLGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-172",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKMGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-173",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKDLEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-174",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKDMEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-175",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKDGEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-176",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKDGEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-177",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLLEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-178",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLMEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-179",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLGEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-180",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLGEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-181",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDLEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-182",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDLEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-183",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLMGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-184",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLNGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-185",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDMEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-186",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDNEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-187",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDGEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-188",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDGEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-189",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVMMEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-190",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVMNEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-191",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVMGEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-192",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVMGEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-193",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDMEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-194",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDMEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-195",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMNGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-196",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMPGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-197",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMDNEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-198",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMDPEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-199",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMDGEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-200",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMDGEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-201",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVNNEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-202",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVNPEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-203",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVNGEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-204",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVNGEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-205",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDNEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-206",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDNEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-207",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNPGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-208",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNQGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-209",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNDPEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-210",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNDQEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-211",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNDGEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-212",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNDGEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-213",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVPPEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-214",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVPQEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-215",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVPGEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-216",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVPGEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-217",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDPEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-218",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDPEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-219",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPQGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-220",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPRGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-221",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPDQEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-222",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPDREWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-223",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPDGEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-224",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPDGEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-225",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVQQEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-226",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVQREWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-227",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVQGEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-228",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVQGEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-229",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDQEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-230",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDQEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-231",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQRGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-232",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQSGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-233",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQDREWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-234",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQDSEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-235",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQDGEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-236",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQDGEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-237",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVRREWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-238",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVRSEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-239",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVRGEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-240",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVRGEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-241",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDREWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-242",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDREWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-243",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRSGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-244",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRTGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-245",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRDSEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-246",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRDTEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-247",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRDGEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-248",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRDGEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-249",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVSSEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-250",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVSTEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-251",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVSGEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-252",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVSGEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-253",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDSEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-254",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDSEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-255",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSTGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-256",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSVGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-257",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSDTEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-258",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSDVEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-259",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSDGEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-260",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSDGEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-261",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVTTEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-262",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVTVEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-263",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVTGEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-264",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVTGEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-265",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDTEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-266",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDTEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-267",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTVGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-268",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTWGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-269",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDVEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-270",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDWEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-271",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDGEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-272",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTDGEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-273",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVVVEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-274",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVVWEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-275",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVVGEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-276",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVVGEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-277",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDVEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-278",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDVEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-279",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWWGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-280",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWYGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-281",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWDWEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-282",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWDYEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-283",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWDGEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-284",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWDGEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-285",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWWEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-286",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWYEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-287",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-288",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-289",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDWEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-290",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDWEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-291",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYYGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-292",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYAGEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-293",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYDYEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-294",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYDAEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-295",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYDGEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-296",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYDGEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-297",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYYEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-298",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYAEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-299",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYGEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-300",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVYGEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-301",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDYEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-302",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDYEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-303",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGACDEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-304",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGACGEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-305",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGADCEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-306",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVACEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-307",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCFHEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-308",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCFGEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-309",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCDEEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-310",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVCEEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-311",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDHLEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-312",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDHGEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-313",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDDHEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-314",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVEHEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-315",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEKPEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-316",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEKGEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-317",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEDKEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-318",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVFKEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-319",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFMSEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-320",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFMGEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-321",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFDMEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-322",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVGMEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-323",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGPWEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-324",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGPGEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-325",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGDPEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-326",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVHPEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-327",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHRCEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-328",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHRGEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-329",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHDREWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-330",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVIREWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-331",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGITFEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-332",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGITGEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-333",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIDTEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-334",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVKTEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-335",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKWKEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-336",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKWGEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-337",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKDWEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-338",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVLWEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-339",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLANEWTYDDATKTFTVTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-340",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLAGEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-341",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLDAEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-342",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVMAEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-343",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGAAAEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-344",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCCDEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-345",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDEFEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-346",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEFIEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-347",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFGLEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-348",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGHNEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-349",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHIQEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-350",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGIKSEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-351",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKLVEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-352",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLMYEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-353",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMNCEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-354",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNPEEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-355",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPQHEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-356",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQRKEWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-357",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRSMEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-358",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSTPEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-359",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTVREWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-360",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWWTEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-361",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYYWEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-362",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGACEEWTYDDATKTFTGTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-363",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCEHEWTYDDATKTFTKTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-364",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGDFKEWTYDDATKTFTNTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-365",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGEGMEWTYDDATKTFTRTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-366",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFHPEWTYDDATKTFTWTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-367",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGGIREWTYDDATKTFTCTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-368",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGHKTEWTYDDATKTFTFTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-369",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGILWEWTYDDATKTFTITE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-370",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGKMAEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-371",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGLNDEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-372",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGMPFEWTYDDATKTFTTTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-373",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGNQIEWTYDDATKTFTATE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-374",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGPRLEWTYDDATKTFTETE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-375",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGQSNEWTYDDATKTFTHTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-376",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGRTQEWTYDDATKTFTLTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-377",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGSVSEWTYDDATKTFTPTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-378",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGTWVEWTYDDATKTFTSTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-379",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGWYYEWTYDDATKTFTYTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-380",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGYACEWTYDDATKTFTDTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-381",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGAEIEWTYDDATKTFTMTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-382",
+      "workflow_version": "w-065f689c980923d5"
+    },
+    {
+      "arm": "baseline",
+      "candidate": {
+        "evidence_kind": "none",
+        "predicted_value": null,
+        "rationale": "",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGCFLEWTYDDATKTFTQTE",
+        "source": "llm_edits",
+        "uncertainty": null
+      },
+      "replicate": 1,
+      "sample_id": "b-8346b07728710c25f37d-383",
+      "workflow_version": "w-065f689c980923d5"
+    }
+  ]
+}

@@ -1,0 +1,69 @@
+{
+  "name": "gb1-open-10r-384-20261005-165119",
+  "completed_rounds": 7,
+  "state_status": "ready",
+  "process_status": "stopped",
+  "committed": {
+    "experimental_wells": 165,
+    "llm_calls": 119,
+    "tool_calls": 24
+  },
+  "provided_initial_observations": 1,
+  "valid_query_measurements": 164,
+  "unavailable_queries": 1,
+  "best_measured": {
+    "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+    "batch_id": "b-8edbf0897b571ffd70e1",
+    "metric": "reported_assay_fitness",
+    "qc": "valid",
+    "sample_id": "b-8edbf0897b571ffd70e1-000",
+    "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWAEWTYDDATKTFTATE",
+    "source": "measured_replay",
+    "unit": "source_assay_units",
+    "value": 6.123804795
+  },
+  "round_batches": [
+    {
+      "round": 4,
+      "submitted_wells": 4,
+      "batch_id": "b-390f014cb9b978fcc8b4"
+    },
+    {
+      "round": 7,
+      "submitted_wells": 15,
+      "batch_id": "b-4ce5021958e1f3913ed0"
+    },
+    {
+      "round": 2,
+      "submitted_wells": 8,
+      "batch_id": "b-8348e9f430cfe16a91f7"
+    },
+    {
+      "round": 1,
+      "submitted_wells": 128,
+      "batch_id": "b-8ca94c6596318517972e"
+    },
+    {
+      "round": 3,
+      "submitted_wells": 4,
+      "batch_id": "b-8edbf0897b571ffd70e1"
+    },
+    {
+      "round": 6,
+      "submitted_wells": 3,
+      "batch_id": "b-96e17359ce6ddb06f7d2"
+    },
+    {
+      "round": 5,
+      "submitted_wells": 3,
+      "batch_id": "b-9da73c9ae4f2e32755b1"
+    }
+  ],
+  "last_event": {
+    "kind": "run_failed",
+    "payload": {
+      "error_type": "RuntimeError"
+    }
+  },
+  "archive_note": "summary.json is derived from current database; report.json is a historical snapshot and may be stale."
+}

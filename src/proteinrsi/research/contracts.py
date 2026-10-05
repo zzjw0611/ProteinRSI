@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from typing import Literal
 from pydantic import Field, model_validator
-from proteinrsi.contracts import Model
+from proteinrsi.contracts import DecisionNotes, Model
 from proteinrsi.tools import ToolCall
 
 
 class ResearchConfig(Model):
     enabled: bool = True
+    enable_generated_code: bool = False
     resource_selection: Literal["rules", "llm", "all"] = "rules"
     max_resources: int = Field(default=24, ge=4, le=64)
     max_context_chars: int = Field(default=16000, ge=2000, le=100000)
@@ -41,6 +42,7 @@ class ResearchStep(Model):
 
 
 class ResearchPlan(Model):
+    decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     hypothesis: str = Field(min_length=1, max_length=4000)
     steps: list[ResearchStep] = Field(min_length=1, max_length=24)
 
@@ -57,6 +59,7 @@ class ResearchPlan(Model):
 
 
 class PlanRevision(Model):
+    decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     rationale: str = Field(min_length=1, max_length=3000)
     pending_steps: list[ResearchStep] | None = Field(default=None, max_length=24)
 

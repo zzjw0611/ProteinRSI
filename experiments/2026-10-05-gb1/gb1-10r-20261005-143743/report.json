@@ -1,0 +1,301 @@
+{
+  "objective": "使用GB1历史实测景观，最多10轮，共240个新查询，每轮最多24个，寻找原始实测fitness尽可能高的变体。使用数据集核验的完整母本及已有母本实测fitness作为免费初始证据；只修改第39、40、41、54位，其余位置保持不变。使用原始reported_assay_fitness及其数据集单位和实验协议，不重新归一化。所有蛋白设计工具和Python分析代码均可选，由Agent根据证据决定。允许提出并验证工作流和M自身策略修改，验证查询计入共同预算，不要求每轮修改。最终报告最好已测候选、逐轮表现、实际成本及轨迹。",
+  "best_variant": {
+    "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTVTE",
+    "mutations": [
+      "V39F",
+      "D40R",
+      "G41F"
+    ],
+    "value": 2.169023707,
+    "sample_id": "b-bfdceb5ba310095f4493-016",
+    "batch_id": "b-bfdceb5ba310095f4493",
+    "source": "measured_replay"
+  },
+  "round_progress": [
+    {
+      "round": 1,
+      "phase": "research",
+      "batch_id": "b-bfdceb5ba310095f4493",
+      "batch_queries": 24,
+      "cumulative_campaign_queries": 24,
+      "unique_variants": 25,
+      "best_measured_value": 2.169023707,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTVTE"
+    },
+    {
+      "round": 2,
+      "phase": "research",
+      "batch_id": "b-8dd1d4789129b6898874",
+      "batch_queries": 24,
+      "cumulative_campaign_queries": 48,
+      "unique_variants": 49,
+      "best_measured_value": 2.169023707,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTVTE"
+    },
+    {
+      "round": 3,
+      "phase": "research",
+      "batch_id": "b-808d228715151969f6ac",
+      "batch_queries": 24,
+      "cumulative_campaign_queries": 72,
+      "unique_variants": 73,
+      "best_measured_value": 2.169023707,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTVTE"
+    },
+    {
+      "round": 4,
+      "phase": "research",
+      "batch_id": "b-5445ce764da04cddba9e",
+      "batch_queries": 24,
+      "cumulative_campaign_queries": 96,
+      "unique_variants": 97,
+      "best_measured_value": 2.169023707,
+      "best_sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFRFEWTYDDATKTFTVTE"
+    }
+  ],
+  "unique_measured_variants": 97,
+  "returned_observations": 96,
+  "provided_initial_observations": 1,
+  "initial_evidence": {
+    "charged_queries": 0,
+    "observations": [
+      {
+        "assay_protocol": "ssmula-zenodo13910506-GB1-original-fitness-v1",
+        "batch_id": "provided-initial-evidence",
+        "metric": "reported_assay_fitness",
+        "qc": "valid",
+        "sample_id": "provided-parent",
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVDGEWTYDDATKTFTVTE",
+        "source": "measured_replay",
+        "unit": "source_assay_units",
+        "value": 1.0
+      }
+    ],
+    "source_ref": "GB1; reported experimental parent; SHA256 7ab39b0918bc933030c711a723ca05b316b2e27e703af26d9c4a91064eafa7bd"
+  },
+  "repeat_queries": 0,
+  "initial_observation_policy": "provided_parent",
+  "candidate_access": "catalogue",
+  "tool_summary": {
+    "completed_by_name": {
+      "research_evidence_summary": 7,
+      "research_prediction_errors": 7,
+      "research_python": 2
+    },
+    "failed_jobs": 0,
+    "generated_code_failures": 0,
+    "requests": [
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "cdca6ce86c918e0a842ed28917870ef3df425073ad4e60597be159660952714d",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "cdca6ce86c918e0a842ed28917870ef3df425073ad4e60597be159660952714d",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "88bcffd299257d886a2c7435d3c86a8228f4496ea0f59952e5ee20f20cdb1166",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "88bcffd299257d886a2c7435d3c86a8228f4496ea0f59952e5ee20f20cdb1166",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "bb959c031a861d3e106c9a8d6806496dece0b09103314e6c587d3d34068cc039",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "bb959c031a861d3e106c9a8d6806496dece0b09103314e6c587d3d34068cc039",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "19167ed32cd30bd7e6c775a9dd00b8d66e743b59e625be5c7f9660ec0c2b6af0",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "19167ed32cd30bd7e6c775a9dd00b8d66e743b59e625be5c7f9660ec0c2b6af0",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "525bd14d2a958d639498a2407bbf53d5d42c1eb22955c3fb9e37cdcb051ecdad",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "525bd14d2a958d639498a2407bbf53d5d42c1eb22955c3fb9e37cdcb051ecdad",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "ccef9cb43674b36dc82c38215a8bcf617748253d396dcb206347d7b3db03be5a",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "ccef9cb43674b36dc82c38215a8bcf617748253d396dcb206347d7b3db03be5a",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_python",
+        "purpose": "从当前可见目录重新计算容量及共同配额，按原获取规则生成完整冻结成员表，并由同一成员表生成和检查交替ranking；不产生实验测量。",
+        "context": "ccef9cb43674b36dc82c38215a8bcf617748253d396dcb206347d7b3db03be5a",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_python",
+        "purpose": "针对已发生的候选输出错误，程序化生成两组及最终顺序，并核验实际输出的身份、唯一性、未测状态和深度匹配。",
+        "context": "ccef9cb43674b36dc82c38215a8bcf617748253d396dcb206347d7b3db03be5a",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "dcbd8429f36bdecaf232c6fd9b36f229f68a0574423a6291e9df1af702b7407e",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "dcbd8429f36bdecaf232c6fd9b36f229f68a0574423a6291e9df1af702b7407e",
+        "cache_hit": false
+      },
+      {
+        "tool": "research_evidence_summary",
+        "purpose": "",
+        "context": "dcbd8429f36bdecaf232c6fd9b36f229f68a0574423a6291e9df1af702b7407e",
+        "cache_hit": true
+      },
+      {
+        "tool": "research_prediction_errors",
+        "purpose": "",
+        "context": "dcbd8429f36bdecaf232c6fd9b36f229f68a0574423a6291e9df1af702b7407e",
+        "cache_hit": true
+      }
+    ]
+  },
+  "provider_reported_tokens": {
+    "input_tokens": 2176836,
+    "output_tokens": 112091,
+    "total_tokens": 2288927
+  },
+  "monetary_cost": null,
+  "monetary_cost_note": "Token counts are not prices; no invented currency total.",
+  "prompt_bundle_version": "prompts-f07dfda38c7c82eb",
+  "execution_semantics": "on-demand-v1",
+  "measurement_note": "Historical replay values are not new wet-lab measurements; repeated lookups are not independent repeats.",
+  "campaign_id": "5dd3b2dc-d698-4067-928e-63e09aab96a2",
+  "status": "ready",
+  "completed_rounds": 4,
+  "research_config": {
+    "enable_generated_code": true,
+    "enabled": true,
+    "max_context_chars": 16000,
+    "max_executed_steps": 20,
+    "max_plan_steps": 12,
+    "max_resources": 24,
+    "max_revisions": 2,
+    "resource_selection": "llm",
+    "review_after_step": true
+  },
+  "protein_model": {
+    "batch_size": 1,
+    "device": "cuda",
+    "dtype": "bfloat16",
+    "max_masked_positions": 128,
+    "max_model_inputs": 4096,
+    "max_residues": 2046,
+    "model_id": "biohub/ESMC-600M-hf",
+    "revision": "0fb34e7e5fe1f85d0abaa3d35e2671107c0b458c",
+    "worker_python": "/home/zjw/proteinrsi-tools/envs/esmc600m/bin/python",
+    "worker_timeout_seconds": 1800
+  },
+  "protein_snapshot": null,
+  "evidence_source": "measured_replay",
+  "workflow_version": "w-bb4b36a476d9fc9c",
+  "meta_version": "m-ee85da4fc6c7d8c1",
+  "best_measured_value": 2.169023707,
+  "metric": "reported_assay_fitness",
+  "unit": "source_assay_units",
+  "budget": {
+    "experimental_wells": {
+      "limit": 240,
+      "committed": 96,
+      "reserved": 0
+    },
+    "llm_calls": {
+      "limit": 500,
+      "committed": 74,
+      "reserved": 0
+    },
+    "tool_calls": {
+      "limit": 200,
+      "committed": 16,
+      "reserved": 0
+    },
+    "plm_inputs": {
+      "limit": 4096,
+      "committed": 0,
+      "reserved": 0
+    }
+  },
+  "pending_batch": null,
+  "pending_workflow_patch": {
+    "author_backend": "unknown",
+    "base_version": "w-bb4b36a476d9fc9c",
+    "changes": {
+      "principal_prompt": "Select informative candidates within the approved budget. For every batch, maintain one authoritative candidate member table containing exact full sequences or explicit 1-based edits, catalogue indices, final rank, and any prespecified group labels and depth quotas. Generate the final handoff ranking directly from this table; do not independently recreate the candidate list in prose. After any repair, replace the affected table entries, regenerate the complete ranking, and inspect the actual regenerated output. Recompute sequence identity, catalogue eligibility, fixed-residue preservation, mutation counts, uniqueness, unmeasured status, permissions, budget, and any prespecified equal-group and mutation-depth constraints from the actual handoff sequences. Compare the ordered sequence identities and group labels in the handoff with the authoritative table. A repair explanation or complete status is not evidence that the output changed. If a check fails, repair the table under the frozen acquisition rules and regenerate the output before handoff; do not silently relax constraints. Return the actual member table and a concise check record, recording hashes only when actually computed. Use research_python only when a deterministic computation is needed to resolve these checks, and inspect its returned status, output and errors. Preserve candidate acquisition rules, task metrics, query and compute caps, tool permissions, repeat policy, and independent controller gates."
+    },
+    "evidence_refs": [
+      "view.history[3].research_traces[0].revisions[0]",
+      "view.history[3].research_traces[0].revisions[1]",
+      "view.history[3].research_traces[0].plan.steps",
+      "view.observations[96]",
+      "view.history[3].analyst_feedback",
+      "view.remaining_wells"
+    ],
+    "hypothesis": "从唯一成员表直接生成交接ranking，并在每次修复后检查实际生成的序列与组标签，将减少第四轮所见的“理由声明修复但候选未改变”问题。下一次独立验证中，预期交接ranking与成员表完全一致，且满足所有预定组规模及深度配额；若修复后仍输出被排除成员、成员表与ranking不一致或深度配额不匹配，则该执行假设未获支持。预期收益是减少无效纠错循环并保留可追溯的策略比较；不预测fitness提升。代价是成员表记录和确定性检查所需的输出及计算开销，严格执行配额也可能使目录容量不足时批次缩小。执行诊断不能替代固定控制器的独立推广判定。",
+    "target": "workflow",
+    "task_kind": "variant_design"
+  },
+  "pending_meta_patch": null,
+  "workflow_trials": {
+    "b-808d228715151969f6ac": {
+      "decision": "inconclusive",
+      "effect": 0.017505035166666665,
+      "interval": [
+        -0.007879345183333324,
+        0.05917550263958334
+      ],
+      "n_baseline": 12,
+      "n_challenger": 12,
+      "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+    }
+  },
+  "meta_evaluations": {},
+  "execution_mode": "experimental",
+  "computational_iterations": {},
+  "final_computational_candidates": []
+}

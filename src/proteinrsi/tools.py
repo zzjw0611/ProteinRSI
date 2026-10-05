@@ -81,23 +81,26 @@ class ToolGateway:
         key = "tool-" + digest(payload)
         previous = self.store.get("tool_jobs", key)
         self.store.event("tool_requested", {"tool": call.name, "purpose": call.purpose,
-            "context": context_key, "cache_hit": bool(previous and previous.get("state")=="done")})
+            "context": context_key, "key": key, "arguments": call.arguments,
+            "cache_hit": bool(previous and previous.get("state")=="done")})
         if previous:
             if previous["state"] != "done":
                 raise RuntimeError("Uncertain/failed prior tool job; reconcile rather than resubmit blindly")
             return previous["result"]
         self.store.reserve(key, "tool_calls", 1, payload)
         self.store.settle(key)
-        self.store.put("tool_jobs", key, {"state": "started", "spec": spec.model_dump(mode="json")})
+        record = {"state": "started", "spec": spec.model_dump(mode="json"),
+                  "call": call.model_dump(), "context": context_key}
+        self.store.put("tool_jobs", key, record)
         try:
             result = executor(call.arguments)
             if not isinstance(result, dict):
                 raise ValueError("Tool result must be an object")
             Draft202012Validator(spec.output_schema).validate(result)
             # JSON serialization also rejects NaN/Infinity before persistence.
-            self.store.put("tool_jobs", key, {"state": "done", "result": result})
+            self.store.put("tool_jobs", key, {**record, "state": "done", "result": result})
         except Exception as exc:
-            self.store.put("tool_jobs", key, {"state": "failed", "error_type": type(exc).__name__})
+            self.store.put("tool_jobs", key, {**record, "state": "failed", "error_type": type(exc).__name__})
             self.store.event("tool_failed", {"key": key, "tool": call.name, "error_type": type(exc).__name__})
             raise
         self.store.event("tool_completed", {"key": key, "tool": call.name,

@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Linux-only fail-closed research sandbox. Not intended to execute arbitrary user code.
+"""Linux-only fail-closed research sandbox with a stricter generated-code profile.
 
 Landlock limits filesystem reads/writes; seccomp denies networking, process-memory
 inspection and privilege changes. RPC is the only path to LLM and protein tools.
@@ -27,17 +27,24 @@ class PathRule(ctypes.Structure):
     _fields_ = [("allowed_access", ctypes.c_uint64), ("parent_fd", ctypes.c_int32)]
 
 
+class ArgCompare(ctypes.Structure):
+    _fields_ = [("arg", ctypes.c_uint), ("op", ctypes.c_uint),
+               ("datum_a", ctypes.c_uint64), ("datum_b", ctypes.c_uint64)]
+
+
 def probe():
     if sys.platform != "linux" or platform.machine() not in ("x86_64", "aarch64"):
         return {"available": False, "reason": "Linux x86_64/aarch64 required"}
     libc = ctypes.CDLL(None, use_errno=True)
     abi = libc.syscall(444, 0, 0, 1)
     seccomp = ctypes.util.find_library("seccomp")
-    return {"available": abi >= 3 and bool(seccomp), "landlock_abi": abi,
-            "libseccomp": bool(seccomp), "reason": "Requires Landlock ABI>=3 and libseccomp; no silent downgrade"}
+    return {"available": abi >= 1 and bool(seccomp), "landlock_abi": abi,
+            "libseccomp": bool(seccomp),
+            "profile": "landlock-read-write+seccomp-no-truncate-rename-metadata",
+            "reason": "Requires Landlock ABI>=1 and libseccomp; missing primitives fail closed"}
 
 
-def restrict(read_roots, work):
+def restrict(read_roots, work, *, generated_code=False):
     state = probe()
     if not state["available"]:
         raise SandboxUnavailable(state["reason"])
@@ -51,9 +58,17 @@ def restrict(read_roots, work):
     sec.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
     sec.seccomp_syscall_resolve_name.restype = ctypes.c_int
     sec.seccomp_rule_add.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint]
+    sec.seccomp_rule_add_array.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int,
+                                         ctypes.c_uint, ctypes.POINTER(ArgCompare)]
     sec.seccomp_load.argtypes = [ctypes.c_void_p]
     sec.seccomp_release.argtypes = [ctypes.c_void_p]
-    handled = (1 << 15) - 1  # filesystem rights through TRUNCATE (ABI 3)
+    # ABI 1 already restricts reads/writes. Newer REFER/TRUNCATE rights are only
+    # requested when supported; those syscalls are denied independently below.
+    handled = (1 << 13) - 1
+    if state["landlock_abi"] >= 2:
+        handled |= 1 << 13
+    if state["landlock_abi"] >= 3:
+        handled |= 1 << 14
     if state["landlock_abi"] >= 5:
         handled |= 1 << 15  # device ioctl
     fd = libc.syscall(444, ctypes.byref(Ruleset(handled)), ctypes.sizeof(Ruleset), 0)
@@ -78,7 +93,7 @@ def restrict(read_roots, work):
                 os.close(path_fd)
         for root in read_roots:
             allow(root)
-        allow(work, writable=True)
+        allow(work, writable=not generated_code)
         allow("/dev/null", writable=True)
         if libc.prctl(38, 1, 0, 0, 0) != 0 or libc.syscall(446, fd, 0) != 0:
             raise SandboxUnavailable("Cannot enforce Landlock")
@@ -93,11 +108,29 @@ def restrict(read_roots, work):
             "io_uring_setup", "io_uring_enter", "io_uring_register", "bpf", "perf_event_open",
             "mount", "umount2", "unshare", "setns", "open_by_handle_at", "name_to_handle_at",
             "execve", "execveat", "fork", "vfork", "kill", "tkill", "tgkill",
-            "keyctl", "add_key", "request_key"]
+            "keyctl", "add_key", "request_key",
+            # Older Landlock does not mediate these operations sufficiently. They
+            # are unnecessary in a worker whose scientific outputs travel by RPC.
+            "truncate", "ftruncate", "truncate64", "ftruncate64", "creat", "openat2",
+            "rename", "renameat", "renameat2", "link", "linkat", "ioctl",
+            # Landlock does not restrict all metadata changes, even on newer ABIs.
+            "chmod", "fchmod", "fchmodat", "fchmodat2", "chown", "fchown", "lchown",
+            "fchownat", "utime", "utimes", "futimesat", "utimensat",
+            "setxattr", "lsetxattr", "fsetxattr", "removexattr", "lremovexattr", "fremovexattr"]
+        if generated_code:
+            blocked += ["clone", "clone3", "prlimit64", "setrlimit"]
         for name in blocked:
             nr = sec.seccomp_syscall_resolve_name(name.encode())
             if nr >= 0 and sec.seccomp_rule_add(ctx, 0x00050000 | errno.EPERM, nr, 0) != 0:
                 raise SandboxUnavailable("Cannot install seccomp rule")
+        # O_RDONLY|O_TRUNC can truncate without WRITE_FILE on ABI <3. Filter
+        # the flags, not just truncate(2); openat2's indirect flags are denied above.
+        for name, index in (("open", 1), ("openat", 2)):
+            nr = sec.seccomp_syscall_resolve_name(name.encode())
+            condition = ArgCompare(index, 7, os.O_TRUNC, os.O_TRUNC)  # SCMP_CMP_MASKED_EQ
+            if nr >= 0 and sec.seccomp_rule_add_array(ctx, 0x00050000 | errno.EPERM,
+                    nr, 1, ctypes.byref(condition)) != 0:
+                raise SandboxUnavailable("Cannot install O_TRUNC protection")
         if sec.seccomp_load(ctx) != 0:
             raise SandboxUnavailable("Cannot enforce seccomp")
     finally:

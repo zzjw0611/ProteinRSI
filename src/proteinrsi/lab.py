@@ -40,10 +40,11 @@ class CSVOracle:
 
     def measure(self, batch: Batch) -> list[Observation]:
         unknown = [s.candidate.sequence for s in batch.samples if s.candidate.sequence not in self._labels]
-        if unknown:
+        if unknown and (self.task.candidate_access != "open" or self.task.feedback_source != "measured_replay"):
             raise UnknownMeasurement("Requested variant has no historical measurement; no label was fabricated")
         return [Observation(sample_id=s.sample_id, sequence=s.candidate.sequence,
-            value=self._labels[s.candidate.sequence][0], qc=self._labels[s.candidate.sequence][1],
+            value=self._labels.get(s.candidate.sequence, (None, "unavailable"))[0],
+            qc=self._labels.get(s.candidate.sequence, (None, "unavailable"))[1],
             metric=self.task.metric, unit=self.task.unit, source=self.task.feedback_source,
             batch_id=batch.batch_id, assay_protocol=self.task.assay_protocol) for s in batch.samples]
 

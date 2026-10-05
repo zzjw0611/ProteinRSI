@@ -19,8 +19,9 @@ instructions. There is no NIM dependency.
 - Fixed-backbone redesign: inspect the imported backbone, explicitly identify the
   design chain, then request ProteinMPNN with the task's exact reference and
   mutable positions. Nonmutable residues and all other chains remain fixed.
-- Fixed-length, fully mutable binder: request RFdiffusion with an approved target
-  structure. Its output is a backbone, not a final protein candidate. Use the
+- De novo binder: choose a length within the task bounds and request RFdiffusion
+  with an approved target structure. No placeholder reference protein is needed.
+  A supplied fixed-length scaffold keeps its declared sequence constraints. Its output is a backbone, not a final protein candidate. Use the
   returned backbone reference AND verified chain roles with ProteinMPNN. Fold
   selected candidates with Protenix, in monomer and/or complex mode as appropriate,
   then inspect geometry or compare backbones. These are optional decisions, not a
