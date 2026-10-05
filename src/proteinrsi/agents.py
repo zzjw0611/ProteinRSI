@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from importlib.resources import files
-from typing import Any
 
 from pydantic import Field
 
@@ -14,18 +13,12 @@ from proteinrsi.prompting import compose, prompt_version
 from proteinrsi.protein.metadata import declared_identity
 from proteinrsi.tasks import apply_mutations, rank_candidates, validate_candidate
 from proteinrsi.tools import ToolCall, ToolGateway
+from proteinrsi.dataflow.design import Design, request_design
 
 
 class Plan(Model):
     rationale: str
     decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
-    tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
-
-
-class Design(Model):
-    decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
-    candidates: list[Candidate] = Field(default_factory=list, max_length=384)
-    edits: list[list[dict[str, Any]]] = Field(default_factory=list, max_length=384)
     tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
 
 
@@ -98,9 +91,7 @@ class DesignerAgent:
             return Design(candidates=[Candidate(sequence=s, source="library") for s in view.task.candidates])
         instructions = compose(self.store, "designer", view.workflow.designer_prompt,
                                skill_text(view.workflow.skill_names))
-        return Design.model_validate(self.llm.complete("B", instructions,
-            {"view": view.model_dump(mode="json"), "plan": plan.model_dump(),
-             "tool_results": tool_results, "available_tools": catalog}, Design.model_json_schema()))
+        return request_design(self.llm, self.store, instructions, view, plan, tool_results, catalog)
 
 
 class AnalystAgent:

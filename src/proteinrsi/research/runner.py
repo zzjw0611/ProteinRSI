@@ -180,6 +180,9 @@ class ResearchRunner:
         raise ValueError("Unknown research operation")
 
     def run(self, view):
+        if self.config.protocol_mode == "typed":
+            from proteinrsi.dataflow.integration import run_campaign_protocol
+            return run_campaign_protocol(self.team, view, self.config)
         gateway = self.team.tools.fork()
         core = register_analysis_tools(gateway, view)
         allowed = list(dict.fromkeys([*view.workflow.tool_names, *core]))

@@ -1,0 +1,37 @@
+{
+  "protocol_version": "resource-protocol-v1",
+  "hypothesis": "对用户提供的候选进行排序，不生成替代序列，也不强制调用蛋白模型。",
+  "steps": [
+    {
+      "step_id": "rank",
+      "operation": "agent:rank",
+      "question": "根据本任务的可见证据比较给定候选。",
+      "bindings": {
+        "candidates": {
+          "source": "input:supplied_candidates",
+          "schema_ref": "protein.sequence_set/v1",
+          "delivery": "ref"
+        }
+      }
+    },
+    {
+      "step_id": "review",
+      "operation": "agent:select",
+      "question": "审核排序依据，不改写候选序列。",
+      "bindings": {
+        "ranking": {
+          "source": "step:rank.result",
+          "schema_ref": "protein.ranking/v1",
+          "delivery": "ref"
+        }
+      }
+    }
+  ],
+  "final_outputs": {
+    "ranking": {
+      "source": "step:review.result",
+      "schema_ref": "protein.ranking/v1",
+      "delivery": "ref"
+    }
+  }
+}

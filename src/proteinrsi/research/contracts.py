@@ -10,6 +10,8 @@ from proteinrsi.tools import ToolCall
 
 class ResearchConfig(Model):
     enabled: bool = True
+    protocol_mode: Literal["legacy", "typed"] = "legacy"
+    max_format_repairs: int = Field(default=2, ge=0, le=3)
     enable_generated_code: bool = False
     resource_selection: Literal["rules", "llm", "all"] = "rules"
     max_resources: int = Field(default=24, ge=4, le=64)

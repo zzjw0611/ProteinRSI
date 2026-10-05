@@ -1,5 +1,17 @@
 # ProteinRSI
 
+## 类型化数据交接增量
+
+**已有候选通过资源ID交接，不再要求LLM重新抄写整批序列。** 设计输出的突变字段使用强类型契约，格式错误有持久化、有界的修复；修复不会重新执行已经成功的模型或Python结果。
+
+新增可选 `protocol_mode=typed`：A基于真实工具Schema生成数据流，各步骤通过类型化引用衔接，排序可以跳过设计，结构结果直接绑定下一工具，固定输入预测可以返回预测资源而非新序列。原生工具接口不能由LLM改写，蛋白工具仍按需调用；任务约束、隐藏标签和实验预算由原控制器管理。
+
+通过新任务的 `--research-config configs/research.protocol.json` 显式启用；原 `start` 默认路径和存量配置不自动改为新协议。默认路径已获得候选交接修复。不要直接重启归档中的失败实验或修改其已发生的费用。
+
+[实现与使用](docs/DATAFLOW.md) · [本次复用与许可](docs/DATAFLOW_REUSE.md) · [专项验证与限制](docs/DATAFLOW_VALIDATION.md)
+
+本层是顺序数据流＋有界后缀修订，不宣称已实现任意嵌套循环、并行GPU调度或通用M协议补丁验收；其验证不等于真实模型或蛋白功能提升。下文和 `CURRENT_ISSUES.md` 保留此前版本的历史说明。
+
 **有限实验预算下的蛋白科研团队：内环推进设计／预测，外环验证工作流修改，再对改进器本身进行独立验收。**
 
 [English](README.en.md) · [研究执行层](docs/RESEARCH_RUNTIME.md) · [代码复用清单](docs/REUSE.md) · [本地工具](docs/LOCAL_TOOLS.md) · [ESMC-600M](docs/ESMC600M.md) · [评测](docs/EVALUATION.md) · [许可](THIRD_PARTY.md)

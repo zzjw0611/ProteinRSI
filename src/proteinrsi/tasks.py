@@ -14,6 +14,8 @@ def apply_mutations(reference: str, edits: Iterable[dict]) -> str:
     result = list(reference)
     seen: set[int] = set()
     for edit in edits:
+        if hasattr(edit, "model_dump"):
+            edit = edit.model_dump(by_alias=True)
         if set(edit) != {"position", "from", "to"}:
             raise ValueError("Each edit needs position, from, to")
         position = edit["position"]

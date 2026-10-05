@@ -27,7 +27,10 @@ def run_computational(campaign, *, guarded=True):
                 validate_candidate(task, candidate)
             results = [{'job_ref': key, 'result': record.get('result'), 'state': record['state']}
                 for key, record in campaign.store.all('tool_jobs').items() if key not in previous_jobs]
-            summary = {'round': state['round_index'], 'kind': 'computational_iteration',
+            protocol_results = [r["protocol_result"] for r in campaign.store.all("research_runs").values()
+                if r.get("runner") == "resource-protocol-v1" and r.get("round") == state["round_index"]
+                and r.get("status") == "complete"]
+            summary = {'protocol_results': protocol_results, 'round': state['round_index'], 'kind': 'computational_iteration',
                 'candidates': [c.model_dump(mode='json') for c in candidates], 'tool_results': results,
                 'charged_experimental_queries': 0, 'experimental_claim': False}
             # Previous computed outputs, errors and candidates become next-round context.

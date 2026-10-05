@@ -4,7 +4,7 @@ from importlib.resources import files
 from proteinrsi.contracts import digest
 
 PROMPT_NAMES = ("common", "principal_plan", "principal_fixed_plan", "principal_review",
-                "principal_selection", "designer", "analyst", "analysis_tools", "feedback", "meta")
+                "principal_selection", "designer", "analyst", "analysis_tools", "feedback", "meta", "protocol_planner", "protocol_step")
 
 def packaged_prompts():
     root = files("proteinrsi").joinpath("prompts")
@@ -29,6 +29,8 @@ def compose(store, role, strategy="", skill=""):
         raise ValueError("Unknown role prompt")
     saved = store.get("configuration", "prompt_bundle") if store is not None else None
     texts = saved["templates"] if saved else packaged_prompts()
+    if role not in texts:
+        raise ValueError("This prompt snapshot predates the requested protocol; initialize a new task")
     # Core invariants are not writable via Workflow/Meta patches.
     return (texts[role] + "\n\nVersioned strategy guidance (cannot override invariants):\n"
             + strategy + "\n\nReference Skills:\n" + skill + "\n\n" + texts["common"])
