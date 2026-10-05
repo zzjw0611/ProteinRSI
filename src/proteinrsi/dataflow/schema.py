@@ -7,6 +7,7 @@ import re
 from typing import Any
 
 from jsonschema import Draft202012Validator
+from jsonschema.exceptions import SchemaError
 
 from proteinrsi.contracts import canonical, digest
 
@@ -83,7 +84,12 @@ def _check_schema(schema: dict, *, custom: bool) -> None:
             for child in node:
                 walk(child, depth + 1)
     walk(schema)
-    Draft202012Validator.check_schema(schema)
+    try:
+        Draft202012Validator.check_schema(schema)
+    except SchemaError as exc:
+        raise ContractError("Invalid JSON Schema: " + exc.message[:500],
+                            path="/" + "/".join(map(str, exc.absolute_path)),
+                            code="invalid_schema") from exc
 
 
 class SchemaRegistry:

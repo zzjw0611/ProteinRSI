@@ -174,6 +174,7 @@ def test_cli_prepare_only_uses_natural_goal_without_queries(tmp_path, gb1_data, 
     assert len(requests) == 1
     report = json.loads((out/"report.json").read_text())
     assert report["completed_rounds"] == 0
+    assert report["research_config"]["protocol_mode"] == "typed"
     saved_task = json.loads((out/"task.json").read_text())
     assert saved_task["candidate_access"] == "open" and saved_task["candidates"] == []
     assert saved_task["batch_fill_policy"] == ("full_plate" if full_plate else "flexible")

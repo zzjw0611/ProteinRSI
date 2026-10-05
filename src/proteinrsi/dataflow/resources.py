@@ -117,7 +117,7 @@ def standard_registry() -> SchemaRegistry:
 def scope_for(view) -> str:
     return digest({"task": view.task.model_dump(mode="json"), "round": view.round_index,
                    "evidence": view.evidence_version, "workflow": view.workflow.version,
-                   "meta": view.meta.version})
+                   "meta": view.meta.version, "request_context": view.research_context})
 
 
 def _preview(value, depth=0):

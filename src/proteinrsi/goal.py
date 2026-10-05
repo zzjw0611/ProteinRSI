@@ -112,7 +112,7 @@ def input_catalog(store, paths):
 
 
 def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), llm_calls=200,
-                          tool_calls=100, llm_factory=None, event_sink=None, continue_from=False, full_plate=False):
+                          tool_calls=100, llm_factory=None, event_sink=None, continue_from=False, full_plate=False, protocol_mode=None):
     if not goal.strip() or len(goal) > 12000 or llm_calls < 1 or tool_calls < 0:
         raise ValueError('Provide a nonempty goal and valid compute limits')
     out = Path(out).resolve()
@@ -129,6 +129,11 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
     if previous:
         full_plate = full_plate or previous.get("full_plate", False)
         goal = previous['goal']+'\n用户补充：'+goal
+    protocol_mode = protocol_mode or (previous.get('protocol_mode', 'legacy') if previous else 'typed')
+    if protocol_mode not in {'typed', 'legacy'}:
+        raise ValueError('Unknown protocol mode')
+    if previous and protocol_mode != previous.get('protocol_mode', 'legacy'):
+        raise ValueError('Cannot change protocol mode during an existing intake')
     local = load_config(str(local_tools)) if local_tools else LocalToolsConfig()
     if previous:
         local = LocalToolsConfig.model_validate(previous['local_tools'])
@@ -227,7 +232,7 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
         except (ValueError, TypeError) as exc:
             questions.append(str(exc))
     if questions:
-        pending = {'full_plate': full_plate, 'goal': goal, 'intent': intent.model_dump(), 'questions': questions,
+        pending = {'protocol_mode': protocol_mode, 'full_plate': full_plate, 'goal': goal, 'intent': intent.model_dump(), 'questions': questions,
             'inputs': entries, 'data_root': str(Path(data_root).resolve()), 'local_tools': local.model_dump(mode='json'),
             'llm_calls': llm_calls, 'tool_calls': tool_calls}
         store.put('intake', 'pending', pending)
@@ -251,7 +256,7 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
     campaign = Campaign.initialize(str(out), task,
         workflow=Workflow(tool_names=list(dict.fromkeys(tool_names)), skill_names=skills, analysis_tool_rounds=3),
         protein_config=local.esmc, local_tools=local,
-        research_config=ResearchConfig(resource_selection='llm', enable_generated_code=True))
+        research_config=ResearchConfig(resource_selection='llm', enable_generated_code=True, protocol_mode=protocol_mode))
     spent = intake.usage()['llm_calls']['committed']
     if spent:
         campaign.store.reserve('goal-intake', 'llm_calls', spent, {'goal': goal})

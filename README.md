@@ -285,3 +285,10 @@ python -m build
 ```
 
 实际执行结果与未运行项见 [TESTING](docs/TESTING.md)；版本变化见 [CHANGELOG](CHANGELOG.md)。本次发行内容不包括用户研究 PDF、私有实验数据、密钥或模型权重。
+
+### 协议启动（2026-10-06）
+
+新建自然语言研究 `proteinrsi start "目标与初始输入"` 默认由 LLM 生成类型化研究协议。
+工具接口从实际注册表读取，结果通过资源 ID 交接，格式和映射错误有界修复。
+整板任务加 `--full-plate`；兼容旧规划方式可加 `--protocol-mode legacy`。
+已有研究保持其保存的配置，不自动恢复或迁移。参见 [数据流与协议](docs/DATAFLOW.md)。

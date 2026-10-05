@@ -203,10 +203,10 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
         resources.registry._input_only = cloned_schemas._input_only
         operations._operations = cloned_ops._operations
 
-    def review(current, completed, refs, run_key):
-        if team.llm is None or not config.review_after_step:
+    def review(current, completed, refs, run_key, failure=None, repair_attempt=0):
+        if team.llm is None or (failure is None and not config.review_after_step):
             return None
-        key = run_key + ":review:" + str(completed)
+        key = run_key + (":repair:" + str(repair_attempt) if failure else ":review:" + str(completed))
         saved = team.store.get(NAMESPACE, key, {"attempts": 0, "errors": []})
         if "decision" in saved:
             raw = saved["decision"]
@@ -221,7 +221,9 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                 "cannot change. New operations require new names. Never invent experiment results.",
                 {"view": context, "protocol": current.model_dump(mode="json"), "completed_steps": completed,
                  "actual_resources": {name: resources.describe(ref) for name, ref in refs.items()},
-                 "validation_errors": saved["errors"], "format_attempt": attempt}, ProtocolReview.model_json_schema())
+                 "validation_errors": saved["errors"], "format_attempt": attempt,
+                 "execution_error": failure.detail() if failure else None,
+                 "operations": operations.catalog(), "schemas": resources.registry.catalog()}, ProtocolReview.model_json_schema())
             try:
                 decision = ProtocolReview.model_validate(raw)
                 revised = decision.replacement
@@ -239,9 +241,18 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                 team.store.put(NAMESPACE, key, saved)
         raise ContractError("Protocol review exhausted its repair budget")
 
-    result = executor.execute(protocol, inputs,
-        validate_final=lambda outputs: profiles.accept(view, resources, outputs),
-        after_step=review, configure=configure, max_revisions=config.max_revisions)
+    team.store.event("research_plan_created", {"runner": "resource-protocol-v1",
+        "round": view.round_index, "protocol": protocol.version, "plan": protocol.model_dump(mode="json")})
+    try:
+        result = executor.execute(protocol, inputs,
+            validate_final=lambda outputs: profiles.accept(view, resources, outputs),
+            after_step=review, configure=configure, max_revisions=config.max_revisions,
+            on_error=review, max_repairs=config.max_format_repairs)
+    except Exception as exc:
+        team.store.event("research_blocked", {"runner": "resource-protocol-v1", "round": view.round_index,
+            "protocol": protocol.version, "error_type": type(exc).__name__,
+            "error": exc.detail() if isinstance(exc, ContractError) else {"code": type(exc).__name__}})
+        raise
     execution = team.store.get(NAMESPACE, result["run_ref"])
     protocol = Protocol.model_validate(execution.get("active_protocol", execution["protocol"]))
     refs = {name: value["resource_id"] for name, value in result["outputs"].items()}
@@ -253,7 +264,7 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
         "evidence_version": view.evidence_version, "workflow_version": view.workflow.version,
         "meta_version": view.meta.version, "plan": protocol.model_dump(mode="json"),
         "resources": selected, "completed": execution["completed"],
-        "revisions": execution["revisions"], "status": "complete",
+        "revisions": execution["revisions"], "repairs": execution.get("repairs", []), "status": "complete",
         "task_contract": asdict(contract), "protocol_result": result,
         "state": {"candidates": [c.model_dump(mode="json") for c in candidates],
                   "ranked": [], "final": [c.model_dump(mode="json") for c in candidates], "tool_results": []}}

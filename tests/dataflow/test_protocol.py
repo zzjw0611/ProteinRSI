@@ -479,3 +479,85 @@ def test_campaign_protocol_repairs_preflight_before_execution(team, view):
     result = run_campaign_protocol(team, view, ResearchConfig(protocol_mode='typed', review_after_step=False))
     assert result[0].sequence[38] == 'A' and team.llm.plans == 2
     assert team.store.usage()['tool_calls']['committed'] == 0
+
+
+@pytest.mark.parametrize('bad_schema', [{'type': 'invalid_type'}, {'required': 'not-an-array'}])
+def test_planning_invalid_json_schema_is_repaired(team, view, bad_schema):
+    from proteinrsi.agents import DesignerAgent
+    class LLM:
+        plans = 0
+        def complete(self, role, instructions, context, schema):
+            if role == 'A-plan':
+                self.plans += 1
+                if self.plans == 2:
+                    assert context['validation_errors']
+                return {'hypothesis': 'Repair the schema before any tools execute',
+                    'schemas': {'custom.example/v1': bad_schema} if self.plans == 1 else {},
+                    'steps': [{'step_id': 'design', 'operation': 'agent:propose', 'question': 'fixture',
+                               'arguments': {'question': 'One legal variant'}}],
+                    'final_outputs': {'candidates': {'source': 'step:design.result', 'schema_ref': SEQUENCES}}}
+            return {'edits': [[{'position': 39, 'from': 'V', 'to': 'A'}]]}
+    team.llm = LLM()
+    team.designer = DesignerAgent(team.llm, team.store)
+    assert run_campaign_protocol(team, view, ResearchConfig(protocol_mode='typed', review_after_step=False))
+    assert team.llm.plans == 2
+    assert team.store.usage()['experimental_wells']['committed'] == 0
+
+
+def test_execution_mapping_is_repaired_without_rerunning_tool(team, view):
+    calls = []
+    sequence = view.task.reference_sequence[:38] + 'A' + view.task.reference_sequence[39:]
+    team.tools.register(ToolSpec(name='fixture_generate', capability='sequence.generate',
+        task_kinds=[view.task.kind], implementation_version='test',
+        input_schema={'type': 'object', 'additionalProperties': False},
+        output_schema={'type': 'object', 'properties': {'candidates': {'type': 'array'}},
+                       'required': ['candidates']}),
+        lambda args: calls.append(args) or {'candidates': [{'sequence': sequence}]})
+    view.workflow.tool_names = ['fixture_generate']
+    class LLM:
+        repairs = 0
+        def complete(self, role, instructions, context, schema):
+            if role == 'A-plan':
+                return {'hypothesis': 'Reuse generated candidates', 'steps': [
+                    {'step_id': 'generate', 'operation': 'tool:fixture_generate', 'question': 'Generate',
+                     'outputs': {'bad': {'schema_ref': SEQUENCES, 'pointer': '/missing'}}}],
+                    'final_outputs': {'candidates': {'source': 'step:generate.bad', 'schema_ref': SEQUENCES}}}
+            assert role == 'A-review' and context['execution_error']['path'] == '/missing'
+            self.repairs += 1
+            revised = copy.deepcopy(context['protocol'])
+            revised['steps'][0]['outputs'] = {}
+            native = next(o['output_schema_ref'] for o in context['operations'] if o['name'] == 'tool:fixture_generate')
+            revised['steps'].append({'step_id': 'normalize', 'operation': 'adapter:normalize_candidates',
+                'question': 'Use actual candidates', 'bindings': {'result': {
+                    'source': 'step:generate.result', 'schema_ref': native}}})
+            revised['final_outputs']['candidates']['source'] = 'step:normalize.result'
+            return {'rationale': 'Repair only the output mapping', 'replacement': revised}
+    team.llm = LLM()
+    config = ResearchConfig(protocol_mode='typed', review_after_step=False)
+    result = run_campaign_protocol(team, view, config)
+    assert result[0].sequence == sequence and len(calls) == 1 and team.llm.repairs == 1
+    assert run_campaign_protocol(team, view, config) == result
+    assert len(calls) == 1 and team.llm.repairs == 1
+    assert team.store.usage()['tool_calls']['committed'] == 1
+
+
+def test_execution_repairs_are_bounded_across_resume(resources, store):
+    calls, repairs = [], []
+    registry = OperationRegistry(resources.registry)
+    schema = resources.registry.register('custom.number/v1', {'type': 'integer'})
+    registry.register(Operation('tool:one', {'type': 'object'}, schema,
+                               lambda args, key: calls.append(key) or 1, 'test'))
+    protocol = Protocol(hypothesis='Invalid output mapping', steps=[{
+        'step_id': 'one', 'operation': 'tool:one', 'question': 'Get a number',
+        'outputs': {'bad': {'schema_ref': schema, 'pointer': '/missing'}}}],
+        final_outputs={'value': {'source': 'step:one.bad', 'schema_ref': schema}})
+    def repair(current, completed, refs, key, failure, attempt):
+        repairs.append(attempt)
+        raw = current.model_dump()
+        raw['steps'][0]['outputs']['bad']['pointer'] = '/missing' + str(attempt)
+        return Protocol.model_validate(raw)
+    executor = ProtocolExecutor(resources, registry)
+    for _ in range(2):
+        with pytest.raises(ContractError):
+            executor.execute(protocol, {}, on_error=repair, max_repairs=2)
+    assert len(calls) == 1 and repairs == [1, 2]

@@ -22,7 +22,7 @@ def sequences():
     return [''.join(x) + 'V' for x in product('ACDEFGHIKLMNPQRSTVWY', repeat=3) if ''.join(x) != 'AAA']
 
 
-def plate_campaign(tmp_path, size=384, rounds=2, research=False):
+def plate_campaign(tmp_path, size=384, rounds=2, research=False, protocol="legacy"):
     task = TaskSpec(name='Artificial full-plate task', candidate_access='open', reference_sequence='AAAV',
         mutable_positions=[1, 2, 3], max_mutations=3, batch_size=size, max_rounds=rounds,
         batch_fill_policy='full_plate', controls_per_batch=0, feedback_source='measured_replay',
@@ -30,16 +30,17 @@ def plate_campaign(tmp_path, size=384, rounds=2, research=False):
         budget=BudgetSpec(experimental_wells=size * rounds))
     return Campaign.initialize(str(tmp_path/'plate'), task, workflow=Workflow(analysis_tool_rounds=0),
         meta=MetaPolicy(enabled=False), gate=GatePolicy(min_per_arm=2, bootstrap_samples=200),
-        research_config=ResearchConfig(review_after_step=False) if research else None)
+        research_config=ResearchConfig(review_after_step=False, protocol_mode=protocol) if research else None)
 
 
 @pytest.mark.parametrize('guarded', [False, True])
-def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded):
+@pytest.mark.parametrize('protocol', ['legacy', 'typed'])
+def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded, protocol):
     if guarded:
         from proteinrsi.replay.sandbox import probe
         if not probe()['available']:
             pytest.skip('Sandbox unavailable')
-    c = plate_campaign(tmp_path, research=True)
+    c = plate_campaign(tmp_path, research=True, protocol=protocol)
     path = tmp_path/'private.csv'
     with path.open('w', newline='') as f:
         writer = csv.writer(f)
@@ -56,7 +57,13 @@ def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded):
         assert view['task']['candidates'] == []
         assert 'proposal_pool_size' not in view['task']
         assert view['capacity']['required_plate_wells'] == 384
-        if '# A — research plan' in instructions:
+        if '# A — resource protocol planner' in instructions:
+            result = {'hypothesis': 'Generate a new panel for the requested plate', 'steps': [
+                {'step_id': 'design', 'operation': 'agent:propose', 'question': 'Generate new candidates',
+                 'arguments': {'question': 'Complete the requested panel'}}],
+                'final_outputs': {'candidates': {'source': 'step:design.result',
+                                                'schema_ref': 'protein.sequence_set/v1'}}}
+        elif '# A — research plan' in instructions:
             result = {'hypothesis': 'Complete the plate with generated designs', 'steps': [
                 {'step_id': op, 'operation': op, 'question': op, 'expected_output': op}
                 for op in ('design', 'rank', 'finalize')]}

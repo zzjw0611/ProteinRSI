@@ -1,3 +1,20 @@
+# 目标机完整验证（2026-10-06）
+
+基于 feat/typed-dataflow-protocols 的 0229a22 完成自然语言 typed 启动、SchemaError 修复、执行映射修复和测试导入修复后：
+
+- 标准命令 `python -m pytest -q`：312 passed, 5 skipped（142.84 秒）。无需 importlib 导入绕过。
+- `python -m ruff check .`、`git diff --check`：通过。
+- `python -m build`：隔离构建成功生成 sdist 和 wheel。当前控制器环境缺少 setuptools，首次 no-isolation 构建失败后改用项目标准隔离构建，没有修改运行环境。
+- 使用目标机隔离运行人工标签两轮整板，每板384；同一板分三次各128条补齐。验证了下一请求不错误复用先前面板、恢复不重复计费。
+- 自然语言非GB1排序任务在隔离 worker 中完成两轮计算闭环，读取上轮资源结果，无强制B设计、蛋白模型或实验查询。
+- 错误 schema、映射修复、工具收据复用和跨恢复修复次数上限通过专项测试。
+
+5 项跳过涉及可选 torch/真实 ESMC 权重、gepa、langgraph、mcp。未调用付费模型、运行实际新 GB1 研究、GPU 推理或湿实验。M 任意协议和代码自修改仍未实现；见 PROTOCOL_MIGRATION_REPORT.md。
+
+下文是收到分支时的原始交付验证记录，保留用于区分测试环境和时间。
+
+---
+
 # 本次增量验证范围
 
 基准提交：`0c6254674455c4c013cd9d56e631ac7bfa8d36e0`。直接修改的六个已有模块均从该提交获取，并核对了Git blob哈希；未取得完整最新仓库，其他测试支持文件部分来自先前交付的v0.5源码。

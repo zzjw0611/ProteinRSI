@@ -44,6 +44,8 @@ def main(argv: list[str] | None = None) -> None:
     start.add_argument("--tool-calls", type=int, default=100)
     start.add_argument("--prepare-only", action="store_true", help="Parse and save the task, without experimental queries")
     start.add_argument("--full-plate", action="store_true", help="Require exactly batch_size wells before each experimental submission")
+    start.add_argument("--protocol-mode", choices=["typed", "legacy"],
+                       help="New studies default to typed protocols; existing intake keeps its saved mode")
     start.add_argument("--quiet", action="store_true", help="Suppress live event summaries")
     trace = sub.add_parser("trace", help="Read the persisted operator trajectory without model calls")
     trace.add_argument("--campaign", required=True)
@@ -136,7 +138,7 @@ def main(argv: list[str] | None = None) -> None:
             prepared = prepare_research_goal(args.goal, out=out, data_root=Path(args.data_root),
                 local_tools=local, llm_calls=args.llm_calls, tool_calls=args.tool_calls,
                 event_sink=None if args.quiet else print_event, inputs=args.input,
-                continue_from=bool(args.continue_from), full_plate=args.full_plate)
+                continue_from=bool(args.continue_from), full_plate=args.full_plate, protocol_mode=args.protocol_mode)
             if prepared['questions']:
                 print(json.dumps({'status': 'needs_clarification', **prepared,
                     'continue': f'proteinrsi start "补充说明" --continue-from {out}'}, ensure_ascii=False, indent=2))
@@ -148,6 +150,7 @@ def main(argv: list[str] | None = None) -> None:
                 "batch_size": task.batch_size, "batch_fill_policy": task.batch_fill_policy, "task_kind": task.kind.value, "route": prepared["route"],
                 "parent_fitness": task.initial_parent_measurement.value if task.initial_parent_measurement else None,
                 "parent_query_cost": 0, "resource_selection": "llm",
+                "protocol_mode": campaign.store.get("configuration", "research")["protocol_mode"],
                 "llm_call_limit": args.llm_calls, "tool_call_limit": args.tool_calls},
                 ensure_ascii=False, indent=2), flush=True)
             if not args.prepare_only:

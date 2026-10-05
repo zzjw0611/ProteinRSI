@@ -6,7 +6,7 @@
 
 **默认设计路径的修复**已经接入 `DesignerAgent.propose()`：突变使用 `MutationEdit`，成功工具结果注册为候选集资源；B 通过 `candidate_refs` 采用结果，不再必须抄写整批序列。合法的旧 JSON 仍能使用；自创的 `position/from/to` 合并字段不被猜测转换，而是反馈结构化错误，最多修复两次。修复次数持久化，重启不重置额度，调用仍经过原 LLM 客户端计费。
 
-**新的通用协议执行器**是显式启用的增量功能，不替换所有存量路径。设置 `ResearchConfig.protocol_mode="typed"` 后，`ResearchRunner` 调用 `dataflow.integration.run_campaign_protocol()`；默认 `legacy` 保留现有研究计划。不要在已完成一板的任务中改配置来悄悄切换语义。
+**新的自然语言任务默认使用通用协议执行器**。`start` 保存 `ResearchConfig.protocol_mode="typed"`，`ResearchRunner` 调用 `dataflow.integration.run_campaign_protocol()`。`start --protocol-mode legacy` 可显式选择旧流程；底层 ResearchConfig 缺省仍为 legacy，以保持已保存配置与 init 的兼容性。已完成一板的旧任务不会被自动迁移。
 
 ```text
 目标 / 任务约定
@@ -31,7 +31,7 @@ proteinrsi init --task /path/to/operator-task.json --out runs/typed-new \
 
 计算任务不需要蛋白模型时，使用 `--protein-model none`，不要传 `--protein-config`。保留原有的模型环境配置和工作流工具白名单；本功能不安装模型、不扩大白名单。
 
-本补丁没有改变自然语言 `start` 的默认执行配置。不能因为新增了协议文件，就宣称 `start` 已自动采用此后端；明确的启用入口是新任务的 `--research-config`。旧入口同样获得设计数据交接修复。
+自然语言 `start` 默认启用 typed，启动摘要显示实际协议模式。`--prepare-only` 只保存任务，不执行研究协议。澄清过程保留第一次选择的模式；旧澄清记录没有协议字段时保留 legacy。已有 init 入口仍可通过 `--research-config` 显式选择 typed，旧路径同样获得设计数据交接修复。
 
 `configs/research.protocol.json` 使用 LLM 资源选择和有界协议规划。`enable_generated_code=true` 仅表示可配置原有沙箱代码功能；调用仍须同时满足工具注册、白名单和系统隔离条件。未请求任何蛋白工具的运行合法，不自动执行 ESMC/Ridge。
 
@@ -90,7 +90,9 @@ LLM可以在 `custom.*` 命名空间定义有界的中间JSON Schema，并创建
 ## 修复和恢复
 
 - 设计格式：同一步的有界 LLM 修复；不会修改母本、固定残基或测量记录。
-- 协议格式/连接：A-plan 有界修复后才能运行；A-review 只能改未执行步骤。
+- 协议格式/连接：无效 JSON Schema 统一转为结构化 ContractError，A-plan 有界修复后才能运行；A-review 只能改未执行步骤。
+- 执行期输入/输出映射错误：反馈给 A-review 修复未完成后缀；成功工具收据保留。修复次数跨恢复累计，不能通过重启重置。完成状态不明的调用仍暂停，不自动重发。
+- 同一轮的整板补齐请求具有独立资源作用域，不会重复返回上一面板的缓存候选。
 - 操作成功后，原始结果先形成独立收据；下游字段映射有误不会删除收据。修复映射后复用结果，不重新运行GPU工具。
 - 失败/不确定完成状态保留且阻塞；不把网络或进程故障冒称格式错误，不盲目重提交。
 - 每一步和最终结果验证失败均记录阻塞状态。LLM和工具费用仍由既有客户端/网关管理。
@@ -102,4 +104,4 @@ LLM可以在 `custom.*` 命名空间定义有界的中间JSON Schema，并创建
 
 M的已有W/M提示与策略验收保留，可影响后续协议规划；**尚未开放任意协议拓扑/Schema/代码的持久M补丁验收**。最终任务指标、约束、预算和实验接口不可由本协议重写。不要把本次数据流升级表述为已证明更强的科学RSI。
 
-真实模型、目标机隔离、多轮湿实验和完整最新上游回归仍需在部署环境验证。局部测试结果及来源界限见 [DATAFLOW_VALIDATION](DATAFLOW_VALIDATION.md)。实际复用说明见 [DATAFLOW_REUSE](DATAFLOW_REUSE.md)。
+真实模型、GPU 和湿实验仍需单独验证；本次部署已验证目标机隔离中的人工回放与计算循环。测试结果及来源界限见 [DATAFLOW_VALIDATION](DATAFLOW_VALIDATION.md)。实际复用说明见 [DATAFLOW_REUSE](DATAFLOW_REUSE.md)。

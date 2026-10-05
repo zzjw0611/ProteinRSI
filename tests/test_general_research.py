@@ -285,3 +285,57 @@ def test_generated_code_has_no_unbounded_scratch_writes(code_campaign):
     output = call_code(code_campaign, "open('unbounded-file', 'x').write('data')\nresult = {}")
     assert output['status'] == 'failed'
     assert output['error_type'] == 'PermissionError'
+
+
+def test_new_goal_runs_typed_ranking_feedback_loop_in_guarded_worker(tmp_path):
+    from proteinrsi.agents import Team
+    from proteinrsi.computational import run_computational
+    from proteinrsi.replay.sandbox import probe
+    if not probe()['available']:
+        pytest.skip('Host isolation unavailable')
+    prepared = prepare_research_goal('对 ACDE 和 AVDE 排序，以 ACDE 为母本，仅第2位变化，计算迭代2轮',
+        out=tmp_path/'typed-ranking', data_root=tmp_path, llm_factory=factory(rank_intent(), []))
+    c = prepared['campaign']
+    assert c.store.get('configuration', 'research')['protocol_mode'] == 'typed'
+    seen = []
+    def respond(request):
+        payload = json.loads(request.content)
+        instructions = payload['messages'][0]['content']
+        ctx = json.loads(payload['messages'][1]['content'])
+        if 'Select resources relevant' in instructions:
+            result = {}
+        elif '# A — resource protocol planner' in instructions:
+            round_index = ctx['view']['round_index']
+            seen.append(round_index)
+            if round_index == 1:
+                assert ctx['view']['history'][0]['protocol_results']
+                assert ctx['view']['observations'] == []
+            result = {'hypothesis': 'Rank supplied candidates without a design stage', 'steps': [
+                {'step_id': 'rank', 'operation': 'agent:rank', 'question': 'Rank visible inputs',
+                 'bindings': {'candidates': {'source': 'input:supplied_candidates',
+                    'schema_ref': 'protein.sequence_set/v1', 'delivery': 'ref'}}}],
+                'final_outputs': {'ranking': {'source': 'step:rank.result',
+                                             'schema_ref': 'protein.ranking/v1'}}}
+        elif 'candidates' in ctx:
+            result = {'ranking': [x['candidate_id'] for x in reversed(ctx['candidates'])],
+                      'summary': 'Artificial preference, no numerical phenotype claim'}
+        else:
+            raise AssertionError('Unexpected design/tool operation: ' + instructions[:80])
+        return httpx.Response(200, json={'choices': [{'message': {'content': json.dumps(result)}}]})
+    c.team = Team(c.store, JSONLLM(c.store, model='fake', base_url='https://example.invalid',
+        api_key='fake', transport=httpx.MockTransport(respond)))
+    report = run_computational(c, guarded=True)
+    assert seen == [0, 1] and report['completed_rounds'] == 2
+    assert report['budget']['experimental_wells']['committed'] == 0
+    assert report['budget']['tool_calls']['committed'] == 0
+    assert c.state['observations'] == []
+    assert all(r['runner'] == 'resource-protocol-v1' for r in c.store.all('research_runs').values())
+
+
+def test_legacy_intake_mode_is_explicit_and_survives_clarification(tmp_path):
+    out = tmp_path/'legacy'
+    prepare_research_goal('比较 ACDE 和 AVDE', out=out, data_root=tmp_path, protocol_mode='legacy',
+        llm_factory=factory({'rationale': 'Need objective', 'questions': ['需要排序吗？']}, []))
+    prepared = prepare_research_goal('以 ACDE 为母本排序2轮，只改第2位，计算反馈', out=out,
+        data_root=tmp_path, continue_from=True, llm_factory=factory(rank_intent(), []))
+    assert prepared['campaign'].store.get('configuration', 'research')['protocol_mode'] == 'legacy'

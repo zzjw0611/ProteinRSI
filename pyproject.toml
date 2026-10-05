@@ -41,6 +41,8 @@ addopts = "-ra"
 markers = ["real_esmc: explicitly downloads and runs official ESMC-600M weights"]
 
 [tool.ruff]
+# Frozen experiment programs use sandbox-injected globals; they are audit data.
+extend-exclude = ["experiments"]
 line-length = 100
 target-version = "py311"
 

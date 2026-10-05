@@ -180,7 +180,7 @@ class ProtocolExecutor:
         return pointer(data, binding.pointer)
 
     def execute(self, protocol: Protocol, inputs: dict[str, str], *, validate_final=None,
-                after_step=None, configure=None, max_revisions=0) -> dict:
+                after_step=None, configure=None, max_revisions=0, on_error=None, max_repairs=0) -> dict:
         check = self.preflight(protocol, inputs)
         refs = {"input:" + name: ref for name, ref in inputs.items()}
         run_key = "protocol-run:" + digest({"scope": self.resources.scope,
@@ -202,20 +202,21 @@ class ProtocolExecutor:
             while index < len(protocol.steps):
                 step = protocol.steps[index]
                 op = self.operations.get(step.operation)
-                args = deepcopy(step.arguments)
-                args.update({name: self._read_binding(binding, refs) for name, binding in step.bindings.items()})
-                self.schemas.validate(self.operations.input_ref(op), args)
-                parents = list(dict.fromkeys(refs[b.source] for b in step.bindings.values()))
-                step_key = "protocol-step:" + digest({"scope": self.resources.scope,
-                    "operation": op.name, "implementation": op.implementation, "arguments": args,
-                    "parents": parents, "output_schema": self.schemas.fingerprint(op.output_schema_ref)})
-                receipt = self.store.get(NAMESPACE, step_key)
-                self.store.event("research_step_started", {"run_id": run_key, "step_id": step.step_id,
-                    "operation": op.name, "question": step.question, "cache_hit": bool(receipt),
-                    "protocol": protocol.version})
-                if receipt is not None and receipt["status"] == "started":
-                    raise ContractError("Prior execution has uncertain completion; reconcile it before retrying")
+                step_key = None
                 try:
+                    args = deepcopy(step.arguments)
+                    args.update({name: self._read_binding(binding, refs) for name, binding in step.bindings.items()})
+                    self.schemas.validate(self.operations.input_ref(op), args)
+                    parents = list(dict.fromkeys(refs[b.source] for b in step.bindings.values()))
+                    step_key = "protocol-step:" + digest({"scope": self.resources.scope,
+                        "operation": op.name, "implementation": op.implementation, "arguments": args,
+                        "parents": parents, "output_schema": self.schemas.fingerprint(op.output_schema_ref)})
+                    receipt = self.store.get(NAMESPACE, step_key)
+                    self.store.event("research_step_started", {"run_id": run_key, "step_id": step.step_id,
+                        "operation": op.name, "question": step.question, "cache_hit": bool(receipt),
+                        "protocol": protocol.version})
+                    if receipt is not None and receipt["status"] == "started":
+                        raise ContractError("Prior execution has uncertain completion; reconcile it before retrying", code="uncertain_completion")
                     if receipt is None:
                         self.store.put(NAMESPACE, step_key, {"status": "started"})
                         raw = op.invoke(args, step_key)
@@ -235,11 +236,38 @@ class ProtocolExecutor:
                             producer="validated-output-view", parents=[receipt["resource_id"]])
                         refs[f"step:{step.step_id}.{name}"] = resource["resource_id"]
                 except Exception as exc:
-                    current = self.store.get(NAMESPACE, step_key)
-                    if current and current.get("status") == "started":
+                    current = self.store.get(NAMESPACE, step_key) if step_key else None
+                    if current and current.get("status") == "started" and not (
+                            isinstance(exc, ContractError) and exc.code == "uncertain_completion"):
                         self.store.put(NAMESPACE, step_key, {"status": "failed", "error_type": type(exc).__name__})
                     journal.update(status="blocked", failed_step=step.step_id, error_type=type(exc).__name__)
                     self.store.put(NAMESPACE, run_key, journal)
+                    if (on_error and isinstance(exc, ContractError) and exc.code != "uncertain_completion"
+                            and journal.get("repair_attempts", 0) < max_repairs):
+                        journal["repair_attempts"] = journal.get("repair_attempts", 0) + 1
+                        self.store.put(NAMESPACE, run_key, journal)
+                        revised = on_error(protocol, index, dict(refs), run_key, exc,
+                                           journal["repair_attempts"])
+                        if revised is not None and revised.version != protocol.version:
+                            if ([s.model_dump(mode="json") for s in protocol.steps[:index]] !=
+                                    [s.model_dump(mode="json") for s in revised.steps[:index]]):
+                                raise ContractError("A repair cannot rewrite completed protocol steps")
+                            if configure:
+                                configure(revised)
+                            self.preflight(revised, inputs)
+                            journal.setdefault("repairs", []).append({"step": step.step_id,
+                                "from": protocol.version, "to": revised.version, "error": exc.detail()})
+                            protocol = revised
+                            journal.update(active_protocol=protocol.model_dump(mode="json"), status="running")
+                            self.store.put(NAMESPACE, run_key, journal)
+                            self.store.event("research_plan_revised", {"run_id": run_key,
+                                "reason": "execution_contract_repair", "attempt": journal["repair_attempts"],
+                                "error": exc.detail(), "protocol": protocol.version})
+                            # Successful receipts remain cached; discard stale suffix bindings only.
+                            prefix = {"step:" + x.step_id + "." for x in protocol.steps[:index]}
+                            refs = {k: v for k, v in refs.items()
+                                    if k.startswith("input:") or any(k.startswith(p) for p in prefix)}
+                            continue
                     raise
                 if step.step_id not in journal["completed"]:
                     journal["completed"].append(step.step_id)
