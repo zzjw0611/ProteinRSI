@@ -66,6 +66,8 @@ proteinrsi methods abandon --campaign runs/YOUR_RUN \
 
 对于 `blocked` 或仍显示 `validating` 的候选，必须先在实际执行环境核对并停止/处理外部工作，再额外传入 `--acknowledge-uncertain`。此参数只是操作者确认，**不负责取消进程、撤销实验、删除失败收据或退款**。待审批批次仍用已有 `cancel`；已提交批次必须按原版本导入结果。
 
+已确认可重试的提供方错误耗尽重试次数时，在线 W/M 验证暂停而不计为方法失败；M 决策也不会提前标记完成。使用现有 `retry-llm` 为该请求显式授权有限次数，再恢复原研究。在线 M 保留原两臂预算、上下文和分支数据库；分支请求的授权应指向对应 `meta-validation/<evaluation_id>/<arm>` 目录。成功请求继续复用，已发生费用不退款。独立 `evaluate-meta` 目前仍使用临时分支目录，因此提供方暂停后保守保持 `blocked`，不能声称支持同一次离线评估的断点恢复；需操作者核查后处理。
+
 默认连续 3 次未接受/失败结果暂停自动改进；同一候选/同一失败记录不重复计数。默认候选最多跨 2 个不同轮次延期，重启不增加或重置次数；默认一个补丁最多改 3 个字段。操作者可在创建时通过 `init --method-governance configs/method_governance.json` 设置这些边界，M 无权修改。
 
 ```bash

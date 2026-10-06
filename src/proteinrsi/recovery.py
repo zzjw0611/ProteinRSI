@@ -4,6 +4,13 @@ from proteinrsi.llm import JSONLLM
 from proteinrsi.storage import Conflict, BudgetExceeded
 
 
+def is_provider_paused(error):
+    from proteinrsi.llm import ProviderPaused
+    from proteinrsi.replay.broker import WorkerExecutionError
+    return isinstance(error, ProviderPaused) or (
+        isinstance(error, WorkerExecutionError) and error.error_type == "ProviderPaused")
+
+
 def authorize_retry(store, request_key, *, operator, reason, attempts=1):
     if not operator.strip() or not reason.strip() or type(attempts) is not int or not 1 <= attempts <= 4:
         raise ValueError("Provide operator/reason and 1–4 additional attempts")

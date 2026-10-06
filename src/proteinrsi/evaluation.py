@@ -149,7 +149,7 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
         # before another evaluator can spend budget or publish that candidate.
         for namespace in ("meta_attempts", "meta_online_attempts"):
             if any(attempt.get("patch_id") == patch.patch_id
-                   and attempt.get("state") in {"started", "blocked", "planned"}
+                   and attempt.get("state") in {"started", "blocked", "planned", "paused_provider"}
                    for attempt in campaign.store.all(namespace).values()):
                 raise Conflict("Candidate already has an unfinished Meta evaluation; reconcile it before continuing")
         if campaign.store.get("meta_attempts", evaluation_id):
@@ -178,7 +178,13 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
             same_candidate = current["pending_meta"] == snapshot["pending_meta"]
             recoverable = False
             if same_candidate and campaign.methods.enabled:
-                recoverable = campaign.methods.failure(current, patch, exc)
+                from proteinrsi.recovery import is_provider_paused
+                if is_provider_paused(exc):
+                    campaign.methods.transition(current, patch, "blocked", {
+                        "reason": "Offline Meta evaluation uses temporary branch stores; reconcile before another evaluation",
+                        "error_type": type(exc).__name__})
+                else:
+                    recoverable = campaign.methods.failure(current, patch, exc)
             campaign.store.put("meta_attempts", evaluation_id, {"state": "failed" if recoverable else "blocked",
                 "patch_id": patch.patch_id, "required_queries": required_queries,
                 "error_type": type(exc).__name__})

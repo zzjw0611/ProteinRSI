@@ -8,7 +8,7 @@ from copy import copy
 
 from proteinrsi.agents import MetaAgent, Team, skill_text
 from proteinrsi.audit import snapshot
-from proteinrsi.contracts import Candidate, GatePolicy, Patch, TaskSpec, digest
+from proteinrsi.contracts import Candidate, GatePolicy, Patch, TaskSpec, TaskView, digest
 from proteinrsi.improvement import apply_patch
 from proteinrsi.localtools.artifacts import ArtifactStore
 from proteinrsi.storage import SponsoredStore
@@ -35,7 +35,8 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
     evaluation_id = "online-" + digest({"patch": patch.patch_id, "round": view.round_index,
         "evidence": view.evidence_version, "workflow": view.workflow.version})[:24]
     old = campaign.store.get("meta_online_attempts", evaluation_id)
-    if old:
+    resuming = bool(old and old["state"] == "paused_provider")
+    if old and not resuming:
         if old["state"] == "planned":
             choices = [(Candidate.model_validate(c), a, w) for c, a, w in old["choices"]]
             return choices, old["trial"]
@@ -43,6 +44,9 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
             campaign.methods.transition(state, patch, "blocked", {"evaluation_id": evaluation_id,
                 "reason": "Prior Meta attempt did not complete; reconcile before continuing"})
         raise ValueError("This Meta trial was already attempted; inspect its trace before retrying")
+    if resuming:
+        view = TaskView.model_validate(old["frozen_view"])
+        per_arm = old["per_arm"]
     def defer(reason):
         key = digest({"evaluation": evaluation_id, "reason": reason})
         if not campaign.store.get("meta_deferrals", key):
@@ -52,11 +56,11 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         if campaign.methods.enabled:
             campaign.methods.defer(state, patch, reason)
         return None
-    if per_arm < gate.min_per_arm:
+    if not resuming and per_arm < gate.min_per_arm:
         return defer("Next batch lacks enough equal-arm query slots")
     usage = campaign.store.usage()
-    limits = {k: campaign.store.remaining(k)//2 for k in usage}
-    if campaign.team.llm is not None and limits.get("llm_calls", 0) < 2:
+    limits = old["equal_compute_limits"] if resuming else {k: campaign.store.remaining(k)//2 for k in usage}
+    if not resuming and campaign.team.llm is not None and limits.get("llm_calls", 0) < 2:
         return defer("Insufficient shared LLM budget for two improvers and their descendants")
     # No additional experiment lookup takes place in either child. Queries are
     # submitted/settled ONCE by Campaign for the final disjoint two-arm batch.
@@ -65,12 +69,12 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
     attempt = {"state": "started", "patch_id": patch.patch_id, "round": view.round_index,
         "evidence_version": view.evidence_version, "scope": "current_task_only",
         "protocol": "prospective-disjoint-descendants-v1", "per_arm": per_arm,
-        "equal_compute_limits": limits}
+        "equal_compute_limits": limits, "frozen_view": view.model_dump(mode="json")}
     campaign.methods.begin(state, patch)
     campaign.store.put("meta_online_attempts", evaluation_id, attempt)
     campaign.store.event("meta_validation_started", {"evaluation_id": evaluation_id, **attempt})
     full_task = TaskSpec.model_validate(state["task"])
-    artifacts = list(campaign.store.all("artifacts").values())
+    artifacts = view.artifacts
     original_artifacts = ArtifactStore(campaign.store)
     source = campaign.store.get("patch_contexts", patch.patch_id, {})
     last_patch_round = source.get("previous_patch_round", -100)
@@ -150,6 +154,14 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
             "choices": [(c.model_dump(mode="json"), a, w) for c, a, w in chosen]})
         return chosen, trial
     except Exception as exc:  # Failed candidates never publish; uncertain calls remain blocked.
+        from proteinrsi.recovery import is_provider_paused
+        if is_provider_paused(exc):
+            with campaign.store.transaction():
+                campaign.store.put("meta_online_attempts", evaluation_id, {**attempt,
+                    "state": "paused_provider", "improver_decisions": decisions})
+                campaign.store.event("meta_validation_paused", {"evaluation_id": evaluation_id,
+                    "patch_id": patch.patch_id, "reason": "Provider retry allowance exhausted"})
+            raise
         with campaign.store.transaction():
             recoverable = campaign.methods.failure(state, patch, exc) if campaign.methods.enabled else True
             campaign.store.put("meta_online_attempts", evaluation_id, {**attempt,

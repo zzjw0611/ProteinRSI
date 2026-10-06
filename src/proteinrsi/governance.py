@@ -275,6 +275,9 @@ class MethodGovernance:
         """
         if not self.enabled:
             return False
+        from proteinrsi.recovery import is_provider_paused
+        if is_provider_paused(exc):
+            return False  # A bounded provider pause is neither rejection nor uncertain execution.
         from proteinrsi.llm import LLMError
         from proteinrsi.replay.broker import WorkerExecutionError
         definite = isinstance(exc, (ValueError, PermissionError, BudgetExceeded, SchemaError))

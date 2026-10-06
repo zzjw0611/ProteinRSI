@@ -13,7 +13,7 @@ from proteinrsi.contracts import (Batch, Candidate, GatePolicy, MetaPolicy, Obse
     Sample, TaskKind, TaskSpec, TaskView, Workflow, canonical, digest)
 from proteinrsi.improvement import ExperienceMemory, apply_patch, evaluate_trial
 from proteinrsi.lab import export_batch
-from proteinrsi.llm import LLMError
+from proteinrsi.llm import LLMError, ProviderPaused
 from proteinrsi.storage import BudgetExceeded, Conflict, Store
 from proteinrsi.tasks import validate_task, validate_candidate
 
@@ -425,6 +425,8 @@ class Campaign:
                         self.store.put("campaign", "state", state)
                 self.store.event("meta_decision", {"round": view.round_index, "meta": view.meta.version,
                                                    "response": response.model_dump(mode="json")})
+            except ProviderPaused:
+                raise  # Preserve the unconsidered round and exact request for an authorized retry.
             except (BudgetExceeded, LLMError, ValueError, PermissionError) as exc:
                 self.methods.rejected_proposal(state, exc)
                 self.store.event("meta_change_blocked", {"round": view.round_index,

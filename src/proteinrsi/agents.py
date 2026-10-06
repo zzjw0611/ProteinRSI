@@ -262,10 +262,22 @@ class MetaAgent:
             return MetaResponse(reason="Insufficient evidence, cooldown or remaining experimental budget")
         if self.llm:
             instructions = compose(self.store, "meta", policy.prompt)
+            context = {"view": view.model_dump(mode="json"),
+                "workflow_schema": Workflow.model_json_schema(), "meta_schema": type(policy).model_json_schema()}
+            if self.store:
+                from proteinrsi.contracts import digest
+                key = "meta-request:" + digest({"context": context, "instructions": instructions,
+                    "model": getattr(self.llm, "model", None), "url": getattr(self.llm, "base_url", None),
+                    "client": getattr(self.llm, "cache_settings", {})})
+                saved = self.store.get("research_step_outputs", key)
+                if saved is None:
+                    saved = {**context, "compute_usage": self.store.usage()}
+                    self.store.put("research_step_outputs", key, saved, immutable=True)
+                context = saved
+            else:
+                context["compute_usage"] = {}
             return MetaResponse.model_validate(self.llm.complete("M", instructions,
-                {"view": view.model_dump(mode="json"), "compute_usage": self.store.usage() if self.store else {},
-                 "workflow_schema": Workflow.model_json_schema(),
-                 "meta_schema": type(policy).model_json_schema()}, MetaResponse.model_json_schema()))
+                context, MetaResponse.model_json_schema()))
         # Explicit scripted baseline: useful for mechanism testing, not an LLM/scientific claim.
         recent = view.history[-1] if view.history else {}
         if policy.mode == "diagnostic" and recent.get("qc_failure_fraction", 0) > 0.2:
