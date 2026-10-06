@@ -1,0 +1,354 @@
+{
+  "schema_version": 1,
+  "date": "2026-10-06",
+  "source_release": "https://zenodo.org/records/15203754",
+  "smoke_engine_commit": "60404fcfe11d430350db886c70333fcd63e954e2",
+  "repaired_engine_commit": "ff678883c496610458d179807b0a54443fd940fd",
+  "llm_transport": "assistant_bridge",
+  "model_identity": "operator label interactive-openai-assistant; exact provider model not independently verified",
+  "execution": "explicit trusted inprocess debugging; Landlock unavailable",
+  "studies": [
+    {
+      "landscape": "GB1",
+      "live_report_sha256": "a5199cf56f5cc830e94c17db1beba510c92f662193838fee9586a90a8c795bf8",
+      "status": "complete",
+      "completed_rounds": 4,
+      "queries": 64,
+      "initial_parent_observations": 1,
+      "best_variant": {
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGVWGEWTYDDATKTFTVTE",
+        "mutations": [
+          "D40W"
+        ],
+        "value": 3.901460756,
+        "sample_id": "b-add7de0f7a643f72788a-014",
+        "batch_id": "b-add7de0f7a643f72788a",
+        "source": "measured_replay"
+      },
+      "budget": {
+        "experimental_wells": {
+          "limit": 64,
+          "committed": 64,
+          "reserved": 0
+        },
+        "llm_calls": {
+          "limit": 180,
+          "committed": 57,
+          "reserved": 0
+        },
+        "tool_calls": {
+          "limit": 70,
+          "committed": 5,
+          "reserved": 0
+        }
+      },
+      "valid_queries": 64,
+      "unavailable_queries": 0,
+      "repeat_queries": 0,
+      "workflow_trials": {
+        "b-2b01caf2c8b7cd195b1c": {
+          "decision": "inconclusive",
+          "effect": 0.10491434833333302,
+          "interval": [
+            -0.7443817052541666,
+            0.891149775704166
+          ],
+          "n_baseline": 6,
+          "n_challenger": 6,
+          "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+        },
+        "b-fd700d211cc556b9298b": {
+          "decision": "inconclusive",
+          "effect": 0.4127643703749999,
+          "interval": [
+            -0.44681217648124977,
+            1.1786791752218742
+          ],
+          "n_baseline": 8,
+          "n_challenger": 8,
+          "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+        }
+      },
+      "meta_evaluations": {
+        "online-ed9a8ee37afc24898f3dc152": {
+          "allocation": {
+            "available_by_arm": {
+              "baseline": 8,
+              "challenger": 8
+            },
+            "maximum_plate_slots": 16,
+            "per_arm": 6,
+            "rule": "unique-to-arm first, then ranked shared identities with alternating priority"
+          },
+          "baseline_meta": {
+            "cooldown_rounds": 1,
+            "enabled": true,
+            "min_observations": 6,
+            "min_remaining_wells": 10,
+            "mode": "plateau",
+            "prompt": "Diagnose workflow failures; propose one falsifiable bounded change."
+          },
+          "batch_id": "b-2b01caf2c8b7cd195b1c",
+          "challenger_meta": {
+            "cooldown_rounds": 1,
+            "enabled": true,
+            "min_observations": 6,
+            "min_remaining_wells": 10,
+            "mode": "plateau",
+            "prompt": "Diagnose workflow failures from valid revealed measurements and prospective trial outcomes. When a combination-focused workflow trial is inconclusive and measured combinations show context-dependent losses, propose one bounded designer-policy change toward single-step neighbors of the best measured sequence, preserving a small exploration component. Prefer a falsifiable local design change over increasing model complexity on sparse evidence. If those conditions are absent, make no patch. Never infer missing labels, change gates, or equate predictions with measurements."
+          },
+          "charged_queries": 12,
+          "descendants": {
+            "baseline": {
+              "analysis_tool_rounds": 3,
+              "analyst_prompt": "Separate proxy scores, predictions and experimental measurements.",
+              "design_tool_rounds": 4,
+              "designer_prompt": "Propose legal variants using only the supplied evidence.",
+              "exploration": 0.2,
+              "principal_prompt": "Pursue the task objective within budget: generate proposals for design tasks and assess supplied sequences for ranking tasks.",
+              "ridge_alpha": 1.0,
+              "skill_names": [],
+              "strategy": "pairwise",
+              "tool_names": [
+                "research_python",
+                "research_fit_predict",
+                "interface_geometry",
+                "msa_validate",
+                "protein_sequence_qc",
+                "structure_compare",
+                "structure_inspect"
+              ]
+            },
+            "challenger": {
+              "analysis_tool_rounds": 3,
+              "analyst_prompt": "Separate proxy scores, predictions and experimental measurements.",
+              "design_tool_rounds": 4,
+              "designer_prompt": "Use only valid revealed measurements. Center most new proposals on the best measured sequence, changing one allowed residue relative to that measured leader; prioritize plausible substitutions supported by other backgrounds but keep their context dependence explicit. Preserve a small component of untested single substitutions relative to the parent for exploration. Exclude all already queried identities and retain fixed residues. Predictions may guide ordering but are not measurements or calibrated confidence.",
+              "exploration": 0.2,
+              "principal_prompt": "Pursue the task objective within budget: generate proposals for design tasks and assess supplied sequences for ranking tasks.",
+              "ridge_alpha": 1.0,
+              "skill_names": [],
+              "strategy": "additive",
+              "tool_names": [
+                "research_python",
+                "research_fit_predict",
+                "interface_geometry",
+                "msa_validate",
+                "protein_sequence_qc",
+                "structure_compare",
+                "structure_inspect"
+              ]
+            }
+          },
+          "evaluation_id": "online-ed9a8ee37afc24898f3dc152",
+          "evidence_version": "be95dd123212a856ad70e0973abcce8722ea6ca50177b7223073115e82cbd7c1",
+          "gate": {
+            "bootstrap_samples": 2000,
+            "confidence": 0.95,
+            "max_qc_failure_fraction": 0.25,
+            "min_effect": 0.0,
+            "min_per_arm": 4
+          },
+          "improver_decisions": {
+            "baseline": {
+              "decision_notes": {
+                "alternatives": [
+                  "Keep the additive representation and broaden measured-leader local search"
+                ],
+                "evidence_refs": [
+                  "b-fd700d211cc556b9298b"
+                ],
+                "next_check": "Obtain actual pairwise predictions only when useful and evaluate descendant selected designs with real prospective measurements.",
+                "rationale": "V54A has different observed effects on D40A versus D40N backgrounds; pairwise features offer a bounded representation change without altering tools, budgets, or gates.",
+                "uncertainties": [
+                  "Only 33 variants are available; pairwise features may overfit",
+                  "Frozen candidate prediction-error reporting is currently broken, so no prospective prediction-accuracy claim is available"
+                ]
+              },
+              "patch": {
+                "author_backend": "assistant",
+                "base_version": "w-740d272631b0663f",
+                "changes": {
+                  "strategy": "pairwise"
+                },
+                "evidence_refs": [
+                  "b-fd700d211cc556b9298b"
+                ],
+                "hypothesis": "Regularized pairwise mutation features trained on the 33 revealed variants can prioritize new designs better than the additive approximation when combinations show context-dependent effects.",
+                "target": "workflow",
+                "task_kind": "variant_design"
+              },
+              "reason": "The now-measured double and triple substitutions show background-dependent effects, so the additive model family is a testable limitation. Propose a single model-strategy change to pairwise mutation features while retaining regularization and the generic evidence-based design policy."
+            },
+            "challenger": {
+              "decision_notes": {
+                "alternatives": [],
+                "evidence_refs": [
+                  "b-fd700d211cc556b9298b"
+                ],
+                "next_check": "Generate at most eight descendant proposals and let the frozen prospective meta comparison decide without changing the gate.",
+                "rationale": "D40H at 3.08117 is stronger than every measured combination. Nearby variants can test this empirically supported region without assuming single-effect transfer.",
+                "uncertainties": [
+                  "The best measured background may be a local rather than global optimum",
+                  "Prior favorable effects may reverse on D40H"
+                ]
+              },
+              "patch": {
+                "author_backend": "assistant",
+                "base_version": "w-740d272631b0663f",
+                "changes": {
+                  "designer_prompt": "Use only valid revealed measurements. Center most new proposals on the best measured sequence, changing one allowed residue relative to that measured leader; prioritize plausible substitutions supported by other backgrounds but keep their context dependence explicit. Preserve a small component of untested single substitutions relative to the parent for exploration. Exclude all already queried identities and retain fixed residues. Predictions may guide ordering but are not measurements or calibrated confidence."
+                },
+                "evidence_refs": [
+                  "b-fd700d211cc556b9298b",
+                  "trial_results/b-fd700d211cc556b9298b"
+                ],
+                "hypothesis": "Single-step exploration around the measured D40H leader will yield higher prospective fitness than relying on combinations selected through a more complex pairwise fit to sparse evidence.",
+                "target": "workflow",
+                "task_kind": "variant_design"
+              },
+              "reason": "The successor policy conditions are met: the combination-focused trial was inconclusive, and adding V54A lowered fitness on measured D40A-containing backgrounds. Propose a bounded local-neighborhood designer policy centered on the best actual measurement rather than assuming additivity or increasing model complexity."
+            }
+          },
+          "patch": {
+            "author_backend": "assistant",
+            "base_version": "m-ee85da4fc6c7d8c1",
+            "changes": {
+              "prompt": "Diagnose workflow failures from valid revealed measurements and prospective trial outcomes. When a combination-focused workflow trial is inconclusive and measured combinations show context-dependent losses, propose one bounded designer-policy change toward single-step neighbors of the best measured sequence, preserving a small exploration component. Prefer a falsifiable local design change over increasing model complexity on sparse evidence. If those conditions are absent, make no patch. Never infer missing labels, change gates, or equate predictions with measurements."
+            },
+            "evidence_refs": [
+              "b-fd700d211cc556b9298b",
+              "trial_results/b-fd700d211cc556b9298b"
+            ],
+            "hypothesis": "An evidence-conditioned improver that reacts to observed nonadditivity with measured-leader local search will generate a descendant workflow with higher prospective fitness than the current generic improver on this task.",
+            "target": "meta",
+            "task_kind": "variant_design"
+          },
+          "promoted": false,
+          "protocol": "prospective-disjoint-descendants-v1",
+          "result": {
+            "decision": "inconclusive",
+            "effect": 0.10491434833333302,
+            "interval": [
+              -0.7443817052541666,
+              0.891149775704166
+            ],
+            "n_baseline": 6,
+            "n_challenger": 6,
+            "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+          },
+          "scope": "current_task_only",
+          "target": "meta",
+          "total_plate_queries": 16,
+          "transfer_validated": false
+        }
+      },
+      "comparators": {
+        "uniform": {
+          "seed": 17,
+          "queries": 64,
+          "best_measured_value": 3.956863647,
+          "unavailable_queries": 1,
+          "proposal_sha256": "73e7e8a1ebcbf17d265bd2a960f227591023ec7b6bfec66df9420e59f268419a",
+          "report_sha256": "9b46cef26164381b9a341ec9c94ad60e629581280ca7e0dadeb9974a30468df3"
+        },
+        "single-first": {
+          "seed": 17,
+          "queries": 64,
+          "best_measured_value": 3.901460756,
+          "unavailable_queries": 0,
+          "proposal_sha256": "8bb66189370535adc0a60ab20ac01b3d4f48247a706f4ea50e8630fc1a9363c4",
+          "report_sha256": "36927d9888406997099849dafb6304f5cdef4da9c82df2aa8925a7174b386c7e"
+        }
+      },
+      "prediction_feedback_limitation": "Real fitted artifacts and explicit C refs were dropped during typed resource conversion; old batches were not backfilled"
+    },
+    {
+      "landscape": "ParD3",
+      "live_report_sha256": "e618ca44e294a876d4c2c9ba34fc048d41c68deb758f995acbc699213fbc8ba8",
+      "status": "complete",
+      "completed_rounds": 3,
+      "queries": 36,
+      "initial_parent_observations": 1,
+      "best_variant": {
+        "sequence": "MANVEKMSVAVTPQQAAVMREAVEAGEYATASEIVREAVRDWLAKRELRHDDIRRLRQLWDEGWASGRPEPVDFDALRKEARQKLTEVPPNGR",
+        "mutations": [
+          "K64W"
+        ],
+        "value": 1.017502225,
+        "sample_id": "b-fa4abf49659be13698cc-007",
+        "batch_id": "b-fa4abf49659be13698cc",
+        "source": "measured_replay"
+      },
+      "budget": {
+        "experimental_wells": {
+          "limit": 36,
+          "committed": 36,
+          "reserved": 0
+        },
+        "llm_calls": {
+          "limit": 180,
+          "committed": 38,
+          "reserved": 0
+        },
+        "tool_calls": {
+          "limit": 70,
+          "committed": 7,
+          "reserved": 0
+        }
+      },
+      "valid_queries": 36,
+      "unavailable_queries": 0,
+      "repeat_queries": 0,
+      "workflow_trials": {
+        "b-fa4abf49659be13698cc": {
+          "decision": "accepted",
+          "effect": 0.07999244449999998,
+          "interval": [
+            0.016083510016666726,
+            0.1614776374666666
+          ],
+          "n_baseline": 6,
+          "n_challenger": 6,
+          "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+        }
+      },
+      "meta_evaluations": {},
+      "comparators": {
+        "uniform": {
+          "seed": 17,
+          "queries": 36,
+          "best_measured_value": 1.0,
+          "unavailable_queries": 0,
+          "proposal_sha256": "2e8c7faf8d32634a20d9fb7b377751cced3516b9d2b8540bdce30cdc62c31f82",
+          "report_sha256": "f08e595a3914c21e90ec0f34daced91b41da205d054a7f300bc0a6e48e432a27"
+        },
+        "single-first": {
+          "seed": 17,
+          "queries": 36,
+          "best_measured_value": 1.017502225,
+          "unavailable_queries": 0,
+          "proposal_sha256": "852c2abb273b23de5d89bf360be32c3af7cef9b20f51ef13fe518198a403d77a",
+          "report_sha256": "b6893229966d48ac3adce06b6f8f4bc852b61263cb61bc2579d50973cbc6249c"
+        }
+      },
+      "prediction_feedback_limitation": "Real fitted artifacts and explicit C refs were dropped during typed resource conversion; old batches were not backfilled"
+    }
+  ],
+  "comparison_limits": "One fixed seed per nonadaptive comparator; no significance, transfer, wet-lab, or RSI superiority conclusion",
+  "prediction_acceptance": {
+    "status": "passed",
+    "landscape": "ParD2",
+    "engine_commit": "ff678883c496610458d179807b0a54443fd940fd",
+    "queries": 16,
+    "valid_queries": 16,
+    "rounds": 2,
+    "frozen_predictions": 8,
+    "automatic_prediction_errors_n": 8,
+    "automatic_prediction_mae": 0.05138966153125003,
+    "llm_calls": 20,
+    "tool_calls": 1,
+    "terminal_restart_idempotent": true,
+    "acceptance_summary_sha256": "f8247784431610a45735444c6545ec03ab31cfdc55816f17d63e11b639df2f61"
+  }
+}
