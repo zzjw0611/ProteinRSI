@@ -67,6 +67,13 @@ class JSONLLM:
 
     @classmethod
     def from_env(cls, store: Store) -> JSONLLM:
+        if "PROTEINRSI_ASSISTANT_BRIDGE_DIR" in os.environ:
+            from proteinrsi.assistant_bridge import AssistantBridgeLLM
+            return AssistantBridgeLLM(
+                store, model=os.environ.get("PROTEINRSI_MODEL", ""),
+                mailbox=os.environ["PROTEINRSI_ASSISTANT_BRIDGE_DIR"],
+                timeout=float(os.environ.get("PROTEINRSI_ASSISTANT_BRIDGE_TIMEOUT", "900")),
+                poll_interval=float(os.environ.get("PROTEINRSI_ASSISTANT_BRIDGE_POLL_INTERVAL", "0.25")))
         api_key = os.environ.get("PROTEINRSI_API_KEY", "")
         auth_file = os.environ.get("PROTEINRSI_CODEX_AUTH_FILE", "")
         if not api_key and auth_file:
