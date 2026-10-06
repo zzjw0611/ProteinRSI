@@ -1,0 +1,683 @@
+{
+  "schema_version": 1,
+  "source_release": "https://zenodo.org/records/15203754",
+  "source_archive_sha256": "5655baabe8f7e11bb405d1db7767df35f9ff6c8aabfad8e95ae5bf0db718193d",
+  "reviewed_inventory_sha256": "767c5ec4f7e12ecdade0a756fb38b168ae700b5f5a7b2da85cb9fed095d4eade",
+  "metadata_source": "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/landscape_global.py",
+  "preparation_scope": "Trusted controller only; no replay, score statistics, active labels or candidate catalogue.",
+  "launch_defaults": {
+    "max_rounds": 20,
+    "batch_size": 100,
+    "batch_fill_policy": "full_plate",
+    "experimental_wells": 2000,
+    "llm_calls": 600,
+    "tool_calls": 400,
+    "seed": 17,
+    "controls_per_batch": 0,
+    "repeat_policy": "exclude",
+    "candidate_access": "open",
+    "initial_observation_policy": "provided_parent",
+    "parent_observations": 1,
+    "parent_query_cost": 0,
+    "budget_note": "Proposed hard per-campaign bounds, not usage or currency estimates; never auto-raise on exhaustion."
+  },
+  "landscapes": {
+    "DHFR": {
+      "status": "quarantined",
+      "family": "DHFR",
+      "source_csv": "data/DHFR/fitness_landscape/DHFR.csv",
+      "source_csv_sha256": "fcd57493a10caecd4f12d510809fc96ece4f98b09ac5a9c5769d35179ccaaf05",
+      "source_fasta": "data/DHFR/DHFR.fasta",
+      "source_fasta_sha256": "bc8fcc7a7c7f60b267170d5cc4d537dc33b9a79513638ceded3d58aab567c312",
+      "parent_sequence_sha256": "717626f2f5eca4e9eeb1c36c4c3744fd03308c34892beb9179040b20dab7bc1b",
+      "parent_length": 219,
+      "positions": [
+        26,
+        27,
+        28
+      ],
+      "parent_sites": "ADL",
+      "sequence_column": "seq",
+      "value_column": "fitness",
+      "csv_header": [
+        "seq",
+        "fitness"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "reject",
+      "expected_counts": {
+        "source_rows": 261333,
+        "excluded_stop_rows": 0,
+        "prepared_rows": 8000
+      },
+      "quarantine_reasons": [
+        "The supplied FASTA is 219 DNA bases, not a full amino-acid parent. Frame-1 standard translation is 73 residues and matches A26/D27/L28, but a full protein parent and construct/numbering provenance are not yet established.",
+        "Source sequence keys are codons. Many codons map to the same protein candidate; the official protein objective uses mean(exp(source fitness)) within each amino-acid group. A direct amino-acid original-score adapter cannot silently choose or average these rows."
+      ],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L308-L313",
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L352-L387",
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L216-L239"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "GB1": {
+      "status": "eligible",
+      "family": "GB1",
+      "source_csv": "data/GB1/fitness_landscape/GB1.csv",
+      "source_csv_sha256": "64767168e77a1d6c12e6211ed33cc2c45b764d866c3d93c29e5682e79686322b",
+      "source_fasta": "data/GB1/GB1.fasta",
+      "source_fasta_sha256": "f1acaa18f06a15a27d30cc57ebd2f2d40158d4a8d4e7bf6b60d742a178fc99ce",
+      "parent_sequence_sha256": "6d140c4f60bede5a68db37a9b38a43c4227c4cdf198675dae4ab09d57e871234",
+      "parent_length": 56,
+      "positions": [
+        39,
+        40,
+        41,
+        54
+      ],
+      "parent_sites": "VDGV",
+      "sequence_column": "Variants",
+      "value_column": "Fitness",
+      "csv_header": [
+        "Variants",
+        "HD",
+        "Count input",
+        "Count selected",
+        "Fitness"
+      ],
+      "unit": "reported_enrichment_relative_to_WT",
+      "stop_policy": "reject",
+      "expected_counts": {
+        "source_rows": 149361,
+        "excluded_stop_rows": 0,
+        "prepared_rows": 149361
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L694-L720"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "ParD2": {
+      "status": "eligible",
+      "family": "ParD2",
+      "source_csv": "data/ParD2/fitness_landscape/ParD2.csv",
+      "source_csv_sha256": "3329cd0b9c111edcb571de893e69006eff832fda0c54900fa866147bcd1ea20e",
+      "source_fasta": "data/ParD2/ParD2.fasta",
+      "source_fasta_sha256": "130fef866670e57c4d8b81e6cf5961213bf6fec70708c9ca2901b82bb5384025",
+      "parent_sequence_sha256": "e4f49a931519eeca8b3daa9f4be71a6bb7d3ee26aee166a4182ad948132fecb9",
+      "parent_length": 91,
+      "positions": [
+        61,
+        64,
+        80
+      ],
+      "parent_sites": "ILK",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "fitness"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "reject",
+      "expected_counts": {
+        "source_rows": 7882,
+        "excluded_stop_rows": 0,
+        "prepared_rows": 7882
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L426-L469"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "ParD3": {
+      "status": "eligible",
+      "family": "ParD3",
+      "source_csv": "data/ParD3/fitness_landscape/ParD3.csv",
+      "source_csv_sha256": "3504b7fe86dfe1add9b2668d97267c37b7aabe84401a914458d440fee4068256",
+      "source_fasta": "data/ParD3/ParD3.fasta",
+      "source_fasta_sha256": "ccf1a28bafb59fda16e308d153e7b5e0c9559ab95055ac1222ab33b75e3b5257",
+      "parent_sequence_sha256": "4956f0edf104dead9777f85ecc4b3c5ed53f7b0d25edb79c6c4cceca251b9238",
+      "parent_length": 93,
+      "positions": [
+        61,
+        64,
+        80
+      ],
+      "parent_sites": "DKE",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "fitness"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "reject",
+      "expected_counts": {
+        "source_rows": 7882,
+        "excluded_stop_rows": 0,
+        "prepared_rows": 7882
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L426-L469"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "T7": {
+      "status": "eligible",
+      "family": "T7",
+      "source_csv": "data/T7/fitness_landscape/T7.csv",
+      "source_csv_sha256": "b02ebc2bca39affe3835cfe217beafa800bdfdabf5e32979ad51a64157a8a640",
+      "source_fasta": "data/T7/T7.fasta",
+      "source_fasta_sha256": "101eab345b4f13d02ef853d3a3fe1eb4e6456ca32e3a464c5a68d176cf01a928",
+      "parent_sequence_sha256": "9b7a54630025aae5dab8ec9761cd53118e7c1026c8aa14a9b40818285e89a215",
+      "parent_length": 883,
+      "positions": [
+        748,
+        756,
+        758
+      ],
+      "parent_sites": "NRQ",
+      "sequence_column": "Sequences",
+      "value_column": "Fitness Mean",
+      "csv_header": [
+        "Sequences",
+        "Number of Reads",
+        "Fitness Mean",
+        "Fitness Variance"
+      ],
+      "unit": "original_reported_fitness_mean",
+      "stop_policy": "reject",
+      "expected_counts": {
+        "source_rows": 6725,
+        "excluded_stop_rows": 0,
+        "prepared_rows": 6725
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L834-L849",
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L875-L890",
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L919-L938"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TEV": {
+      "status": "eligible",
+      "family": "TEV",
+      "source_csv": "data/TEV/fitness_landscape/TEV.csv",
+      "source_csv_sha256": "1681f9f12a30b7d0d379f3600f273ef6d40c0615f950eca4bb4d175a71fc7313",
+      "source_fasta": "reviewed_sources/FLIGHTED_public/156281893e44a02bb7946a7001427f3e50df7ed0/TEV_wt_sequence.fasta",
+      "source_fasta_sha256": "beedd3cffa9fa3ff56007592f8c98ee930e918d2bcfebecfaeabf369e3534d03",
+      "parent_sequence_sha256": "9562dec6e10b8d179299f93b3362d036036c3a307a642f9f644b4d84a8c4712b",
+      "parent_length": 233,
+      "positions": [
+        143,
+        145,
+        164,
+        167
+      ],
+      "parent_sites": "TDHS",
+      "sequence_column": "Sequences",
+      "value_column": "Fitness Mean",
+      "csv_header": [
+        "Sequences",
+        "Number of Reads",
+        "Fitness Mean",
+        "Fitness Variance",
+        "Complete Sequence",
+        "Mutation Distance",
+        "Original Read Count"
+      ],
+      "unit": "original_reported_fitness_mean",
+      "stop_policy": "reject",
+      "expected_counts": {
+        "source_rows": 159132,
+        "excluded_stop_rows": 0,
+        "prepared_rows": 159132
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L834-L849",
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L875-L890",
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L919-L938",
+        "https://github.com/vikram-sundar/FLIGHTED_public/blob/156281893e44a02bb7946a7001427f3e50df7ed0/Data/TEV_Landscape/TEV_wt_sequence.fasta",
+        "https://github.com/vikram-sundar/FLIGHTED_public/blob/156281893e44a02bb7946a7001427f3e50df7ed0/Data/TEV_Landscape/TEV_mutated_sequence.fasta",
+        "https://github.com/vikram-sundar/FLIGHTED_public/blob/156281893e44a02bb7946a7001427f3e50df7ed0/Data/TEV_Landscape/fitnesses_read_count.csv"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed.",
+      "complete_sequence_column": "Complete Sequence",
+      "assay_protocol": "ssmula-zenodo-15203754-TEV-flighted233-original-score-v1",
+      "task_name": "TEV FLIGHTED 233-aa original-score measured replay",
+      "previous_quarantine_reasons": [
+        "All Complete Sequence strings are 233 amino acids, while the supplied FASTA is 236 amino acids. Across every row the tuple matches complete-sequence positions [143,145,164,167], not the literal official [146,148,167,170] numbering.",
+        "The complete-sequence background equals the bundled FASTA with its first three residues removed and its resulting initial L replaced by M. The assay parent/construct and numbering convention must be explicitly resolved before full-protein replay; silently attaching source labels to the 236-residue FASTA changes the measured sequence."
+      ],
+      "assay_construct": {
+        "review_status": "resolved_original_assay_construct",
+        "name": "FLIGHTED original measured TEV 233-aa construct",
+        "upstream_commit": "156281893e44a02bb7946a7001427f3e50df7ed0",
+        "source_csv_git_blob_sha1": "1b62078351dc2a09db3582ec0138767339c66e38",
+        "primary_parent_git_blob_sha1": "f213547ea1d237db850ed0d827d05c9d02c73a04",
+        "primary_masked_git_blob_sha1": "8f4b10c474c0cd18766ea3f1da2ad85e0c75cb59",
+        "source_urls": [
+          "https://github.com/vikram-sundar/FLIGHTED_public/blob/156281893e44a02bb7946a7001427f3e50df7ed0/Data/TEV_Landscape/TEV_wt_sequence.fasta",
+          "https://github.com/vikram-sundar/FLIGHTED_public/blob/156281893e44a02bb7946a7001427f3e50df7ed0/Data/TEV_Landscape/TEV_mutated_sequence.fasta",
+          "https://github.com/vikram-sundar/FLIGHTED_public/blob/156281893e44a02bb7946a7001427f3e50df7ed0/Data/TEV_Landscape/fitnesses_read_count.csv"
+        ],
+        "masked_fasta": "reviewed_sources/FLIGHTED_public/156281893e44a02bb7946a7001427f3e50df7ed0/TEV_mutated_sequence.fasta",
+        "masked_fasta_sha256": "b5eed5b48e469bd4f017bbd627460df008d6b871a55c578dd65b05fd2177b6f0",
+        "bundled_reference": {
+          "source_fasta": "data/TEV/TEV.fasta",
+          "source_fasta_sha256": "f2a55ef9d05488e59940042d6c3adbcf772cbbe7a77f632865b5c9163dda742d",
+          "source_fasta_sequence_sha256": "6ff9bac9113ec31c72bdf8092705ceaa744b86ec06aa673ff64c9bd5d2f3db92",
+          "source_fasta_length": 236,
+          "mutable_positions": [
+            146,
+            148,
+            167,
+            170
+          ],
+          "role": "Bundled SSMuLA236 reference only; never the measured parent"
+        },
+        "numbering_note": "Exact supplied SSMuLA CSV Git-blob hash equals the original FLIGHTED repository tree entry. Explicitly use original FLIGHTED 233-aa parent, not SSMuLA's 236-aa reference. Published site names 146/148/167/170 are reference coordinates; assay construct positions are 143/145/164/167.",
+        "validation_requirement": "Every Complete Sequence must exactly equal primary233 parent expanded with the source tuple; missing candidates remain absent."
+      }
+    },
+    "TrpB3A": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3A.csv",
+      "source_csv_sha256": "0ca0c3b280fe7b6376d1b075d6c085c95fed06038e21d7ff9ab68cb95df32dfe",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        104,
+        105,
+        106
+      ],
+      "parent_sites": "AET",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 9230,
+        "excluded_stop_rows": 1259,
+        "prepared_rows": 7971
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB3B": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3B.csv",
+      "source_csv_sha256": "eceeff8664bd1cf9becaf5194e1123bf717d4bcfb6baafd34fb4a7fa1766f0e0",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        105,
+        106,
+        107
+      ],
+      "parent_sites": "ETG",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 9257,
+        "excluded_stop_rows": 1261,
+        "prepared_rows": 7996
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB3C": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3C.csv",
+      "source_csv_sha256": "4f5990f8b7d3b24342e0fa10d678efa221df995edc54d98aaea0b6306523aaec",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        106,
+        107,
+        108
+      ],
+      "parent_sites": "TGA",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 9255,
+        "excluded_stop_rows": 1261,
+        "prepared_rows": 7994
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB3D": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3D.csv",
+      "source_csv_sha256": "fb6debc7ecc742a96c9dd8f1046a0dae9252d63945810560a8faa7ac3751cc36",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        117,
+        118,
+        119
+      ],
+      "parent_sites": "TAA",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 8968,
+        "excluded_stop_rows": 1205,
+        "prepared_rows": 7763
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB3E": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3E.csv",
+      "source_csv_sha256": "fff6c6f5033cce33043e060f64cb05d3bcf4c529f88c0c465722c528e06413dd",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        184,
+        185,
+        186
+      ],
+      "parent_sites": "FGS",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 9222,
+        "excluded_stop_rows": 1258,
+        "prepared_rows": 7964
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB3F": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3F.csv",
+      "source_csv_sha256": "ea9cda4d528f96ec5eccabfafc4e69f26e3d419a16f48d1e8d6435ff99503c38",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        162,
+        166,
+        301
+      ],
+      "parent_sites": "LIY",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 8543,
+        "excluded_stop_rows": 806,
+        "prepared_rows": 7737
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB3G": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3G.csv",
+      "source_csv_sha256": "13c8f0cdacf4539423674204b8ef12a2d30e165f5f499105d5301009ce736934",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        227,
+        228,
+        301
+      ],
+      "parent_sites": "VSY",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 8709,
+        "excluded_stop_rows": 818,
+        "prepared_rows": 7891
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB3H": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3H.csv",
+      "source_csv_sha256": "6d8d110c5300fc74d38612c0f37b9ae2ada9743ab92a493fafbd6e50689665d9",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        228,
+        230,
+        231
+      ],
+      "parent_sites": "SGS",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 8930,
+        "excluded_stop_rows": 1214,
+        "prepared_rows": 7716
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB3I": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB3I.csv",
+      "source_csv_sha256": "02f9eb1f849f5dc93fc3c923a38cc10ec41c5bdaceb9ff2a534a9dd773048fe7",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        182,
+        183,
+        184
+      ],
+      "parent_sites": "YVF",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 9018,
+        "excluded_stop_rows": 1234,
+        "prepared_rows": 7784
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    },
+    "TrpB4": {
+      "status": "eligible",
+      "family": "TrpB",
+      "source_csv": "data/TrpB/fitness_landscape/TrpB4.csv",
+      "source_csv_sha256": "d7e3ab4bcb721819ddf79ac0c9d322046dcdc4ce7d0df7d5ccd423fee771cb76",
+      "source_fasta": "data/TrpB/TrpB.fasta",
+      "source_fasta_sha256": "ca847d2ef8f5e69f54dc232a9b55c6a6a4f473bd9be65e0f2a70fef0e5ae585f",
+      "parent_sequence_sha256": "98e5331d5207a4a57ed7e414b14b2c627693195935ec2d9ab1d5817d6b56c109",
+      "parent_length": 390,
+      "positions": [
+        183,
+        184,
+        227,
+        228
+      ],
+      "parent_sites": "VFVS",
+      "sequence_column": "AAs",
+      "value_column": "fitness",
+      "csv_header": [
+        "AAs",
+        "AA1",
+        "AA2",
+        "AA3",
+        "AA4",
+        "# Stop",
+        "fitness",
+        "active"
+      ],
+      "unit": "original_reported_fitness",
+      "stop_policy": "exclude_stop_tuples_only",
+      "expected_counts": {
+        "source_rows": 193170,
+        "excluded_stop_rows": 34041,
+        "prepared_rows": 159129
+      },
+      "quarantine_reasons": [],
+      "source_processing_references": [
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L941-L981"
+      ],
+      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+    }
+  }
+}
