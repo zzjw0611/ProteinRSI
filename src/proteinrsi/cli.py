@@ -58,7 +58,9 @@ def main(argv: list[str] | None = None) -> None:
     trace = sub.add_parser("trace", help="Read the persisted operator trajectory without model calls")
     trace.add_argument("--campaign", required=True)
     trace.add_argument("--format", choices=["text", "json", "html"], default="text")
-    trace.add_argument("--out")
+    trace.add_argument("--out", help="Output path; full JSON supports .json.gz compression")
+    trace.add_argument("--full", action="store_true",
+                       help="Use legacy unbounded inline HTML; JSON is always complete and streamed")
     trace.add_argument("--follow", action="store_true")
     sub.add_parser("sandbox-check", help="Probe Linux Landlock/seccomp prerequisites; no model or API calls")
     prompts = sub.add_parser("prompts", help="Inspect role prompt templates and snapshot versions")
@@ -200,27 +202,32 @@ def main(argv: list[str] | None = None) -> None:
                     export_html(out, out/"trajectory.html")
                     (out/"report.json").write_text(json.dumps(campaign.report(), ensure_ascii=False, indent=2)+"\n")
             output = campaign.report()
-            output["trajectory"] = export_html(out, out/"trajectory.html")
+            output["trajectory"] = (export_html(out, out/"trajectory.html") if args.prepare_only
+                                    else str((out/"trajectory.html").resolve()))
             (out/"report.json").write_text(json.dumps(output, ensure_ascii=False, indent=2)+"\n")
         elif args.command == "trace":
-            from proteinrsi.trajectory import export_html, read_trace, print_event, follow
+            from proteinrsi.trajectory import (export_html, export_json, iter_events,
+                                               print_event, follow, write_json)
+            if args.full and args.format == "text":
+                raise ValueError("--full applies to HTML; JSON exports are always complete")
             if args.follow:
-                if args.format != "text" or args.out:
+                if args.format != "text" or args.out or args.full:
                     raise ValueError("--follow requires text output to the terminal")
                 follow(args.campaign)
                 return
             if args.format == "html":
                 destination = args.out or str(Path(args.campaign)/"trajectory.html")
-                output = {"trajectory": export_html(args.campaign, destination)}
+                output = {"trajectory": export_html(args.campaign, destination, full=args.full)}
             elif args.format == "json":
-                output = read_trace(args.campaign)
                 if args.out:
-                    Path(args.out).write_text(json.dumps(output, ensure_ascii=False, indent=2)+"\n")
-                    return
+                    export_json(args.campaign, args.out)
+                else:
+                    write_json(args.campaign, sys.stdout)
+                return
             else:
                 import contextlib
                 with (open(args.out, "w") if args.out else contextlib.nullcontext(sys.stdout)) as stream:
-                    for event in read_trace(args.campaign)["events"]:
+                    for event in iter_events(args.campaign):
                         print_event(event, stream)
                 return
         elif args.command == "sandbox-check":

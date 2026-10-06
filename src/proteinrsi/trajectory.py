@@ -6,24 +6,23 @@ import sqlite3
 import sys
 import time
 
+from proteinrsi.trace_export import (
+    DETAIL_FIELDS, TRACE_NAMESPACES, _atomic_text, _destination, export_compact_html, snapshot,
+    export_json as export_json, iter_events as iter_events, write_json as write_json,
+)
+
 
 def read_trace(directory):
-    path = (Path(directory)/"state.sqlite3").resolve(strict=True)
-    with sqlite3.connect(path.as_uri()+"?mode=ro", uri=True) as con:
-        rows = con.execute("SELECT namespace,key,value FROM kv").fetchall()
+    with snapshot(directory) as (con, path):
+        names = sorted(TRACE_NAMESPACES)
+        rows = con.execute("SELECT namespace,key,value FROM kv WHERE namespace IN (" +
+            ",".join("?" for _ in names) + ") OR (namespace='campaign' AND key='state')", names).fetchall()
         events = [{"id": i, "timestamp": t, "kind": k, "payload": json.loads(p)}
                   for i, t, k, p in con.execute("SELECT * FROM events ORDER BY id")]
         limits = dict(con.execute("SELECT resource,amount FROM limits"))
         charges = con.execute("SELECT resource,amount,state FROM charges").fetchall()
     records = {}
-    allowed = {"llm_attempts", "validation_llm_attempts", "llm", "tool_jobs", "agent_snapshots", "validation_llm", "validation_tool_jobs",
-        "validation_agent_snapshots", "patches", "trials", "trial_results", "meta_evaluations",
-        "meta_online_attempts", "research_runs", "research_step_outputs", "batches", "measurements",
-        "validation_research_runs", "validation_research_step_outputs", "computational_iterations",
-        "code_programs", "validation_code_programs", "plate_plans", "workflow_validation_outcomes",
-        "method_candidates", "method_candidate_states", "method_transitions", "method_switches",
-        "method_snapshots", "method_activations", "method_deferrals", "method_proposal_failures",
-        "batch_method_bindings", "gepa_attempts", "gepa_results", "gepa_failures"}
+    allowed = TRACE_NAMESPACES
     state = {}
     for ns, key, value in rows:
         if ns == "campaign" and key == "state":
@@ -36,10 +35,7 @@ def read_trace(directory):
         if event["kind"] == "validation_event":
             prefix, branch = "validation_", payload["branch"]+"/"
             payload = payload["payload"]
-        for field, namespace in (("attempt_key", "llm_attempts"), ("key", "llm"), ("key", "tool_jobs"), ("snapshot_ref", "agent_snapshots"),
-                                 ("run_id", "research_runs"), ("output_id", "research_step_outputs"),
-                                 ("snapshot_ref", "method_snapshots"), ("patch_id", "method_candidates"),
-                                 ("archive_ref", "gepa_results")):
+        for field, namespace in DETAIL_FIELDS:
             ref = payload.get(field)
             if not isinstance(ref, str):
                 continue
@@ -69,7 +65,8 @@ def print_event(event, stream=None):
         pass  # A closed display must not abort a persisted research operation.
 
 
-def export_html(directory, destination):
+def _export_full_html(directory, destination):
+    destination = _destination(directory, destination)
     trace = read_trace(directory)
     data = json.dumps(trace, ensure_ascii=False).replace("<", "\\u003c").replace("&", "\\u0026")
     document = '''<!doctype html><html lang="zh"><meta charset="utf-8"><title>ProteinRSI 研究轨迹</title>
@@ -83,9 +80,17 @@ document.getElementById('status').textContent=`来源：${d.source} · 状态：
 document.getElementById('records').textContent=JSON.stringify(d.records,null,2);
 function render(){const q=document.getElementById('filter').value.toLowerCase(),root=document.getElementById('timeline');root.replaceChildren();for(const e of d.events){if(!JSON.stringify(e).toLowerCase().includes(q))continue;const item=document.createElement('details'),title=document.createElement('summary'),body=document.createElement('pre');title.textContent=`#${e.id} ${new Date(e.timestamp*1000).toLocaleString()} · ${e.kind} · ${JSON.stringify(e.payload).slice(0,180)}`;body.textContent=JSON.stringify({payload:e.payload,details:e.details},null,2);item.append(title,body);root.append(item);}}
 document.getElementById('filter').addEventListener('input',render);render();</script></html>'''.replace('DATA', data)
-    destination = Path(destination)
-    destination.write_text(document, encoding="utf-8")
+    with _atomic_text(destination) as stream:
+        stream.write(document)
     return str(destination.resolve())
+
+
+def export_html(directory, destination, *, full=False, page_size=100, preview_bytes=2048):
+    """Default to bounded previews plus exact sidecars; full=True retains legacy HTML."""
+    if full:
+        return _export_full_html(directory, destination)
+    return export_compact_html(directory, destination, page_size=page_size,
+                               preview_bytes=preview_bytes)
 
 
 def follow(directory):

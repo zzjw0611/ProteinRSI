@@ -128,7 +128,15 @@ The separate multi-case `evaluate-meta` protocol retains its existing restrictio
 
 `start` prints live events and exports `trajectory.html`, including on execution
 failure. `proteinrsi trace --campaign RUN --follow` follows events; `--format html`
-exports an offline searchable timeline and `--format json` exports structured records.
+exports an offline, paginated preview with adjacent exact-evidence gzip sidecars. Keep
+`trajectory.html` and its generated `.assets-*` folder together. Each page has at most
+100 entries and 2,048 source bytes per preview; filtering searches only that page's
+previews. Truncation is explicit. Original JSON cells remain byte-exact, deduplicated
+and SHA-256-addressed; the manifest maps every exported record and event to its evidence.
+`--format json --out trace.json.gz` streams the complete legacy JSON schema (including
+linked event details), optionally gzip-compressed. `--format html --full` explicitly
+restores the legacy unbounded inline viewer. `read_trace()` keeps its full in-memory API.
+See [trace export formats and verification](docs/TRACE_EXPORTS.md) for details.
 Snapshots capture revealed evidence, policy versions and budgets. LLM audits retain
 requests, returned text, decision summaries, provider-returned reasoning summaries,
 usage and failures, with credentials redacted. Unavailable hidden reasoning is never

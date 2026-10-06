@@ -123,15 +123,23 @@ GB1 原作者的 fitness 是相对野生型的实验富集分数（WT=1），不
 ```bash
 # 另一个终端跟随运行事件；不调用 LLM 或蛋白工具
 proteinrsi trace --campaign runs/YOUR_RUN --follow
-# 生成可搜索和展开的离线时间线（运行中也可导出当前快照）
+# 生成分页离线预览及相邻的完整证据附件（运行中也可导出一致快照）
 proteinrsi trace --campaign runs/YOUR_RUN --format html
-proteinrsi trace --campaign runs/YOUR_RUN --format json --out trajectory.json
+# 流式导出完整 JSON；.gz 后缀启用 gzip 压缩
+proteinrsi trace --campaign runs/YOUR_RUN --format json --out trajectory.json.gz
+# 显式选择旧版无大小上限的单文件 HTML
+proteinrsi trace --campaign runs/YOUR_RUN --format html --full --out trajectory-full.html
 ```
 
 轨迹包括状态快照、当时已揭示的证据、工作流与 M 版本、实际 LLM 请求及返回文字、
 `decision_notes`（证据、简要理由、替代方案、不确定性与下一项验证）、工具输入输出、
 预算、失败和验收结果。服务若实际返回推理摘要也会保存；未返回的内部思考不会补造。
 API 密钥和鉴权头不写入这些记录。HTML 仅呈现本地记录，不加载外部脚本。
+默认 HTML 每页最多 100 条，每条显示最多 2,048 字节的原始 JSON 预览；截断会明确标注，
+筛选仅检索当前页的预览。请将 HTML 与相邻 `.assets-*` 目录一起保存或复制。
+所有导出事件与记录的完整原始 JSON 字节均保留在去重的 gzip 附件中，并有 SHA-256 清单；
+预览不会替代证据。JSON 导出保持完整旧版结构但改为流式写入，`read_trace()` 保留原有完整内存 API。
+详见 [导出格式、验证与限制](docs/TRACE_EXPORTS.md)。
 
 LLM 默认选择工具／知识资源，然后制定、执行和修订计划；所有蛋白工具可选，实际计算由
 本地工具执行。LLM调用默认上限200，工具调用默认上限100，可用 `--llm-calls` 和
