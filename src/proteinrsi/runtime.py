@@ -121,6 +121,18 @@ class Campaign:
                 **({"method_history": self.methods.visible_history()} if self.methods.enabled else {})})
 
     def prepare(self) -> Batch | None:
+        # Feedback commits before the improver runs. A stopped controller may have
+        # persisted that feedback without its M decision; finish it before planning
+        # the next batch. consider_improvement owns its own lock and rechecks state,
+        # so call it outside this method's planning lock.
+        state = self.state
+        if (state.get("execution_semantics") == "on-demand-v1"
+                and state["task"].get("execution_mode", "experimental") == "experimental"
+                and state["status"] == "ready" and state["history"]
+                and not state["pending_batch"] and not state["pending_patch"] and not state["pending_meta"]
+                and state["considered_round"] != state["round_index"]):
+            self.methods.assert_plannable(state)
+            self.consider_improvement()
         with self.store.lock():
             state = self.state
             if state.get("execution_semantics") != "on-demand-v1":
