@@ -7,8 +7,8 @@ from typing import Any
 
 import numpy as np
 
-from proteinrsi.agents import MetaAgent, Team, skill_text
-from proteinrsi.audit import snapshot
+from proteinrsi.agents import FeedbackAnalysis, MetaAgent, Team, skill_text
+from proteinrsi.audit import redact, snapshot
 from proteinrsi.contracts import (Batch, Candidate, GatePolicy, MetaPolicy, Observation, Patch,
     Sample, TaskKind, TaskSpec, TaskView, Workflow, canonical, digest)
 from proteinrsi.improvement import ExperienceMemory, apply_patch, evaluate_trial
@@ -122,7 +122,7 @@ class Campaign:
 
     def prepare(self) -> Batch | None:
         # Feedback commits before the improver runs. A stopped controller may have
-        # persisted that feedback without its M decision; finish it before planning
+        # persisted that feedback without its C/M decision; finish it before planning
         # the next batch. consider_improvement owns its own lock and rechecks state,
         # so call it outside this method's planning lock.
         state = self.state
@@ -407,15 +407,20 @@ class Campaign:
         with self.store.lock():
             state = self.state
             if (state["status"] != "ready" or state["pending_patch"] or state["pending_meta"]
-                    or self.methods.paused(state)):
+                    or state["pending_batch"] or not state["history"]):
                 return
             if state["considered_round"] == state["round_index"]:
                 return
+            # Direct callers must obey the same frozen-engine check as prepare.
+            self.methods.assert_plannable(state)
             view = self.view(state)
             try:
-                feedback = self.team.analyst.feedback(view)
-                if state["history"]:
-                    state["history"][-1]["analyst_feedback"] = feedback.model_dump()
+                self._checkpoint_feedback(state, view)
+                # Governance pauses method improvement, not analysis of fresh
+                # experimental evidence. Leave M unconsidered so an explicit
+                # idle-boundary resume can use the saved C result.
+                if self.methods.paused(state):
+                    return
                 view = self.view(state)
                 snapshot(self.store, "improver_input", view)
                 response = self.meta_agent.propose(view, state["last_patch_round"])
@@ -433,6 +438,61 @@ class Campaign:
                                                          "error_type": type(exc).__name__})
             state["considered_round"] = state["round_index"]
             self.store.put("campaign", "state", state)
+
+    def _checkpoint_feedback(self, state: dict, view: TaskView) -> None:
+        """Persist actual C success before M; never recreate historical feedback.
+
+        Inputs are frozen separately so a provider pause (or a crash after the
+        provider receipt but before this commit) reuses the exact C request/cache.
+        These controller-only records are not worker-writable method proposals.
+        """
+        identity = {"campaign_id": state["campaign_id"], "round": view.round_index,
+                    "evidence_version": view.evidence_version}
+        key = "feedback-" + digest(identity)
+        saved = self.store.get("feedback_inputs", key)
+        result = self.store.get("feedback_results", key)
+        previous = state["history"][-1].get("analyst_feedback")
+        if result is not None:
+            if (saved is None or result["input_digest"] != digest(saved)
+                    or result["identity"] != identity or result["feedback"] != previous):
+                raise Conflict("Feedback checkpoint differs from its input or committed history")
+            return
+        if previous is not None:
+            # Older states may already contain a real successful C response.
+            # Reuse it without inventing a checkpoint or rerunning that evidence.
+            if saved is not None:
+                raise Conflict("Incomplete feedback checkpoint already has committed history")
+            FeedbackAnalysis.model_validate(previous)
+            return
+        from proteinrsi.prompting import prompt_version
+        llm = self.team.llm
+        provenance = {"workflow": view.workflow.version, "meta": view.meta.version,
+            "method_snapshots": state.get("method_governance", {}).get("active", {}),
+            "prompts": prompt_version(self.store), "backend": "llm" if llm else "deterministic",
+            "model": getattr(llm, "model", None), "url": getattr(llm, "base_url", None),
+            "max_output_tokens": getattr(llm, "max_tokens", None),
+            "client": getattr(llm, "cache_settings", {})}
+        # Keep exact semantic identity even if misconfigured model/URL/settings
+        # contain a credential. Never persist that secret in display provenance,
+        # nor fingerprint ordinary Authorization credentials (rotation is safe).
+        provenance_digest = digest(provenance)
+        if saved is None:
+            saved = {"schema_version": 1, "identity": identity,
+                     "provenance": redact(provenance, (getattr(llm, "api_key", ""),)),
+                     "provenance_digest": provenance_digest,
+                     "view": view.model_dump(mode="json")}
+            self.store.put("feedback_inputs", key, saved, immutable=True)
+        elif saved["identity"] != identity or saved["provenance_digest"] != provenance_digest:
+            raise Conflict("Unfinished feedback must use its original method and provider")
+        feedback = self.team.analyst.feedback(TaskView.model_validate(saved["view"]))
+        result = {"identity": identity, "input_digest": digest(saved),
+                  "feedback": feedback.model_dump(mode="json")}
+        with self.store.transaction():
+            self.store.put("feedback_results", key, result, immutable=True)
+            state["history"][-1]["analyst_feedback"] = result["feedback"]
+            self.store.put("campaign", "state", state)
+            self.store.event("analyst_feedback_completed", {**identity,
+                "feedback_input_ref": key, "feedback_ref": key})
 
     def _stage_patch(self, state: dict, patch: Patch) -> None:
         task = TaskSpec.model_validate(state["task"])
