@@ -150,11 +150,12 @@ class Campaign:
                     evidence_version=view.evidence_version, meta_version=view.meta.version, phase="initialization",
                     samples=[Sample(sample_id=batch_id+"-000", arm="control", workflow_version=view.workflow.version,
                         candidate=Candidate(sequence=task.reference_sequence, source="initial_parent"))])
-                self.store.reserve("lab-"+batch_id, "experimental_wells", 1, batch.model_dump())
-                self.store.put("batches", batch_id, batch.model_dump(), immutable=True)
-                self.methods.bind_batch(state, batch)
-                state["pending_batch"], state["status"] = batch_id, "awaiting_approval"
-                self.store.put("campaign", "state", state)
+                with self.store.transaction():
+                    self.store.reserve("lab-"+batch_id, "experimental_wells", 1, batch.model_dump())
+                    self.store.put("batches", batch_id, batch.model_dump(), immutable=True)
+                    self.methods.bind_batch(state, batch)
+                    state["pending_batch"], state["status"] = batch_id, "awaiting_approval"
+                    self.store.put("campaign", "state", state)
                 export_batch(batch, task, self.store.root/"batches"/batch_id)
                 self.store.event("initial_parent_prepared", {"batch_id": batch_id})
                 return batch
