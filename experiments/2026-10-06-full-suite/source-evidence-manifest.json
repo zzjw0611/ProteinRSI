@@ -144,6 +144,150 @@
       "bytes": 23167,
       "sha256": "09b392fd95a4ba81e2196ce07ffa69517676be42e07d5794e37c41a7c762c6d6",
       "published": false
+    },
+    {
+      "artifact": "studies/ParD2/state.sqlite3",
+      "bytes": 145420288,
+      "sha256": "64c0376d04dd4ff0294bd84dd7f7fbdc7d098c274e266056b4c2f4b443e01ff5",
+      "published": false
+    },
+    {
+      "artifact": "studies/ParD2/report.json",
+      "bytes": 16672,
+      "sha256": "f0625b37726a4be6b266fbe144716f5b9a3f5f2e43a5a4ce4c1402cea0062cf6",
+      "published": false
+    },
+    {
+      "artifact": "reports/ParD2/round-audit.json",
+      "bytes": 28024,
+      "sha256": "8ee1146a761b0ebef8227f79d34f0d13d4126f13977cb491d403ec5ffa6a0f59",
+      "published": false
+    },
+    {
+      "artifact": "reports/ParD2/ceiling.json",
+      "bytes": 921,
+      "sha256": "e2ed789926fdc8a45c79f8bb91c873977fea9bb14b9c6eb0c8f8ac34a43a0ad2",
+      "published": false
+    },
+    {
+      "artifact": "baselines/ParD2/uniform/report.json",
+      "bytes": 6472,
+      "sha256": "82a3aeb81e4049306dec3e750d561d29d4f30961cf5bf74f681b02a67ac8f212",
+      "published": false
+    },
+    {
+      "artifact": "baselines/ParD2/single-first/report.json",
+      "bytes": 6549,
+      "sha256": "6a56ea3928e387c5c6f5140889a255646fe065c43498b1c8f1d08962cbd5c79e",
+      "published": false
+    },
+    {
+      "artifact": "studies/TEV/state.sqlite3",
+      "bytes": 233336832,
+      "sha256": "3b39147ebf325f64b7af747fb48fe0a17f1eab69759330a24788d135927caf3a",
+      "published": false
+    },
+    {
+      "artifact": "studies/TEV/report.json",
+      "bytes": 32293,
+      "sha256": "1db97871fc8806726d004b144177752d351f117c333ab8f7f8523e0fb72686ab",
+      "published": false
+    },
+    {
+      "artifact": "reports/TEV/round-audit.json",
+      "bytes": 29602,
+      "sha256": "b96770bd9c6279471a44c574cdf7f22a14c66b38f0e82ccee3d1457ca31dcea3",
+      "published": false
+    },
+    {
+      "artifact": "reports/TEV/ceiling.json",
+      "bytes": 947,
+      "sha256": "c8fa3154fc3f152cb91df861cbbd36285ae6242da79919bfa738991c684bc9bd",
+      "published": false
+    },
+    {
+      "artifact": "baselines/TEV/uniform/report.json",
+      "bytes": 9483,
+      "sha256": "d09c27388995ff81ecb188bf69b91494ab25882b72d1ea3367d893a69a91a64a",
+      "published": false
+    },
+    {
+      "artifact": "baselines/TEV/single-first/report.json",
+      "bytes": 9481,
+      "sha256": "06c4e0a9c7f21aef3efda428bb85e36632bedff08ca6e5014cd4222bd4c281c5",
+      "published": false
+    },
+    {
+      "artifact": "studies/DHFR/state.sqlite3",
+      "bytes": 178032640,
+      "sha256": "19a19649156d8c0bdca132e3eb627d6b2f04ee9944c4108383b48e64351d3c4f",
+      "published": false
+    },
+    {
+      "artifact": "studies/DHFR/report.json",
+      "bytes": 18698,
+      "sha256": "3c5542d4890db2fcb1d072e436114a0d4cf763d208bb682d72992a55f84311ec",
+      "published": false
+    },
+    {
+      "artifact": "reports/DHFR/round-audit.json",
+      "bytes": 27258,
+      "sha256": "cf148b9fda4cc9d939c4f2777e8ae051b3bedd4560e71525b7c30b08cfbd93f8",
+      "published": false
+    },
+    {
+      "artifact": "reports/DHFR/ceiling.json",
+      "bytes": 983,
+      "sha256": "c980ebd7fb22dda38dc8a374befb573eb3a0aa5e8634001b3a852c6521cd44ce",
+      "published": false
+    },
+    {
+      "artifact": "baselines/DHFR/uniform/report.json",
+      "bytes": 8115,
+      "sha256": "000d0ea5070e66861eb560b442de8b6c0c2ebf9443380a22eaa3ad2c95237687",
+      "published": false
+    },
+    {
+      "artifact": "baselines/DHFR/single-first/report.json",
+      "bytes": 8113,
+      "sha256": "0a43737f080d3bfcc5b9d3a021b6bbc3ce0ee2c576589f3a9d494a46845485ce",
+      "published": false
+    },
+    {
+      "artifact": "studies/TrpB3B/state.sqlite3",
+      "bytes": 267071488,
+      "sha256": "9e622c479053fb897eb59087c6c8bcea9bfdd83428c62aa7a40afc39ac5e24be",
+      "published": false
+    },
+    {
+      "artifact": "studies/TrpB3B/report.json",
+      "bytes": 23624,
+      "sha256": "f74d06ec40545eaddb722888e436695d8ae33fca97252cf395e9cedf5be5f0b5",
+      "published": false
+    },
+    {
+      "artifact": "reports/TrpB3B/round-audit.json",
+      "bytes": 27827,
+      "sha256": "3390992bd9d54072d8d2d03dccf2a22035a4d4c90aa8d5c8cc278dd5e26200d5",
+      "published": false
+    },
+    {
+      "artifact": "reports/TrpB3B/ceiling.json",
+      "bytes": 904,
+      "sha256": "dd9c555c4c6ee3b4692416d10fe8e26115b9c6c5f54047752996b9f0f24d2056",
+      "published": false
+    },
+    {
+      "artifact": "baselines/TrpB3B/uniform/report.json",
+      "bytes": 12645,
+      "sha256": "8e55895b3c656f425817eca17fcdaa066d247a589aea761fa0e217d05bd5401e",
+      "published": false
+    },
+    {
+      "artifact": "baselines/TrpB3B/single-first/report.json",
+      "bytes": 12649,
+      "sha256": "c647ac69a3902fc2eab6c3daf0aaa3bfa440cb8265f01c80d4cb2a9db0813ab9",
+      "published": false
     }
   ]
 }

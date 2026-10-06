@@ -1,0 +1,864 @@
+{
+  "campaign_id": "2cf6ff32-f4f1-4479-a0ed-278cd7bdc680",
+  "status": "complete",
+  "completed_rounds": 20,
+  "metric": "fitness",
+  "unit": "original_reported_fitness_mean",
+  "charges_by_state": {
+    "llm_calls": {
+      "committed": 143
+    },
+    "experimental_wells": {
+      "committed": 2000
+    },
+    "tool_calls": {
+      "committed": 6
+    }
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "batch_id": "b-e3aec70a869c0b60ccfb",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "a482f9d456dc25ee7cde017dd5d40af6625415a3a063021ed870e3bb447108a6",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 2,
+      "batch_id": "b-92db1cc69f6d8b7d3a84",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 100,
+      "verified_prediction_refs": 100,
+      "valid_with_prediction": 100,
+      "valid_without_prediction": 0,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 100,
+      "frozen_valid_prediction_mae": 0.4836946577563547,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "e581f1c2f45f3537ca42774577112130bd7fb9036126809b79967dc7a63e5080",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "completed_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [
+        {
+          "tool": "research_fit_predict",
+          "state": "tool_completed",
+          "branch": null,
+          "job_key": "tool-979b700eba55c87ce24a856c1c015cba834a004d8352c404f4a9d308f8cc79d3"
+        }
+      ],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 3,
+      "batch_id": "b-9838309768b7e2337f2e",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 100,
+      "verified_prediction_refs": 100,
+      "valid_with_prediction": 100,
+      "valid_without_prediction": 0,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 100,
+      "frozen_valid_prediction_mae": 0.12267818586192575,
+      "trial": {
+        "decision": "rejected",
+        "effect": -0.08450345716000002,
+        "interval": [
+          -0.13346584742149994,
+          -0.037347399841500165
+        ],
+        "n_baseline": 50,
+        "n_challenger": 50,
+        "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee",
+        "target": "workflow"
+      },
+      "pipelines": [
+        {
+          "run_id": "20432ffab5218002187a8d023853db872715623fb3b2bd631db400f985fd06a7",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "completed_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        },
+        {
+          "run_id": "d4310dc8f9d2f39e676d974d0db3c72b7a72534314aca72b489b18bf294e1866",
+          "branch": null,
+          "workflow": "w-092a63522a8b51bd",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "completed_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [
+        {
+          "tool": "research_fit_predict",
+          "state": "tool_completed",
+          "branch": null,
+          "job_key": "tool-149a9ef7f841667e90cb5d37e5c8a98a29239272c9b95aa729fa8c17958c1d1f"
+        },
+        {
+          "tool": "research_fit_predict",
+          "state": "tool_completed",
+          "branch": null,
+          "job_key": "tool-c0de802cfa16f8facee6ceca471991d1e80f7d1e599ba67f872e9b0f7dced840"
+        }
+      ],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 4,
+      "batch_id": "b-a47b341ab4435a5c29cd",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": {
+        "decision": "rejected",
+        "effect": -0.20967420374999995,
+        "interval": [
+          -0.25979845398775003,
+          -0.16003513341275002
+        ],
+        "n_baseline": 50,
+        "n_challenger": 50,
+        "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee",
+        "target": "meta"
+      },
+      "pipelines": [
+        {
+          "run_id": "0166dd9d9ae9fafa9dfaa8ac8742aa8f5732da665969fc0e240078e400b18170",
+          "branch": "online-729362c014eae088033c4f3c/baseline",
+          "workflow": "w-e64c5cd8d9158d02",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        },
+        {
+          "run_id": "7b9630eb1e49aeeb6d25cfe5f3602078b86cd74f3df9331d990721da65e4661a",
+          "branch": "online-729362c014eae088033c4f3c/challenger",
+          "workflow": "w-f827b7e7c648fe79",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 5,
+      "batch_id": "b-7fe8ff4d09f7335129e1",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "45b28e34fbbacdd6db2e2ca3abf08e88b86285ded71bb7a80d7409344df028af",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 6,
+      "batch_id": "b-b44e9f3ca79b0b536fc6",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "de5b6e36ab65d9e5a185320f74f5fda19750cf6396f2a1aff1a58cac13a08861",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 7,
+      "batch_id": "b-c9d6c19fda15f0d0090f",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "904fa417dd3b4a0f06fdb7e92e1b14b52af7a3157a11d6e36ce633a31a3b9745",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 8,
+      "batch_id": "b-3c174e197cbeb4e79c13",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "14e1d5db9cb7b70cce81d8ba00d7505169e948196684ac82926ac3def9f7ae6b",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 9,
+      "batch_id": "b-a8e75eefa88041c3a794",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "072ff4440382b8671f48906c16ba2f9adf258e715957c61c77adf1687c9dac53",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 10,
+      "batch_id": "b-2dbd38589bd9b1ccf08f",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "d82db2d40a4353bef1af869c47dd92a601d9fbef8c4d0b44ad4c6d0fd4b3a57c",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 11,
+      "batch_id": "b-ff5e12e3881bda23ea45",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 100,
+      "verified_prediction_refs": 100,
+      "valid_with_prediction": 100,
+      "valid_without_prediction": 0,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 100,
+      "frozen_valid_prediction_mae": 0.17937257250796176,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "ef88227ad46488445d48d6c0481759eb5ba83da4c760da021783e2e487cd8dd1",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "completed_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [
+        {
+          "tool": "research_fit_predict",
+          "state": "tool_completed",
+          "branch": null,
+          "job_key": "tool-79313b8e73c105938a592fada0d479afde397fa839ce7ecf5ef0d3e7ac93935c"
+        }
+      ],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 12,
+      "batch_id": "b-bc43ba8683087e7ea5e9",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "c9797c345f3d3cb045302ab241b00508fe9ce7ccef906ea533625a3a54eb4499",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 13,
+      "batch_id": "b-841b4a0fd721168db53c",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "f9e0aa37501a4a3737f4c95178ff8dc73632b595e648e74daa92a0b9b5e3668c",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 14,
+      "batch_id": "b-9b31bd12653b1e624225",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "e482372e2369bb3ee6805732f75d3f9dff92532e7200fea7996421570ab3e882",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 15,
+      "batch_id": "b-8e61149f05f3655a84c5",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "ae1c595c719b6b579803c0a419dfc9550391df6f1c221628043be81ae81de668",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 16,
+      "batch_id": "b-ed07b206c233bf8885bc",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "f2b952ed0c632b3489e68e26d9f09d9c0f68624cf82153bb58f5f250e6a6caba",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "tool:research_combination_effects",
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "tool:research_combination_effects",
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [
+        {
+          "tool": "research_combination_effects",
+          "state": "tool_completed",
+          "branch": null,
+          "job_key": "tool-2af546e647636598faf05a63407c77f1293a07dcc368883dabe732ce7ecec10b"
+        }
+      ],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 17,
+      "batch_id": "b-1722749c59b8495a16f2",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "f28af7044f9e07987b2244522ceb872058837cf7959da7be4b1f751cb1d904f2",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 18,
+      "batch_id": "b-e6afd7b61baea384b440",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "ccbb9502a3a2007b76c8f055777cd1864711787f7d35998503937d0bf21da5eb",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 19,
+      "batch_id": "b-651a42bcb4021963785d",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 0,
+      "verified_prediction_refs": 0,
+      "valid_with_prediction": 0,
+      "valid_without_prediction": 100,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 0,
+      "frozen_valid_prediction_mae": null,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "caa241492d519520f9180e3cf3ad6ee40e9d895e0e06651b411bb5d767d887fd",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose"
+          ],
+          "completed_operations": [
+            "agent:propose"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    },
+    {
+      "round": 20,
+      "batch_id": "b-a9ef3c1439979c68117b",
+      "submitted": 100,
+      "returned": 100,
+      "valid": 100,
+      "unavailable": 0,
+      "other_nonvalid": 0,
+      "frozen_numeric_predictions": 100,
+      "verified_prediction_refs": 100,
+      "valid_with_prediction": 100,
+      "valid_without_prediction": 0,
+      "unavailable_with_prediction": 0,
+      "frozen_valid_prediction_error_n": 100,
+      "frozen_valid_prediction_mae": 0.08772051916397737,
+      "trial": null,
+      "pipelines": [
+        {
+          "run_id": "04245445a99efcbd00901ffa3f7ac1272ef853e6091f3b936354da04bd79144d",
+          "branch": null,
+          "workflow": "w-740d272631b0663f",
+          "status": "complete",
+          "planned_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "completed_operations": [
+            "agent:propose",
+            "adapter:sequence_arguments",
+            "tool:research_fit_predict",
+            "agent:rank",
+            "agent:select",
+            "adapter:ranked_sequences"
+          ],
+          "revision_count": 0,
+          "repair_count": 0
+        }
+      ],
+      "tool_executions_since_previous_prepared_batch": [
+        {
+          "tool": "research_fit_predict",
+          "state": "tool_completed",
+          "branch": null,
+          "job_key": "tool-1e2c8d6b3d31c7cee93cfea9da405cd7d91183e8d57db8248ddb6947884b3167"
+        }
+      ],
+      "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."
+    }
+  ],
+  "source_note": "Read-only audit of this campaign only; no source landscape or comparator labels read."
+}
