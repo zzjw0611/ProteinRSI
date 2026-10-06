@@ -5,13 +5,21 @@ on:
 permissions:
   contents: read
 jobs:
-  snapshot:
+  verify-transport:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-      - run: git archive --format=tar HEAD > source.tar
       - uses: actions/upload-artifact@v4
         with:
-          name: source-review
-          path: source.tar
+          name: review-payloads
+          path: .github/review-payloads/*.gz
+          include-hidden-files: true
           retention-days: 1
+      - name: Verify exact reviewed patch
+        run: |
+          python - <<'PY'
+          import gzip, hashlib
+          from pathlib import Path
+          data = b''.join(gzip.decompress(Path(f'.github/review-payloads/{i}.patch.gz').read_bytes()) for i in range(1, 5))
+          assert hashlib.sha256(data).hexdigest() == '7e4ae55b752d1c61be7e723d64ee2635624ad90ecf9a777d30c160c9bdf334e5'
+          PY
