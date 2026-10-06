@@ -1,0 +1,411 @@
+{
+  "status": "partial",
+  "completed_landscapes": 4,
+  "planned_landscapes": 16,
+  "engine_commit": "ff678883c496610458d179807b0a54443fd940fd",
+  "execution": "approved trusted inprocess; no OS-level label isolation claim",
+  "comparators": {
+    "seed": 17,
+    "queries_per_policy_per_landscape": 2000,
+    "policies": [
+      "uniform",
+      "single-first"
+    ],
+    "precommitted_orders_before_oracle_access": true
+  },
+  "tasks": [
+    {
+      "landscape": "GB1",
+      "campaign_id": "2c674a47-fbb5-4db0-9ae0-ac37c3006d79",
+      "rounds": 20,
+      "new_queries": 2000,
+      "valid": 1953,
+      "unavailable": 47,
+      "repeat_queries": 0,
+      "provided_parent": 1.0,
+      "best_measured_including_parent": 8.761965656,
+      "best_variant": {
+        "sequence": "MQYKLILNGKTLKGETTTEAVDAATAEKVFKQYANDNGFWAEWTYDDATKTFTATE",
+        "mutations": [
+          "V39F",
+          "D40W",
+          "G41A",
+          "V54A"
+        ],
+        "value": 8.761965656,
+        "sample_id": "b-8d6ee332101fbd011a96-059",
+        "batch_id": "b-8d6ee332101fbd011a96",
+        "source": "measured_replay"
+      },
+      "unit": "reported_enrichment_relative_to_WT",
+      "first_round_at_final_best": 3,
+      "calls": {
+        "llm_calls": 127,
+        "experimental_wells": 2000,
+        "tool_calls": 4
+      },
+      "frozen_predictions": 250,
+      "valid_prediction_error_n": 249,
+      "valid_without_prediction": 1704,
+      "workflow_trials": {
+        "b-92cbd26b0981ded1261a": {
+          "decision": "inconclusive",
+          "effect": null,
+          "interval": null,
+          "n_baseline": 49,
+          "n_challenger": 50,
+          "reason": "Historical coverage missing; no promotion from a selectively observed subset"
+        }
+      },
+      "meta_evaluations": {},
+      "terminal_restart_idempotence": "passed",
+      "comparators": {
+        "uniform": {
+          "seed": 17,
+          "queries": 2000,
+          "best_measured_value": 4.802041538,
+          "proposal_sha256": "40e6eab56e29c93ee272d2da948cdb212599f6e0a9f4602252b03da023b8664d",
+          "dataset_sha256": "33e592205b0f4b1032266f369066fbdd98810649f08f79c9226d1c89e3d9d26c",
+          "valid_queries": 1876,
+          "unavailable_queries": 124
+        },
+        "single-first": {
+          "seed": 17,
+          "queries": 2000,
+          "best_measured_value": 4.721708359,
+          "proposal_sha256": "bdf04893c97743d851aa9d2ae47e95856e352a3b0cd22911cadc5523402dd08a",
+          "dataset_sha256": "33e592205b0f4b1032266f369066fbdd98810649f08f79c9226d1c89e3d9d26c",
+          "valid_queries": 1856,
+          "unavailable_queries": 144
+        }
+      },
+      "posthoc_ceiling": {
+        "audit_phase": "posthoc_after_terminal_no_agent_feedback",
+        "campaign_id": "2c674a47-fbb5-4db0-9ae0-ac37c3006d79",
+        "completed_rounds": 20,
+        "dataset_sha256": "33e592205b0f4b1032266f369066fbdd98810649f08f79c9226d1c89e3d9d26c",
+        "metric": "fitness",
+        "unit": "reported_enrichment_relative_to_WT",
+        "direction": "maximize",
+        "valid_landscape_records": 149361,
+        "revealed_best": 8.761965656,
+        "landscape_optimum_value": 8.761965656,
+        "remaining_score_gap": 0.0,
+        "records_strictly_better_than_revealed_best": 0,
+        "provided_or_queried_parent_value": 1.0,
+        "records_strictly_better_than_parent": 3643,
+        "unqueried_sequence_identities_exported": false,
+        "interpretation": "Evaluation-only access after the study stopped. These labels were not available to the proposer and do not count as discovered variants or justify earlier stopping. The optimum is only over supplied historical records, not all possible biology."
+      }
+    },
+    {
+      "landscape": "ParD3",
+      "campaign_id": "bb3e987b-3066-4fde-9a99-b76694b3f82e",
+      "rounds": 20,
+      "new_queries": 2000,
+      "valid": 1982,
+      "unavailable": 18,
+      "repeat_queries": 0,
+      "provided_parent": 1.0,
+      "best_measured_including_parent": 1.017502225,
+      "best_variant": {
+        "sequence": "MANVEKMSVAVTPQQAAVMREAVEAGEYATASEIVREAVRDWLAKRELRHDDIRRLRQLWDEGWASGRPEPVDFDALRKEARQKLTEVPPNGR",
+        "mutations": [
+          "K64W"
+        ],
+        "value": 1.017502225,
+        "sample_id": "b-ae1343e6d217740b260d-036",
+        "batch_id": "b-ae1343e6d217740b260d",
+        "source": "measured_replay"
+      },
+      "unit": "original_reported_fitness",
+      "first_round_at_final_best": 1,
+      "calls": {
+        "llm_calls": 125,
+        "experimental_wells": 2000,
+        "tool_calls": 3
+      },
+      "frozen_predictions": 200,
+      "valid_prediction_error_n": 199,
+      "valid_without_prediction": 1783,
+      "workflow_trials": {
+        "b-59071a11d024fd843c14": {
+          "decision": "inconclusive",
+          "effect": null,
+          "interval": null,
+          "n_baseline": 49,
+          "n_challenger": 50,
+          "reason": "Historical coverage missing; no promotion from a selectively observed subset"
+        },
+        "b-7763cd26244a741dd8d1": {
+          "decision": "rejected",
+          "effect": -0.1873525715800003,
+          "interval": [
+            -0.24414839954600034,
+            -0.12595924423450008
+          ],
+          "n_baseline": 50,
+          "n_challenger": 50,
+          "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+        }
+      },
+      "meta_evaluations": {
+        "online-5c2396dc314bad8c8766fbdc": {
+          "target": "meta",
+          "protocol": "prospective-disjoint-descendants-v1",
+          "scope": "current_task_only",
+          "charged_queries": 100,
+          "total_plate_queries": 100,
+          "promoted": false,
+          "transfer_validated": false,
+          "result": {
+            "decision": "rejected",
+            "effect": -0.1873525715800003,
+            "interval": [
+              -0.24414839954600034,
+              -0.12595924423450008
+            ],
+            "n_baseline": 50,
+            "n_challenger": 50,
+            "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+          }
+        }
+      },
+      "terminal_restart_idempotence": "passed",
+      "comparators": {
+        "uniform": {
+          "seed": 17,
+          "queries": 2000,
+          "best_measured_value": 1.004218588,
+          "proposal_sha256": "0c3480ca48b19af15571e929b9d8ec374ea3f20faf1adbfea801bde40b571c03",
+          "dataset_sha256": "f9c8048f474ac59b4662cab3fc35d40ded408954640780cd44817a13e6a86e79",
+          "valid_queries": 1976,
+          "unavailable_queries": 24
+        },
+        "single-first": {
+          "seed": 17,
+          "queries": 2000,
+          "best_measured_value": 1.017502225,
+          "proposal_sha256": "e2ff82a0b27355e34cca31616b6006cc691326c94503935d406c2d31e3816c2b",
+          "dataset_sha256": "f9c8048f474ac59b4662cab3fc35d40ded408954640780cd44817a13e6a86e79",
+          "valid_queries": 1977,
+          "unavailable_queries": 23
+        }
+      },
+      "posthoc_ceiling": {
+        "audit_phase": "posthoc_after_terminal_no_agent_feedback",
+        "campaign_id": "bb3e987b-3066-4fde-9a99-b76694b3f82e",
+        "completed_rounds": 20,
+        "dataset_sha256": "f9c8048f474ac59b4662cab3fc35d40ded408954640780cd44817a13e6a86e79",
+        "metric": "fitness",
+        "unit": "original_reported_fitness",
+        "direction": "maximize",
+        "valid_landscape_records": 7882,
+        "revealed_best": 1.017502225,
+        "landscape_optimum_value": 1.017502225,
+        "remaining_score_gap": 0.0,
+        "records_strictly_better_than_revealed_best": 0,
+        "provided_or_queried_parent_value": 1.0,
+        "records_strictly_better_than_parent": 6,
+        "unqueried_sequence_identities_exported": false,
+        "interpretation": "Evaluation-only access after the study stopped. These labels were not available to the proposer and do not count as discovered variants or justify earlier stopping. The optimum is only over supplied historical records, not all possible biology."
+      }
+    },
+    {
+      "landscape": "TrpB3A",
+      "campaign_id": "bc5fd520-7afd-4c56-b1e5-3c15fa5882c5",
+      "rounds": 20,
+      "new_queries": 2000,
+      "valid": 1988,
+      "unavailable": 12,
+      "repeat_queries": 0,
+      "provided_parent": 1.0,
+      "best_measured_including_parent": 1.0,
+      "best_variant": {
+        "sequence": "MKGYFGPYGGQYVPEILMGALEELEAAYEGIMKDESFWKEFNDLLRDYAGRPTPLYFARRLSEKYGARVYLKREDLLHTGAHKINNAIGQVLLAKLMGKTRIIAETGAGQHGVATATAAALFGMECVIYMGEEDTIRQKLNVERMKLLGAKVVPVKSGSRTLKDAIDEALRDWITNLQTTYYVFGSVVGPHPYPIIVRNFQKVIGEETKKQIPEKEGRLPDYIVACVSGGSNAAGIFYPFIDSGVKLIGVEAGGEGLETGKHAASLLKGKIGYLHGSKTFVLQDDWGQVQVSHSVSAGLDYSGVGPEHAYWRETGKVLYDAVTDEEALDAFIELSRLEGIIPALESSHALAYLKKINIKGKVVVVNLSGRGDKDLESVLNHPYVRERIRL",
+        "mutations": [],
+        "value": 1.0,
+        "sample_id": "provided-parent",
+        "batch_id": "provided-initial-evidence",
+        "source": "measured_replay"
+      },
+      "unit": "original_reported_fitness",
+      "first_round_at_final_best": 1,
+      "calls": {
+        "llm_calls": 115,
+        "experimental_wells": 2000,
+        "tool_calls": 2
+      },
+      "frozen_predictions": 100,
+      "valid_prediction_error_n": 100,
+      "valid_without_prediction": 1888,
+      "workflow_trials": {
+        "b-0a922dc2cb39429c8735": {
+          "decision": "inconclusive",
+          "effect": 0.01038949770771707,
+          "interval": [
+            -0.013572585701167601,
+            0.034965226726149774
+          ],
+          "n_baseline": 50,
+          "n_challenger": 50,
+          "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+        },
+        "b-7baba97d53cea461b864": {
+          "decision": "rejected",
+          "effect": -0.01873921413069162,
+          "interval": [
+            -0.03292946979775918,
+            -0.0034553053773873806
+          ],
+          "n_baseline": 50,
+          "n_challenger": 50,
+          "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+        }
+      },
+      "meta_evaluations": {
+        "online-a68a53ef26e44766efea3002": {
+          "target": "meta",
+          "protocol": "prospective-disjoint-descendants-v1",
+          "scope": "current_task_only",
+          "charged_queries": 100,
+          "total_plate_queries": 100,
+          "promoted": false,
+          "transfer_validated": false,
+          "result": {
+            "decision": "rejected",
+            "effect": -0.01873921413069162,
+            "interval": [
+              -0.03292946979775918,
+              -0.0034553053773873806
+            ],
+            "n_baseline": 50,
+            "n_challenger": 50,
+            "reason": "Single prespecified exploratory bootstrap comparison; not a generalization guarantee"
+          }
+        }
+      },
+      "terminal_restart_idempotence": "passed",
+      "comparators": {
+        "uniform": {
+          "seed": 17,
+          "queries": 2000,
+          "best_measured_value": 1.0,
+          "proposal_sha256": "ed9356e105058d53a78722b09e9993f698ac1fc58b0854d9c01cfaf2b8227f17",
+          "dataset_sha256": "c39b20f2699809aeda281496b891b1eefcca157cd13071f44ac3bbd611bc5182",
+          "valid_queries": 1993,
+          "unavailable_queries": 7
+        },
+        "single-first": {
+          "seed": 17,
+          "queries": 2000,
+          "best_measured_value": 1.0,
+          "proposal_sha256": "4321b49f082d0308f79eaa0ef17e5a9af7b793338d33fff31e1e5564c8af4608",
+          "dataset_sha256": "c39b20f2699809aeda281496b891b1eefcca157cd13071f44ac3bbd611bc5182",
+          "valid_queries": 1993,
+          "unavailable_queries": 7
+        }
+      },
+      "posthoc_ceiling": {
+        "audit_phase": "posthoc_after_terminal_no_agent_feedback",
+        "campaign_id": "bc5fd520-7afd-4c56-b1e5-3c15fa5882c5",
+        "completed_rounds": 20,
+        "dataset_sha256": "c39b20f2699809aeda281496b891b1eefcca157cd13071f44ac3bbd611bc5182",
+        "metric": "fitness",
+        "unit": "original_reported_fitness",
+        "direction": "maximize",
+        "valid_landscape_records": 7971,
+        "revealed_best": 1.0,
+        "landscape_optimum_value": 1.0,
+        "remaining_score_gap": 0.0,
+        "records_strictly_better_than_revealed_best": 0,
+        "provided_or_queried_parent_value": 1.0,
+        "records_strictly_better_than_parent": 0,
+        "unqueried_sequence_identities_exported": false,
+        "interpretation": "Evaluation-only access after the study stopped. These labels were not available to the proposer and do not count as discovered variants or justify earlier stopping. The optimum is only over supplied historical records, not all possible biology."
+      }
+    },
+    {
+      "landscape": "T7",
+      "campaign_id": "03130858-cd63-4ca0-b6e2-76fae006e765",
+      "rounds": 20,
+      "new_queries": 2000,
+      "valid": 1622,
+      "unavailable": 378,
+      "repeat_queries": 0,
+      "provided_parent": 0.24515374,
+      "best_measured_including_parent": 0.65786237,
+      "best_variant": {
+        "sequence": "MNTINIAKNDFSDIELAAIPFNTLADHYGERLAREQLALEHESYEMGEARFRKMFERQLKAGEVADNAAAKPLITTLLPKMIARINDWFEEVKAKRGKRPTAFQFLQEIKPEAVAYITIKTTLACLTSADNTTVQAVASAIGRAIEDEARFGRIRDLEAKHFKKNVEEQLNKRVGHVYKKAFMQVVEADMLSKGLLGGEAWSSWHKEDSIHVGVRCIEMLIESTGMVSLHRQNAGVVGQDSETIELAPEYAEAIATRAGALAGISPMFQPCVVPPKPWTGITGGGYWANGRRPLALVRTHSKKALMRYEDVYMPEVYKAINIAQNTAWKINKKVLAVANVITKWKHCPVEDIPAIEREELPMKPEDIDMNPEALTAWKRAAAAVYRKDKARKSRRISLEFMLEQANKFANHKAIWFPYNMDWRGRVYAVSMFNPQGNDMTKGLLTLAKGKPIGKEGYYWLKIHGANCAGVDKVPFPERIKFIEENHENIMACAKSPLENTWWAEQDSPFCFLAFCFEYAGVQHHGLSYNCSLPLAFDGSCSGIQHFSAMLRDEVGGRAVNLLPSETVQDIYGIVAKKVNEILQADAINGTDNEVVTVTDENTGEISEKVKLGTKALAGQWLAYGVTRSVTKRSVMTLAYGSKEFGFRQQVLEDTIQPAIDSGKGLMFTQPNQAAGYMAKLIWESVSVTVVAAVEAMNWLKSAAKLLAAEVKDKKTGEILRKRCAVHWVTPDGFPVWQEYKKPIQTRLFLMFLGQFCLQPTINTNKDSEIDAHKQESGIAPNFVHSQDGSHLRKTVVWAHEKYGIESFALIHDSFGTIPADAANLFKAVRETMVDTYESCDVLADFYDQFADQLHESQLDKMPALPAKGNLNLRDILESDFAFA",
+        "mutations": [
+          "N748F",
+          "R756C"
+        ],
+        "value": 0.65786237,
+        "sample_id": "b-48af56ec100cbac18574-070",
+        "batch_id": "b-48af56ec100cbac18574",
+        "source": "measured_replay"
+      },
+      "unit": "original_reported_fitness_mean",
+      "first_round_at_final_best": 3,
+      "calls": {
+        "llm_calls": 118,
+        "experimental_wells": 2000,
+        "tool_calls": 4
+      },
+      "frozen_predictions": 250,
+      "valid_prediction_error_n": 197,
+      "valid_without_prediction": 1425,
+      "workflow_trials": {
+        "b-48af56ec100cbac18574": {
+          "decision": "inconclusive",
+          "effect": null,
+          "interval": null,
+          "n_baseline": 43,
+          "n_challenger": 29,
+          "reason": "Historical coverage missing; no promotion from a selectively observed subset"
+        }
+      },
+      "meta_evaluations": {},
+      "terminal_restart_idempotence": "passed",
+      "comparators": {
+        "uniform": {
+          "seed": 17,
+          "queries": 2000,
+          "best_measured_value": 0.8512114,
+          "proposal_sha256": "2d7cd90a15a160aa12b7d08ccb9e0cc83e9c30eb6085e9c9056808c0dfe8c86b",
+          "dataset_sha256": "6489ae90269dc1c5f9d996d6a54c602ef47d8d33a015d8df64b5a0bc9618fb6f",
+          "valid_queries": 1666,
+          "unavailable_queries": 334
+        },
+        "single-first": {
+          "seed": 17,
+          "queries": 2000,
+          "best_measured_value": 0.8512114,
+          "proposal_sha256": "39df1badbf0461d9d89ecd4eee078ed3e6292eaefc61f8603b50035a00974c64",
+          "dataset_sha256": "6489ae90269dc1c5f9d996d6a54c602ef47d8d33a015d8df64b5a0bc9618fb6f",
+          "valid_queries": 1682,
+          "unavailable_queries": 318
+        }
+      },
+      "posthoc_ceiling": {
+        "audit_phase": "posthoc_after_terminal_no_agent_feedback",
+        "campaign_id": "03130858-cd63-4ca0-b6e2-76fae006e765",
+        "completed_rounds": 20,
+        "dataset_sha256": "6489ae90269dc1c5f9d996d6a54c602ef47d8d33a015d8df64b5a0bc9618fb6f",
+        "metric": "fitness",
+        "unit": "original_reported_fitness_mean",
+        "direction": "maximize",
+        "valid_landscape_records": 6725,
+        "revealed_best": 0.65786237,
+        "landscape_optimum_value": 0.8512114,
+        "remaining_score_gap": 0.19334902999999992,
+        "records_strictly_better_than_revealed_best": 11,
+        "provided_or_queried_parent_value": 0.24515374,
+        "records_strictly_better_than_parent": 162,
+        "unqueried_sequence_identities_exported": false,
+        "interpretation": "Evaluation-only access after the study stopped. These labels were not available to the proposer and do not count as discovered variants or justify earlier stopping. The optimum is only over supplied historical records, not all possible biology."
+      }
+    }
+  ]
+}
