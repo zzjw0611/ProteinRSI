@@ -37,3 +37,26 @@ run or seed against these simple comparators does not establish statistical
 superiority, generalization, wet-lab benefit, or scientific RSI efficacy. Report
 negative and inconclusive comparisons too. A stronger evaluation needs a frozen,
 independent multi-seed protocol and must account for adaptive method selection.
+
+## Prediction denominators and posthoc ceilings
+
+`scripts/summarize_replay_study.py --campaign ... --out ...` reads a consistent,
+read-only campaign snapshot. It records each round's actual completed protocol
+operations, tool execution receipts, valid and unavailable queries, frozen
+prediction coverage, and the exact valid-sample denominator for MAE. Protected
+prediction references are rechecked against their immutable artifact. A design
+that ran a tool but did not pass its result through C may have no frozen numbers;
+the audit does not fill them in after seeing measurements.
+
+`scripts/evaluate_replay_ceiling.py --campaign ... --dataset ... --out ...` is an
+operator-only, **terminal-only** evaluation. It refuses an unfinished campaign
+before opening the source landscape, verifies the pinned source digest and saved
+feedback, then reports the attainable score ceiling and remaining score gap in
+that task's original metric. It does not export identities of unqueried variants
+or modify a campaign's observations or budget.
+
+This posthoc access can distinguish a search miss from a landscape containing no
+higher-than-parent record. It cannot justify an earlier stopping decision or
+turn an unqueried variant into a discovered result. Do not feed its output to
+new or unfinished research agents. All baseline and ceiling results must remain
+clearly separate from information available during the live search.

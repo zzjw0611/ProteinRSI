@@ -99,3 +99,20 @@ wrote a reply or proof of which model generated it.
 
 Automated tests use transport-only fixtures; they do not demonstrate live model
 quality or successful scientific experiments.
+
+## Freezing predictions for later error analysis
+
+A designer proposal is intentionally unscored at the design boundary. Putting
+`predicted_value` or `prediction_ref` directly in B's Candidate response does not
+freeze that number, even when B previously requested a real prediction tool.
+A one-step `agent:propose` protocol can therefore submit valid designs with no
+frozen prediction error record. An unscored batch correctly has `n=0` in the
+prediction-error analysis; do not retrofit its predictions after measurement.
+
+When the scientific decision needs prospective prediction checks, plan an explicit
+prediction-to-analysis path: design candidates, bind their actual sequences to
+`research_fit_predict`, supply its actual result to `agent:rank`, have C select
+the returned artifact via `prediction_refs`, then pass the ranking through
+`agent:select` and `adapter:ranked_sequences`. Only validated tool-derived
+annotations survive into the frozen batch. Merely mentioning fitting in a
+question does not execute a tool, and copying a number is not provenance.
