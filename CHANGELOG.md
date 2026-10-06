@@ -1,3 +1,12 @@
+## Unreleased — method governance
+
+- Add immutable W/M method/source snapshots, parent-linked candidates and per-batch provenance.
+- Unify candidate failure/uncertainty states and online/offline adoption records; definite failed W candidates no longer own ordinary research progress.
+- Add operator-only `methods status/snapshot/rollback/abandon/resume`, bounded failure pauses and distinct-round deferrals.
+- Atomically commit state transitions with audit records; preserve raw measurements and incurred costs on failed publication.
+- Retain full optional GEPA optimization archives and expose bounded task-local outcome summaries without leaking live candidates into comparison context.
+- Keep historical campaigns and scientific gate metrics unchanged; do not expand generated-code permissions or add automatic cross-study transfer.
+
 # Changes in v0.5.0
 
 - Actual LLM paths use scientific tools only on explicit request; no implicit ESMC/Ridge.

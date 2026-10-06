@@ -138,7 +138,7 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
             raise ValueError("Meta initial observations must match evaluator-owned labels")
     # Atomically claim an evaluation attempt: duplicate controllers cannot perform
     # real calls twice under the same sponsor idempotency keys.
-    with campaign.store.lock():
+    with campaign.store.lock(), campaign.store.transaction():
         current = campaign.state
         if (current["workflow"] != snapshot["workflow"] or current["meta"] != snapshot["meta"]
                 or current["pending_meta"] != snapshot["pending_meta"] or current["status"] != "ready"):
@@ -148,18 +148,34 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
         if required_queries > campaign.store.remaining("experimental_wells"):
             raise ValueError("Meta evaluation does not fit the remaining SHARED experimental query budget")
         before_usage = campaign.store.usage()
-        campaign.store.put("meta_attempts", evaluation_id, {"state": "started", "required_queries": required_queries})
+        campaign.methods.begin(current, patch)
+        campaign.store.put("meta_attempts", evaluation_id, {"state": "started", "patch_id": patch.patch_id,
+            "required_queries": required_queries})
     prompt_bundle = campaign.store.get("configuration", "prompt_bundle")
-    with TemporaryDirectory(prefix="proteinrsi-meta-") as directory:
-        for i, case in enumerate(cases):
-            old, trace_old = _offspring_score(case, base_w, base_m, f"{directory}/{i}-old", team_factory,
-                                          protein_config, protein_pin, research_config, know_how,
-                                          campaign.store, evaluation_id+f"-{i}-old", prompt_bundle)
-            new, trace_new = _offspring_score(case, base_w, child_m, f"{directory}/{i}-new", team_factory,
-                                          protein_config, protein_pin, research_config, know_how,
-                                          campaign.store, evaluation_id+f"-{i}-new", prompt_bundle)
-            grouped[case.group_id].append((old, new))
-            traces.append({"baseline": trace_old, "challenger": trace_new})
+    try:
+        with TemporaryDirectory(prefix="proteinrsi-meta-") as directory:
+            for i, case in enumerate(cases):
+                old, trace_old = _offspring_score(case, base_w, base_m, f"{directory}/{i}-old", team_factory,
+                                              protein_config, protein_pin, research_config, know_how,
+                                              campaign.store, evaluation_id+f"-{i}-old", prompt_bundle)
+                new, trace_new = _offspring_score(case, base_w, child_m, f"{directory}/{i}-new", team_factory,
+                                              protein_config, protein_pin, research_config, know_how,
+                                              campaign.store, evaluation_id+f"-{i}-new", prompt_bundle)
+                grouped[case.group_id].append((old, new))
+                traces.append({"baseline": trace_old, "challenger": trace_new})
+    except Exception as exc:
+        with campaign.store.lock(), campaign.store.transaction():
+            current = campaign.state
+            same_candidate = current["pending_meta"] == snapshot["pending_meta"]
+            recoverable = False
+            if same_candidate and campaign.methods.enabled:
+                recoverable = campaign.methods.failure(current, patch, exc)
+            campaign.store.put("meta_attempts", evaluation_id, {"state": "failed" if recoverable else "blocked",
+                "patch_id": patch.patch_id, "required_queries": required_queries,
+                "error_type": type(exc).__name__})
+            campaign.store.event("meta_evaluation_failed", {"evaluation_id": evaluation_id,
+                "patch_id": patch.patch_id, "error_type": type(exc).__name__, "blocked": not recoverable})
+        raise
     # Seeds/related cases from one protein/group do not count as independent proteins.
     means = [np.asarray(scores).mean(axis=0) for scores in grouped.values()]
     gate = compare_scores([float(x[0]) for x in means], [float(x[1]) for x in means],
@@ -178,19 +194,16 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
     key = digest({"patch": patch.patch_id, "manifest": manifest_hash, "base_w": base_w.version,
                   "protein_config": protein_config, "protein_pin": protein_pin,
                   "research": research_config, "know_how": digest(know_how)})
-    with campaign.store.lock():
+    with campaign.store.lock(), campaign.store.transaction():
         current = campaign.state
         if (current["workflow"] != snapshot["workflow"] or current["meta"] != snapshot["meta"]
             or current["pending_meta"] != snapshot["pending_meta"] or current["status"] != "ready"):
             raise Conflict("Campaign changed while evaluator was running; no version was published")
         if promote:
-            if gate.decision == "accepted":
-                current["meta"] = child_m.model_dump()
-                campaign.store.put("meta_versions", child_m.version, child_m.model_dump(), immutable=True)
-                report["promoted"] = True
-            # One prespecified look: inconclusive candidates are archived, not silently retried.
-            current["pending_meta"] = None
-            campaign.store.put("campaign", "state", current)
+            campaign.methods.complete(current, patch, gate, child_m, evaluation_ref="meta_evaluations/"+key)
+            report["promoted"] = gate.decision == "accepted"
+        elif campaign.methods.enabled:
+            campaign.methods.transition(current, patch, "staged", {"report_only": key})
         campaign.store.put("meta_evaluations", key, report)
         campaign.store.put("meta_attempts", evaluation_id, {"state": "completed", "report_key": key})
         campaign.store.event("meta_evaluated", {"evaluation_id": key, "promoted": report["promoted"],

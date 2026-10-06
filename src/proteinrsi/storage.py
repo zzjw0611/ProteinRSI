@@ -6,6 +6,8 @@ from contextlib import contextmanager
 from pathlib import Path
 import sqlite3
 import time
+import threading
+import logging
 from typing import Any, Iterator
 import json
 
@@ -23,6 +25,7 @@ class Conflict(RuntimeError):
 class Store:
     def __init__(self, directory: str | Path):
         self.event_sink = None
+        self._transaction = threading.local()
         self.root = Path(directory).resolve()
         self.root.mkdir(parents=True, exist_ok=True)
         self.path = self.root / "state.sqlite3"
@@ -40,6 +43,10 @@ class Store:
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
+        active = getattr(self._transaction, "connection", None)
+        if active is not None:
+            yield active
+            return
         con = sqlite3.connect(self.path, timeout=30)
         con.row_factory = sqlite3.Row
         try:
@@ -47,6 +54,59 @@ class Store:
                 yield con
         finally:
             con.close()
+
+    @contextmanager
+    def transaction(self) -> Iterator[None]:
+        """Atomically persist controller state and its audit; never hold across remote calls.
+
+        Nested transactions use savepoints. Events reach UI sinks only after the
+        outer commit, so a failed transition cannot appear as a published version.
+        This capability is deliberately absent from the research worker RPC.
+        """
+        active = getattr(self._transaction, "connection", None)
+        if active is not None:
+            depth = self._transaction.depth + 1
+            name = f"controller_{depth}"
+            count = len(self._transaction.events)
+            self._transaction.depth = depth
+            active.execute(f"SAVEPOINT {name}")
+            try:
+                yield
+            except BaseException:
+                active.execute(f"ROLLBACK TO {name}")
+                del self._transaction.events[count:]
+                raise
+            finally:
+                active.execute(f"RELEASE {name}")
+                self._transaction.depth -= 1
+            return
+        events = []
+        with self.connect() as con:
+            con.execute("BEGIN IMMEDIATE")
+            self._transaction.connection = con
+            self._transaction.events = events
+            self._transaction.depth = 0
+            try:
+                yield
+            finally:
+                del self._transaction.connection
+                del self._transaction.events
+                del self._transaction.depth
+        for event in events:
+            self._emit_event(event)
+
+    @staticmethod
+    def _begin(con: sqlite3.Connection) -> None:
+        if not con.in_transaction:
+            con.execute("BEGIN IMMEDIATE")
+
+    def _emit_event(self, event: dict) -> None:
+        if self.event_sink is not None:
+            try:
+                self.event_sink(event)
+            except Exception:
+                # A display failure must not make a committed action look retryable.
+                logging.getLogger(__name__).exception("Audit sink failed after database commit")
 
     @contextmanager
     def lock(self) -> Iterator[None]:
@@ -67,7 +127,7 @@ class Store:
     def put(self, namespace: str, key: str, value: Any, *, immutable: bool = False) -> None:
         encoded = canonical(value)
         with self.connect() as con:
-            con.execute("BEGIN IMMEDIATE")
+            self._begin(con)
             row = con.execute("SELECT value FROM kv WHERE namespace=? AND key=?", (namespace, key)).fetchone()
             if immutable and row and row["value"] != encoded:
                 raise Conflict(f"Cannot overwrite immutable {namespace}/{key}")
@@ -85,8 +145,11 @@ class Store:
             cursor = con.execute("INSERT INTO events(timestamp,kind,payload) VALUES (?,?,?)",
                                  (timestamp, kind, canonical(payload)))
             event_id = cursor.lastrowid
-        if self.event_sink is not None:
-            self.event_sink({"id": event_id, "timestamp": timestamp, "kind": kind, "payload": payload})
+        event = {"id": event_id, "timestamp": timestamp, "kind": kind, "payload": payload}
+        if getattr(self._transaction, "connection", None) is not None:
+            self._transaction.events.append(event)
+        else:
+            self._emit_event(event)
 
     def events(self) -> list[dict]:
         with self.connect() as con:
@@ -95,7 +158,7 @@ class Store:
 
     def configure_budget(self, resources: dict[str, int]) -> None:
         with self.connect() as con:
-            con.execute("BEGIN IMMEDIATE")
+            self._begin(con)
             existing = dict(con.execute("SELECT resource,amount FROM limits").fetchall())
             if existing and existing != resources:
                 raise Conflict("Cannot reset an existing campaign budget")
@@ -109,7 +172,7 @@ class Store:
             raise ValueError("Negative/fractional resource charge")
         fingerprint = digest(payload)
         with self.connect() as con:
-            con.execute("BEGIN IMMEDIATE")
+            self._begin(con)
             old = con.execute("SELECT * FROM charges WHERE key=?", (key,)).fetchone()
             if old:
                 if (old["resource"], old["amount"], old["fingerprint"]) != (resource, amount, fingerprint):
@@ -128,7 +191,7 @@ class Store:
 
     def settle(self, key: str, *, release: bool = False) -> None:
         with self.connect() as con:
-            con.execute("BEGIN IMMEDIATE")
+            self._begin(con)
             row = con.execute("SELECT state FROM charges WHERE key=?", (key,)).fetchone()
             if not row:
                 raise KeyError(key)

@@ -86,7 +86,7 @@ def test_sponsor_blocks_free_new_budget(tmp_path):
 def test_meta_initial_and_validation_queries_share_parent(campaign):
     from test_rsi import stage_meta,make_meta_cases,ScriptedOffspringTeam
     from proteinrsi.evaluation import evaluate_meta
-    stage_meta(campaign)
+    campaign, _ = stage_meta(campaign)
     report=evaluate_meta(campaign,make_meta_cases(campaign),promote=True,team_factory=ScriptedOffspringTeam)
     assert report["budget_scope"]=="shared_campaign"
     assert report["required_query_slots"]==32  # 4 cases * 2 arms * (2 initial+2 selected)
@@ -179,7 +179,7 @@ def test_worker_rpc_protocol_with_explicit_test_only_security_double(campaign, m
 def test_meta_rejects_insufficient_shared_budget_before_running(campaign):
     from test_rsi import stage_meta, make_meta_cases, ScriptedOffspringTeam
     from proteinrsi.evaluation import evaluate_meta
-    stage_meta(campaign)
+    campaign, _ = stage_meta(campaign)
     store = campaign.store
     amount = store.remaining("experimental_wells") - 1
     store.reserve("already-used", "experimental_wells", amount, {})
@@ -193,7 +193,7 @@ def test_meta_rejects_insufficient_shared_budget_before_running(campaign):
 def test_duplicate_meta_evaluation_cannot_get_a_fresh_ledger(campaign):
     from test_rsi import stage_meta, make_meta_cases, ScriptedOffspringTeam
     from proteinrsi.evaluation import evaluate_meta
-    stage_meta(campaign)
+    campaign, _ = stage_meta(campaign)
     cases = make_meta_cases(campaign)
     evaluate_meta(campaign, cases, promote=False, team_factory=ScriptedOffspringTeam)
     before = campaign.store.usage()

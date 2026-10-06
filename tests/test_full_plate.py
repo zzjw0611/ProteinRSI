@@ -22,14 +22,14 @@ def sequences():
     return [''.join(x) + 'V' for x in product('ACDEFGHIKLMNPQRSTVWY', repeat=3) if ''.join(x) != 'AAA']
 
 
-def plate_campaign(tmp_path, size=384, rounds=2, research=False, protocol="legacy"):
+def plate_campaign(tmp_path, size=384, rounds=2, research=False, protocol="legacy", meta=None):
     task = TaskSpec(name='Artificial full-plate task', candidate_access='open', reference_sequence='AAAV',
         mutable_positions=[1, 2, 3], max_mutations=3, batch_size=size, max_rounds=rounds,
         batch_fill_policy='full_plate', controls_per_batch=0, feedback_source='measured_replay',
         initial_observation_policy='provided_parent', initial_parent_measurement={'value': 1, 'source_ref': 'fixture'},
         budget=BudgetSpec(experimental_wells=size * rounds))
     return Campaign.initialize(str(tmp_path/'plate'), task, workflow=Workflow(analysis_tool_rounds=0),
-        meta=MetaPolicy(enabled=False), gate=GatePolicy(min_per_arm=2, bootstrap_samples=200),
+        meta=meta or MetaPolicy(enabled=False), gate=GatePolicy(min_per_arm=2, bootstrap_samples=200),
         research_config=ResearchConfig(review_after_step=False, protocol_mode=protocol) if research else None)
 
 
@@ -202,9 +202,8 @@ def test_invalid_ranking_repairs_are_bounded_and_costed(tmp_path):
 
 
 def test_meta_small_comparison_fills_plate_and_charges_all_wells(tmp_path, monkeypatch):
-    c = plate_campaign(tmp_path, size=24)
+    c = plate_campaign(tmp_path, size=24, meta=MetaPolicy(min_observations=100))
     state = c.state
-    state['meta'] = MetaPolicy(min_observations=100).model_dump()
     state['observations'].append(Observation(sample_id='known', batch_id='known',
         sequence=sequences()[0], value=1, metric=c.view().task.metric, unit=c.view().task.unit,
         source='measured_replay', assay_protocol=c.view().task.assay_protocol).model_dump(mode='json'))

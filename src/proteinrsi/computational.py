@@ -19,6 +19,7 @@ def run_computational(campaign, *, guarded=True):
         if state['pending_batch']:
             raise ValueError('Cannot compute through a pending experimental batch')
         while state['round_index'] < task.max_rounds and state['status'] != 'complete':
+            campaign.methods.assert_plannable(state)
             view = campaign.view(state)
             snapshot(campaign.store, 'computational_iteration_input', view)
             previous_jobs = set(campaign.store.all('tool_jobs'))
