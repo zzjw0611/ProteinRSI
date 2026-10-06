@@ -3,6 +3,7 @@ import csv
 import hashlib
 import importlib.util
 import json
+import math
 from pathlib import Path
 
 import pytest
@@ -46,7 +47,9 @@ def fixture(tmp_path, monkeypatch, rows=None, *, family="TrpB", name="TrpB3A"):
         "expected_counts": {"source_rows": len(values),
             "excluded_stop_rows": sum("*" in aa for aa, _ in values),
             "prepared_rows": sum("*" not in aa for aa, _ in values)},
-    }, "DHFR": original["landscapes"]["DHFR"], "TEV": {
+    }, "DHFR": {**original["landscapes"]["DHFR"], "status": "quarantined",
+        "quarantine_reasons": original["landscapes"]["DHFR"].get("previous_quarantine_reasons",
+            original["landscapes"]["DHFR"]["quarantine_reasons"])}, "TEV": {
         **original["landscapes"]["TEV"], "status": "quarantined",
         "quarantine_reasons": original["landscapes"]["TEV"]["previous_quarantine_reasons"],
     }}}
@@ -64,13 +67,17 @@ def repin(monkeypatch, manifest):
 def test_reviewed_manifest_has_exact_scope_and_hard_bounds():
     manifest = adapter.load_manifest()
     eligible = [name for name, spec in manifest["landscapes"].items() if spec["status"] == "eligible"]
-    assert eligible == ["GB1", "ParD2", "ParD3", "T7", "TEV", *[f"TrpB3{x}" for x in "ABCDEFGHI"], "TrpB4"]
+    assert eligible == ["DHFR", "GB1", "ParD2", "ParD3", "T7", "TEV", *[f"TrpB3{x}" for x in "ABCDEFGHI"], "TrpB4"]
     defaults = manifest["launch_defaults"]
     assert defaults["max_rounds"] == 20 and defaults["batch_size"] == 100
     assert defaults["experimental_wells"] == 2000
     assert defaults["llm_calls"] == 600 and defaults["tool_calls"] == 400
     assert defaults["seed"] == 17 and defaults["parent_query_cost"] == 0
-    assert "mean(exp(source fitness))" in " ".join(manifest["landscapes"]["DHFR"]["quarantine_reasons"])
+    dhfr = manifest["landscapes"]["DHFR"]
+    assert "mean(exp(source fitness))" in " ".join(dhfr["previous_quarantine_reasons"])
+    assert dhfr["label_kind"] == "reviewed_experimental_score_aggregate"
+    assert dhfr["parent_length"] == 159
+    assert dhfr["expected_counts"]["parent_synonymous_codon_rows"] == 42
     tev = manifest["landscapes"]["TEV"]
     assert tev["parent_length"] == 233 and tev["positions"] == [143, 145, 164, 167]
     assert tev["assay_construct"]["bundled_reference"]["source_fasta_length"] == 236
@@ -291,3 +298,148 @@ def test_tev_construct_mismatch_fails_without_implicit_repair(tmp_path, monkeypa
     with pytest.raises(adapter.PreparationError):
         adapter.prepare(root, "TEV")
     assert not (root / "processed").exists()
+
+
+def dhfr_fixture(tmp_path, monkeypatch, rows=None):
+    root, source, manifest = fixture(tmp_path, monkeypatch, [["AC", "1"]], family="T7", name="T7")
+    spec = manifest["landscapes"].pop("T7")
+    manifest["landscapes"]["DHFR"] = spec
+    values = rows if rows is not None else [
+        ["GCCGATCTC", "0"], ["GCTGATCTC", repr(math.log(9))],
+        ["GCCGATTAA", "-765432.125"], ["TGCGATCTC", repr(math.log(3))]]
+    with source.open("w", newline="") as handle:
+        writer = csv.writer(handle)
+        writer.writerow(["seq", "fitness"])
+        writer.writerows(values)
+    spec.update(family="DHFR", parent_sites="ADL", positions=[1, 2, 3],
+        parent_sequence_sha256=hashlib.sha256(b"ADLA").hexdigest(),
+        sequence_column="seq", csv_header=["seq", "fitness"], source_csv_sha256=file_sha256(source),
+        label_kind="reviewed_experimental_score_aggregate", metric="mean_exponentiated_source_fitness",
+        unit="mean_exp_original_source_fitness", stop_policy="exclude_stop_translations_only",
+        assay_protocol="ssmula-zenodo-15203754-DHFR-canonical159-mean-exp-aa-v1",
+        reference_caveat="Synthetic canonical-reference reconstruction, not measured full assay sequence",
+        score_semantics={"transform": "mean_of_natural_exp_over_observed_synonymous_codons",
+            "reference_scope": "canonical_reference_reconstruction_not_literal_full_assay_sequence"},
+        expected_counts={"source_rows": 4, "excluded_stop_rows": 1, "prepared_rows": 2,
+            "observed_synonymous_codon_rows": 3, "parent_synonymous_codon_rows": 2})
+    fasta = root / spec["source_fasta"]
+    fasta.write_text(">synthetic canonical reference\nADLA\n")
+    spec["source_fasta_sha256"] = file_sha256(fasta)
+    fragment = source.parent / "fragment.fasta"
+    fragment.write_text(">synthetic DNA fragment\nGCCGATCTCGCC\n")
+    pdb = source.parent / "reference.pdb"
+    pdb.write_text("DBREF  6XG5 A 1 4 UNP P0ABQ4 DYR_ECOLI 1 4\n" +
+        "".join(f"SEQADV 6XG5 HIS A {i} UNP P0ABQ4 EXPRESSION TAG\n" for i in range(5, 11)) +
+        "SEQRES 1 A 10 ALA ASP LEU ALA HIS HIS HIS HIS HIS HIS\n")
+    spec["aggregate_reference"] = {"fragment_fasta": str(fragment.relative_to(root)),
+        "fragment_fasta_sha256": file_sha256(fragment), "fragment_nt_length": 12,
+        "fragment_translated_length": 4, "pdb": str(pdb.relative_to(root)),
+        "pdb_sha256": file_sha256(pdb), "pdb_id": "6XG5", "chain": "A",
+        "canonical_accession": "P0ABQ4", "expression_tag": "HHHHHH"}
+    repin(monkeypatch, manifest)
+    return root, source, manifest
+
+
+def test_dhfr_standard_translation_and_mean_of_exp_not_exp_of_mean(tmp_path, monkeypatch):
+    assert len(adapter.STANDARD_CODE) == 64
+    assert adapter._translate_dna("GCCGATCTC") == "ADL"
+    assert adapter._translate_dna("GCTGATCTC") == "ADL"
+    assert adapter._translate_dna("GCCGATTAA") == "AD*"
+    root, _, _ = dhfr_fixture(tmp_path, monkeypatch)
+    result = adapter.prepare(root, "DHFR")
+    assert result["prepared_rows"] == 2 and result["parent_synonymous_codon_rows"] == 2
+    raw, dataset = load_replay(root, "DHFR")
+    assert raw["initial_parent_measurement"]["value"] == pytest.approx(5)
+    assert raw["initial_parent_measurement"]["value"] != pytest.approx(3)
+    assert "aggregate" in raw["initial_parent_measurement"]["source_ref"]
+    assert "canonical-reference" in raw["initial_parent_measurement"]["source_ref"]
+    assert raw["candidate_access"] == "open" and not raw["candidates"]
+    with dataset.open() as handle:
+        rows = list(csv.DictReader(handle))
+    assert [r["sequence"] for r in rows] == ["ADLA", "CDLA"]
+    assert all(r["label_kind"] == "reviewed_experimental_score_aggregate" for r in rows)
+    assert "765432.125" not in json.dumps(result)
+
+
+@pytest.mark.parametrize("rows,reason", [
+    ([["GCCGATCTC", "0"], ["GCCGATCTC", "1"]], "Duplicate"),
+    ([["GCCGATCTC", "0"], ["GCCGATTAA", "nan"]], "Nonfinite"),
+    ([["GCCGATCTC", "0"], ["GCCGATXXX", "1"]], "DNA"),
+    ([["GCCGATCTC", "0"], ["gccgatctc", "1"]], "DNA"),
+    ([["GCCGATCTC", "0"], ["GCTGATCTC", "1000"]], "overflow"),
+    ([["GCCGATCTC", "0"], ["GCTGATCTC", "-1000"]], "underflow"),
+    ([["TGCGATCTC", "0"]], "parent"),
+])
+def test_dhfr_never_reweights_imputes_or_renormalizes(tmp_path, monkeypatch, rows, reason):
+    root, _, _ = dhfr_fixture(tmp_path, monkeypatch, rows)
+    with pytest.raises(adapter.PreparationError, match=reason):
+        adapter.prepare(root, "DHFR")
+    assert not (root / "processed").exists()
+
+
+@pytest.mark.parametrize("field", ["fragment", "dbref", "tag", "seqres"])
+def test_dhfr_reference_requires_fragment_mapping_and_explicit_tag_evidence(tmp_path, monkeypatch, field):
+    root, _, manifest = dhfr_fixture(tmp_path, monkeypatch)
+    evidence = manifest["landscapes"]["DHFR"]["aggregate_reference"]
+    if field == "fragment":
+        path = root / evidence["fragment_fasta"]
+        path.write_text(path.read_text().replace("GCCGATCTCGCC", "GCCGATCTGTGC"))
+        evidence["fragment_fasta_sha256"] = file_sha256(path)
+    else:
+        path = root / evidence["pdb"]
+        changes = {"dbref": ("DYR_ECOLI 1 4", "DYR_ECOLI 2 5"),
+                   "tag": ("EXPRESSION TAG", "UNREVIEWED TAG"),
+                   "seqres": ("ALA ASP LEU ALA", "ALA ASP LEU CYS")}
+        path.write_text(path.read_text().replace(*changes[field]))
+        evidence["pdb_sha256"] = file_sha256(path)
+    repin(monkeypatch, manifest)
+    with pytest.raises(adapter.PreparationError):
+        adapter.prepare(root, "DHFR")
+    assert not (root / "processed").exists()
+
+
+@pytest.mark.parametrize("field,value", [
+    ("label_kind", "unreviewed_aggregate"), ("label_kind", "reported_experimental_assay_score"),
+    ("transform", "exp_of_mean"), ("reference_scope", "literal_measured_full_sequence"),
+    ("metric", "fitness"), ("unit", "a.u."), ("assay_protocol", "unreviewed-v1")])
+def test_loader_rejects_unreviewed_or_mislabeled_aggregates(tmp_path, monkeypatch, field, value):
+    root, _, _ = dhfr_fixture(tmp_path, monkeypatch)
+    adapter.prepare(root, "DHFR")
+    directory = root / "processed/DHFR"
+    name = "task.json" if field in {"metric", "unit", "assay_protocol"} else "provenance.json"
+    path = directory / name
+    raw = json.loads(path.read_text())
+    if field in {"transform", "reference_scope"}:
+        raw["score_semantics"][field] = value
+    else:
+        raw[field] = value
+    path.write_text(json.dumps(raw))
+    with pytest.raises(ValueError):
+        load_replay(root, "DHFR")
+
+
+def test_loader_cannot_reclassify_dhfr_aggregate_as_unchanged_reported_score(tmp_path, monkeypatch):
+    root, _, _ = dhfr_fixture(tmp_path, monkeypatch)
+    adapter.prepare(root, "DHFR")
+    directory = root / "processed/DHFR"
+    measurements = directory / "measurements.csv"
+    measurements.write_text(measurements.read_text().replace(
+        "reviewed_experimental_score_aggregate", "reported_experimental_assay_score"))
+    path = directory / "provenance.json"
+    raw = json.loads(path.read_text())
+    raw["label_kind"] = "reported_experimental_assay_score"
+    raw["prepared_assets"]["measurements_csv_sha256"] = file_sha256(measurements)
+    path.write_text(json.dumps(raw))
+    with pytest.raises(ValueError, match="requires its reviewed aggregate"):
+        load_replay(root, "DHFR")
+
+
+def test_loader_rejects_malformed_aggregate_semantics(tmp_path, monkeypatch):
+    root, _, _ = dhfr_fixture(tmp_path, monkeypatch)
+    adapter.prepare(root, "DHFR")
+    path = root / "processed/DHFR/provenance.json"
+    raw = json.loads(path.read_text())
+    raw["score_semantics"] = "not a reviewed semantics object"
+    path.write_text(json.dumps(raw))
+    with pytest.raises(ValueError, match="Unreviewed aggregate"):
+        load_replay(root, "DHFR")

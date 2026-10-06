@@ -4,7 +4,7 @@
   "source_archive_sha256": "5655baabe8f7e11bb405d1db7767df35f9ff6c8aabfad8e95ae5bf0db718193d",
   "reviewed_inventory_sha256": "767c5ec4f7e12ecdade0a756fb38b168ae700b5f5a7b2da85cb9fed095d4eade",
   "metadata_source": "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/landscape_global.py",
-  "preparation_scope": "Trusted controller only; no replay, score statistics, active labels or candidate catalogue.",
+  "preparation_scope": "Trusted controller only; fifteen original-score adapters plus one explicit DHFR observed-synonym aggregate benchmark. No replay, score statistics, active labels or candidate catalogue.",
   "launch_defaults": {
     "max_rounds": 20,
     "batch_size": 100,
@@ -23,14 +23,14 @@
   },
   "landscapes": {
     "DHFR": {
-      "status": "quarantined",
+      "status": "eligible",
       "family": "DHFR",
       "source_csv": "data/DHFR/fitness_landscape/DHFR.csv",
       "source_csv_sha256": "fcd57493a10caecd4f12d510809fc96ece4f98b09ac5a9c5769d35179ccaaf05",
-      "source_fasta": "data/DHFR/DHFR.fasta",
-      "source_fasta_sha256": "bc8fcc7a7c7f60b267170d5cc4d537dc33b9a79513638ceded3d58aab567c312",
-      "parent_sequence_sha256": "717626f2f5eca4e9eeb1c36c4c3744fd03308c34892beb9179040b20dab7bc1b",
-      "parent_length": 219,
+      "source_fasta": "reviewed_sources/UniProt/DHFR_P0ABQ4_uniprot.fasta",
+      "source_fasta_sha256": "36f2ee771ced5eb46944270cf23ae506dbec1442217a41e2e17bf5e428806bbe",
+      "parent_sequence_sha256": "e193a4b689d70ba3b38c9f812a9b212e4ec24cec07f6c90f0600341c8b0c77f5",
+      "parent_length": 159,
       "positions": [
         26,
         27,
@@ -43,23 +43,69 @@
         "seq",
         "fitness"
       ],
-      "unit": "original_reported_fitness",
-      "stop_policy": "reject",
+      "unit": "mean_exp_original_source_fitness",
+      "stop_policy": "exclude_stop_translations_only",
       "expected_counts": {
         "source_rows": 261333,
-        "excluded_stop_rows": 0,
-        "prepared_rows": 8000
+        "excluded_stop_rows": 35158,
+        "prepared_rows": 8000,
+        "observed_synonymous_codon_rows": 226175,
+        "parent_synonymous_codon_rows": 42
       },
-      "quarantine_reasons": [
-        "The supplied FASTA is 219 DNA bases, not a full amino-acid parent. Frame-1 standard translation is 73 residues and matches A26/D27/L28, but a full protein parent and construct/numbering provenance are not yet established.",
-        "Source sequence keys are codons. Many codons map to the same protein candidate; the official protein objective uses mean(exp(source fitness)) within each amino-acid group. A direct amino-acid original-score adapter cannot silently choose or average these rows."
-      ],
+      "quarantine_reasons": [],
       "source_processing_references": [
         "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L308-L313",
         "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L352-L387",
-        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L216-L239"
+        "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/landscape_global.py#L46-L50",
+        "https://rest.uniprot.org/uniprotkb/P0ABQ4.fasta",
+        "https://www.rcsb.org/structure/6XG5",
+        "https://doi.org/10.1126/science.adh3860",
+        "https://public.websites.umich.edu/~zhanglab/clubPaper/04_19_2024.pdf"
       ],
-      "original_score_definition": "Original means the official distributed fitness_landscape CSV column. This is not a claim that the number is a raw assay reading; no raw-assay reconstruction is performed."
+      "original_score_definition": "For each canonical 3-aa tuple a, arithmetic mean of exp(source fitness) over the supplied observed unique 9-nt codon keys whose table 1 translation equals a. Natural exponential. No global normalization, clipping, extra logarithm, imputation, or codon weighting. One purchased query returns the single aggregated AA objective, not an individual codon score.",
+      "adapter_kind": "reviewed_experimental_score_aggregate",
+      "previous_quarantine_reasons": [
+        "The supplied FASTA is 219 DNA bases, not a full amino-acid parent. Frame-1 standard translation is 73 residues and matches A26/D27/L28, but a full protein parent and construct/numbering provenance are not yet established.",
+        "Source sequence keys are codons. Many codons map to the same protein candidate; the official protein objective uses mean(exp(source fitness)) within each amino-acid group. A direct amino-acid original-score adapter cannot silently choose or average these rows."
+      ],
+      "reference_caveat": "Full background is a canonical-reference reconstruction, not a full measured sequence supplied with each historical row. If literal full-assay-sequence provenance is required, retain quarantine pending the original full construct sequence. Do not call the 73-aa translation the full protein.",
+      "label_kind": "reviewed_experimental_score_aggregate",
+      "metric": "mean_exponentiated_source_fitness",
+      "assay_protocol": "ssmula-zenodo-15203754-DHFR-canonical159-mean-exp-aa-v1",
+      "task_name": "DHFR canonical-reference observed-codon aggregate benchmark",
+      "preprocessing": "For each canonical 3-aa tuple a, arithmetic mean of exp(source fitness) over the supplied observed unique 9-nt codon keys whose table 1 translation equals a. Natural exponential. No global normalization, clipping, extra logarithm, imputation, or codon weighting. One purchased query returns the single aggregated AA objective, not an individual codon score.",
+      "score_semantics": {
+        "transform": "mean_of_natural_exp_over_observed_synonymous_codons",
+        "reference_scope": "canonical_reference_reconstruction_not_literal_full_assay_sequence",
+        "genetic_code": "NCBI table 1 standard; forward frame 1",
+        "missing_policy": "Exclude stop translations. Missing codon keys contribute neither a zero nor a denominator count. All 8,000 canonical AA tuples have at least one observed codon. Preserve observed membership only. Fail on unexpected invalid/nonfinite scores or duplicate 9-nt keys rather than silently dropping/reweighting them.",
+        "one_query": "One unique AA full-sequence key returns one reviewed aggregate, not one individual codon record",
+        "global_normalization": false,
+        "clipping": false,
+        "parent_policy": "Same observed42-codon ADL aggregate provided once outside2000 new queries"
+      },
+      "aggregate_reference": {
+        "fragment_fasta": "data/DHFR/DHFR.fasta",
+        "fragment_fasta_sha256": "bc8fcc7a7c7f60b267170d5cc4d537dc33b9a79513638ceded3d58aab567c312",
+        "fragment_nt_length": 219,
+        "fragment_translated_length": 73,
+        "pdb": "data/DHFR/DHFR.pdb",
+        "pdb_sha256": "f2a486479e35abf554a06262c711922f123f2cbed2e7f3eba9b5aed78ee90bed",
+        "pdb_id": "6XG5",
+        "chain": "A",
+        "canonical_accession": "P0ABQ4",
+        "expression_tag": "HHHHHH",
+        "reference_scope": "canonical_reference_reconstruction_not_literal_full_assay_sequence",
+        "source_urls": [
+          "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L308-L313",
+          "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/fitness_process_vis.py#L352-L387",
+          "https://github.com/fhalab/SSMuLA/blob/4926b8e614d426ca567159988834482c23da13a3/SSMuLA/landscape_global.py#L46-L50",
+          "https://rest.uniprot.org/uniprotkb/P0ABQ4.fasta",
+          "https://www.rcsb.org/structure/6XG5",
+          "https://doi.org/10.1126/science.adh3860",
+          "https://public.websites.umich.edu/~zhanglab/clubPaper/04_19_2024.pdf"
+        ]
+      }
     },
     "GB1": {
       "status": "eligible",

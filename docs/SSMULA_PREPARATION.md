@@ -54,8 +54,10 @@ python scripts/prepare_ssmula_landscapes.py \
 ```
 
 The direct adapters cover GB1, ParD2, ParD3, T7, TrpB3A–TrpB3I and TrpB4.
-TEV additionally uses an explicitly verified primary-source measured construct,
-described below, for 15 eligible landscapes total.
+TEV additionally uses an explicitly verified primary-source measured construct.
+DHFR uses a separately labeled observed-codon aggregate with an explicit
+canonical-reference assumption, described below. There are 16 eligible inputs:
+15 unchanged original-score objectives and one reviewed transformed objective.
 `--all` verifies existing preparations without rewriting them and prepares only
 missing eligible landscapes. An explicit call to `prepare()` refuses existing
 output. The launch-inventory path must also be new. Every output is checked
@@ -99,14 +101,51 @@ explicit-approved trusted inprocess debugging labeled as weaker isolation.
 Preparation never infers authorization for either mode. Do not pass the
 launch inventory or its controller-only file paths to the experiment actor.
 
-### Quarantined scientific constructs
+### DHFR: explicit canonical-reference aggregate benchmark
 
 DHFR's supplied FASTA is 219 DNA bases rather than a verified full protein parent.
 Its codon keys map many-to-one to protein sequences, and upstream processing uses
 `mean(exp(source fitness))` within amino-acid groups. A direct original-score
 protein adapter must not silently translate the parent, select a codon row or
-choose an aggregation. It remains quarantined pending a separate reviewed
-objective and construct protocol.
+choose an aggregation. The separately reviewed DHFR protocol therefore uses:
+
+- The 159-aa canonical [UniProt P0ABQ4 reference](https://rest.uniprot.org/uniprotkb/P0ABQ4.fasta),
+  with exact downloaded FASTA bytes pinned and sites 26/27/28 (ADL)
+- The supplied 219-nt fragment, whose standard translation must exactly match
+  reference residues 1–73
+- The bundled [6XG5 PDB](https://www.rcsb.org/structure/6XG5), with DBREF and SEQRES
+  establishing canonical residues 1–159, and SEQADV explicitly identifying the
+  six additional expression-tag histidines. This is a sequence/provenance check,
+  not a claim of structural validation or full assay-construct equivalence
+- Forward-frame standard-code translation of each unique 9-nt source key,
+  excluding stop-containing translations using sequence alone
+- For each canonical amino-acid tuple, the arithmetic mean of the natural
+  exponential of each **observed** synonymous source score. Missing codon keys
+  contribute neither zero nor denominator count. No global normalization,
+  clipping, imputation, codon reweighting or extra logarithm is used
+
+The exact primary FASTA must be materialized under
+`reviewed_sources/UniProt/DHFR_P0ABQ4_uniprot.fasta` within the external data root.
+Source hashes, DNA/PDB/reference checks, finite source scores, finite exponential
+results and finite aggregates must all pass. Duplicate DNA keys and unexpected
+symbols fail. Exponential underflow/overflow fails rather than being normalized.
+
+The reference remains a **canonical-reference reconstruction, not a literal full
+measured assay sequence supplied for each historical row**. This limitation is
+retained in task/provenance metadata and the launch inventory. The objective uses
+metric `mean_exponentiated_source_fitness`, unit
+`mean_exp_original_source_fitness`, and a distinct
+`DHFR-canonical159-mean-exp-aa-v1` assay protocol. Its measurement rows carry
+`reviewed_experimental_score_aggregate`; they are never labeled unchanged
+reported experimental scores. The trusted loader accepts this kind only with
+the explicit DHFR objective/reference semantics and matching row kinds.
+
+The 261,333 source keys include 35,158 stop-containing records; the remaining
+226,175 observed keys form 8,000 unique canonical amino-acid measurements. The
+initial parent is the same aggregate over its 42 observed ADL codon keys,
+provided once outside the 2,000 new-query budget. It is not the value of one
+selected parent codon. Codon multiplicities and unqueried aggregate values are
+controller-only data and must not enter experiment-actor prompts.
 
 ### TEV: explicitly resolved original assay construct
 
@@ -132,5 +171,5 @@ tuple. The primary masked FASTA must mark precisely the measured sites. The
 its original numbering and N-terminal relationship are explicit in provenance.
 `Fitness Mean` is unchanged, with no normalization, clipping or missing-variant
 imputation. Earlier quarantine reasons remain recorded in the manifest as review
-history. Existing preparations under the first 14-landscape manifest pin remain
+history. Existing preparations under the first 14- and 15-landscape manifest pins remain
 read-only and undergo all current per-landscape verification checks.

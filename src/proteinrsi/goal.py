@@ -64,6 +64,23 @@ def load_replay(root, name, *, candidates=None):
     directory = Path(root)/'processed'/name
     provenance = json.loads((directory/'provenance.json').read_text())
     raw = json.loads((directory/'task.json').read_text())
+    label_kind = provenance.get('label_kind', 'reported_experimental_assay_score')
+    if name == 'DHFR' and label_kind != 'reviewed_experimental_score_aggregate':
+        raise ValueError('DHFR protein replay requires its reviewed aggregate objective')
+    if label_kind == 'reviewed_experimental_score_aggregate':
+        semantics = provenance.get('score_semantics', {})
+        if (name != 'DHFR' or not isinstance(semantics, dict)
+                or raw.get('metric') != 'mean_exponentiated_source_fitness'
+                or raw.get('unit') != 'mean_exp_original_source_fitness'
+                or raw.get('assay_protocol') != 'ssmula-zenodo-15203754-DHFR-canonical159-mean-exp-aa-v1'
+                or semantics.get('transform') != 'mean_of_natural_exp_over_observed_synonymous_codons'
+                or semantics.get('reference_scope') != 'canonical_reference_reconstruction_not_literal_full_assay_sequence'):
+            raise ValueError('Unreviewed aggregate objective or reference semantics')
+        parent_description = 'reviewed experimental parent aggregate; canonical-reference reconstruction'
+    elif label_kind == 'reported_experimental_assay_score':
+        parent_description = 'reported experimental parent'
+    else:
+        raise ValueError('Unsupported experimental score label kind')
     dataset = directory/'measurements.csv'
     if file_sha256(dataset) != provenance.get('prepared_assets', {}).get('measurements_csv_sha256'):
         raise ValueError('Measurement digest differs from verified preparation')
@@ -73,8 +90,8 @@ def load_replay(root, name, *, candidates=None):
     with dataset.open(newline='') as file:
         for row in csv.DictReader(file):
             if (row.get('source') != 'measured_replay' or row.get('qc') != 'valid'
-                    or row.get('label_kind') != 'reported_experimental_assay_score'):
-                raise ValueError('Only confirmed reported experimental scores are eligible')
+                    or row.get('label_kind') != label_kind):
+                raise ValueError('Experimental score kind differs from reviewed provenance')
             sequence = row['sequence']
             if sequence in seen:
                 raise ValueError('Duplicate sequence in prepared measurements')
@@ -88,7 +105,7 @@ def load_replay(root, name, *, candidates=None):
     raw.update(candidates=list(candidates or []), controls_per_batch=0,
         candidate_access='pool' if candidates is not None else 'open',
         initial_observation_policy='provided_parent', initial_parent_measurement={
-            'value': parent, 'source_ref': f'{name}; reported experimental parent; SHA256 {file_sha256(dataset)}'})
+            'value': parent, 'source_ref': f'{name}; {parent_description}; SHA256 {file_sha256(dataset)}'})
     return raw, dataset
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: MIT
-"""Prepare reviewed original-score SSMuLA inputs outside the frozen runtime.
+"""Prepare reviewed SSMuLA original-score inputs and the explicit DHFR aggregate.
 
 Trusted administration only: do not expose this process, its data paths, or its
 measurement files to experiment actors. Only metadata is returned or printed.
@@ -16,23 +16,28 @@ import math
 import os
 from pathlib import Path
 import tempfile
+from itertools import product
 
 from proteinrsi.contracts import AMINO_ACIDS, TaskSpec
 from proteinrsi.goal import available_landscapes, load_replay
 from proteinrsi.localtools.artifacts import file_sha256
+from proteinrsi.localtools.pdbio import RESIDUES
 from proteinrsi.tasks import validate_task
 
 
 MANIFEST_PATH = Path(__file__).resolve().parents[1] / "configs/ssmula.original_inputs.json"
-PINNED_MANIFEST_SHA256 = "647e5dada818b2b52265d9c01e345b65f5a09dcbba4dccd0d476ebe0fa0b2e55"
+PINNED_MANIFEST_SHA256 = "b4caa712118b9d05e40b0e97a95c291a42c2933097d782bf5ab2ff766b2fa48e"
 # The first 14-landscape preparation preceded the primary-source TEV review.
 # Keep those immutable artifacts valid; verification still compares their entire
 # task, every measurement, source pins and exclusions against the current spec.
 PREVIOUS_PREPARATION_MANIFEST_SHA256 = {
+    "647e5dada818b2b52265d9c01e345b65f5a09dcbba4dccd0d476ebe0fa0b2e55",
     "0b2e099fc6e90022d02595bd68443ebd59cf63f5fe7a501c56f7c95bfdc36da1",
 }
 FIELDS = ["sequence", "value", "qc", "source", "label_kind"]
 LEGACY_LANDSCAPES = {"GB1", "ParD3"}
+STANDARD_CODE = dict(zip(("".join(c) for c in product("TCAG", repeat=3)),
+    "FFLLSSSSYY**CC*WLLLLPPPPHHQQRRRRIIIMTTTTNNKKSSRRVVVVAAAADDEEGGGG"))
 
 
 class PreparationError(ValueError):
@@ -73,6 +78,9 @@ def _check_source_hashes(root: Path, spec: dict) -> tuple[Path, Path]:
         bundled = construct["bundled_reference"]
         pinned += [(_source_path(root, construct["masked_fasta"]), construct["masked_fasta_sha256"]),
                    (_source_path(root, bundled["source_fasta"]), bundled["source_fasta_sha256"])]
+    if aggregate := spec.get("aggregate_reference"):
+        pinned += [(_source_path(root, aggregate["fragment_fasta"]), aggregate["fragment_fasta_sha256"]),
+                   (_source_path(root, aggregate["pdb"]), aggregate["pdb_sha256"])]
     for path, digest in pinned:
         if file_sha256(path) != digest:
             raise PreparationError("Pinned source SHA256 mismatch; separate review required")
@@ -117,8 +125,103 @@ def _finite_score(value: str) -> float:
     return number
 
 
+def _translate_dna(dna: str) -> str:
+    if not dna or len(dna) % 3 or set(dna) - set("ACGT"):
+        raise PreparationError("Expected uppercase canonical in-frame DNA")
+    return "".join(STANDARD_CODE[dna[i:i + 3]] for i in range(0, len(dna), 3))
+
+
+def _check_aggregate_reference(root: Path, spec: dict, reference: str) -> None:
+    """Check canonical-reference reconstruction, not structural/assay equivalence."""
+    evidence = spec["aggregate_reference"]
+    fragment = _fasta_sequence(_source_path(root, evidence["fragment_fasta"]))
+    translated = _translate_dna(fragment)
+    if (len(fragment) != evidence["fragment_nt_length"]
+            or len(translated) != evidence["fragment_translated_length"]
+            or translated != reference[:len(translated)]):
+        raise PreparationError("Bundled DNA fragment does not match canonical reference")
+    lines = _source_path(root, evidence["pdb"]).read_text().splitlines()
+    dbrefs = [line.split() for line in lines if line.startswith("DBREF ")]
+    expected = ["DBREF", evidence["pdb_id"], evidence["chain"], "1", str(len(reference)),
+                "UNP", evidence["canonical_accession"]]
+    if len(dbrefs) != 1 or dbrefs[0][:7] != expected or dbrefs[0][-2:] != ["1", str(len(reference))]:
+        raise PreparationError("PDB DBREF does not establish canonical-reference mapping")
+    seqres = [line.split() for line in lines if line.startswith("SEQRES ")]
+    try:
+        pdb_sequence = "".join(RESIDUES[aa] for record in seqres for aa in record[4:])
+    except KeyError:
+        raise PreparationError("Unexpected PDB SEQRES residue") from None
+    tag = evidence["expression_tag"]
+    if (pdb_sequence != reference + tag or any(record[2:4] != [evidence["chain"],
+            str(len(reference) + len(tag))] for record in seqres)):
+        raise PreparationError("PDB SEQRES differs from canonical sequence plus reviewed tag")
+    tag_rows = [line.split() for line in lines if line.startswith("SEQADV ")]
+    expected_tags = [["SEQADV", evidence["pdb_id"], "HIS", evidence["chain"], str(p),
+                     "UNP", evidence["canonical_accession"], "EXPRESSION", "TAG"]
+                    for p in range(len(reference) + 1, len(reference) + len(tag) + 1)]
+    if tag != "HHHHHH" or tag_rows != expected_tags:
+        raise PreparationError("PDB expression-tag exclusion is not explicitly supported")
+
+
+def _read_aggregate(root: Path, spec: dict, reference: str, source: Path) -> tuple[str, dict, dict]:
+    """One AA query = mean(exp(score)) over observed, unique synonymous DNA keys."""
+    _check_aggregate_reference(root, spec, reference)
+    groups, seen = {}, set()
+    counts = {"source_rows": 0, "excluded_stop_rows": 0, "prepared_rows": 0,
+              "observed_synonymous_codon_rows": 0, "parent_synonymous_codon_rows": 0}
+    with source.open(encoding="utf-8-sig", newline="") as handle:
+        reader = csv.reader(handle, strict=True)
+        header = next(reader, None)
+        if header != spec["csv_header"]:
+            raise PreparationError("Source CSV header differs from reviewed schema")
+        seq_index, value_index = header.index(spec["sequence_column"]), header.index(spec["value_column"])
+        for record in reader:
+            counts["source_rows"] += 1
+            if len(record) != len(header):
+                raise PreparationError("Malformed source CSV row")
+            dna = record[seq_index]
+            if len(dna) != 3 * len(spec["positions"]):
+                raise PreparationError("Wrong source codon-tuple length")
+            amino_acids = _translate_dna(dna)
+            if dna in seen:
+                raise PreparationError("Duplicate source DNA key; no reweighting")
+            seen.add(dna)
+            score = _finite_score(record[value_index])
+            if "*" in amino_acids:
+                counts["excluded_stop_rows"] += 1
+                continue
+            try:
+                value = math.exp(score)
+            except OverflowError:
+                raise PreparationError("Source exponential overflow; no renormalization") from None
+            if not math.isfinite(value) or value == 0:
+                raise PreparationError("Source exponential nonfinite/underflow; no renormalization")
+            groups.setdefault(amino_acids, []).append(value)
+            counts["observed_synonymous_codon_rows"] += 1
+    rows = {}
+    for amino_acids, observations in groups.items():
+        try:
+            value = math.fsum(observations) / len(observations)
+        except OverflowError:
+            raise PreparationError("Aggregate overflow; no renormalization") from None
+        if not math.isfinite(value):
+            raise PreparationError("Nonfinite aggregate; no renormalization")
+        sequence = list(reference)
+        for position, residue in zip(spec["positions"], amino_acids):
+            sequence[position - 1] = residue
+        rows["".join(sequence)] = repr(value)
+    if reference not in rows:
+        raise PreparationError("Missing parent aggregate")
+    counts["prepared_rows"] = len(rows)
+    counts["parent_synonymous_codon_rows"] = len(groups[spec["parent_sites"]])
+    if counts != spec["expected_counts"]:
+        raise PreparationError("Observed codon-group integrity counts differ from reviewed manifest")
+    _check_source_hashes(root, spec)
+    return reference, rows, counts
+
+
 def _read_originals(root: Path, spec: dict) -> tuple[str, dict[str, str], dict]:
-    """Read private scores only to validate/copy; preserve their exact CSV text."""
+    """Copy original scores; dispatch only the separately reviewed DHFR transform."""
     source, fasta = _check_source_hashes(root, spec)
     reference = _fasta_sequence(fasta)
     positions = spec["positions"]
@@ -130,6 +233,8 @@ def _read_originals(root: Path, spec: dict) -> tuple[str, dict[str, str], dict]:
         raise PreparationError("Reviewed parent sequence/positions do not match")
     if spec.get("assay_construct"):
         _check_measured_construct(root, spec, reference)
+    if spec.get("aggregate_reference"):
+        return _read_aggregate(root, spec, reference, source)
     rows, seen = {}, set()
     counts = {"source_rows": 0, "excluded_stop_rows": 0, "prepared_rows": 0}
     with source.open(encoding="utf-8-sig", newline="") as handle:
@@ -188,7 +293,8 @@ def _task(landscape: str, spec: dict, reference: str, defaults: dict) -> TaskSpe
     task = TaskSpec(name=spec.get("task_name", f"{landscape} original-score measured replay"),
         reference_sequence=reference, mutable_positions=spec["positions"],
         max_mutations=len(spec["positions"]), candidates=[], candidate_access="open",
-        feedback_source="measured_replay", metric="fitness", unit=spec["unit"],
+        feedback_source="measured_replay", metric=spec.get("metric", "fitness"), unit=spec["unit"],
+        objective_description=spec.get("reference_caveat", ""),
         controls_per_batch=0, initial_observation_policy="none",
         assay_protocol=spec.get("assay_protocol", f"ssmula-zenodo-15203754-{landscape}-original-score-v1"),
         max_rounds=defaults["max_rounds"], batch_size=defaults["batch_size"],
@@ -226,7 +332,7 @@ def prepare(data_root: str | Path, landscape: str) -> dict:
             # Sequence-only order; never sort by scores or preserve source ranking.
             for sequence in sorted(rows):
                 writer.writerow({"sequence": sequence, "value": rows[sequence], "qc": "valid",
-                    "source": "measured_replay", "label_kind": "reported_experimental_assay_score"})
+                    "source": "measured_replay", "label_kind": spec.get("label_kind", "reported_experimental_assay_score")})
         _write_json(stage / "task.json", task.model_dump(mode="json"))
         _write_json(stage / "provenance.json", {
             "status": "ready_strict_measured_replay", "landscape": landscape,
@@ -242,12 +348,17 @@ def prepare(data_root: str | Path, landscape: str) -> dict:
             "parent": {"sequence": reference, "mutable_positions_1based": spec["positions"]},
             "original_score_definition": spec["original_score_definition"],
             "assay_construct": spec.get("assay_construct"),
-            "preprocessing": "Source score text unchanged; no scaling, clipping, ranking, "
-                "aggregation, imputation, activity labels or score-based filtering",
+            "aggregate_reference": spec.get("aggregate_reference"),
+            "label_kind": spec.get("label_kind", "reported_experimental_assay_score"),
+            "score_semantics": spec.get("score_semantics"),
+            "reference_caveat": spec.get("reference_caveat"),
+            "preprocessing": spec.get("preprocessing", "Source score text unchanged; no scaling, "
+                "clipping, ranking, aggregation, imputation, activity labels or score-based filtering"),
             "sequence_eligibility": {"canonical_amino_acids_only": True,
                 "stop_policy": spec["stop_policy"], "excluded_stop_rows": counts["excluded_stop_rows"],
                 "other_sequence_exclusions": 0},
             "source_rows": counts["source_rows"], "rows": counts["prepared_rows"],
+            "integrity_counts": counts,
             "row_order": "lexicographic full protein sequence; not source order",
             "prepared_assets": {"measurements_csv_sha256": file_sha256(measurement),
                 "task_json_sha256": file_sha256(stage / "task.json")},
@@ -296,7 +407,7 @@ def verify(data_root: str | Path, landscape: str) -> dict:
     exact_text = landscape not in LEGACY_LANDSCAPES
     if exact_text:
         approved_pins = {PINNED_MANIFEST_SHA256}
-        if not spec.get("assay_construct"):
+        if not spec.get("aggregate_reference"):
             approved_pins |= PREVIOUS_PREPARATION_MANIFEST_SHA256
         if (provenance.get("reviewed_manifest_sha256") not in approved_pins
                 or provenance.get("prepared_assets", {}).get("task_json_sha256")
@@ -306,6 +417,9 @@ def verify(data_root: str | Path, landscape: str) -> dict:
             raise PreparationError("Prepared manifest/task/exclusion provenance mismatch")
         if provenance.get("assay_construct") != spec.get("assay_construct"):
             raise PreparationError("Prepared assay construct provenance mismatch")
+        if spec.get("aggregate_reference") and any(provenance.get(key) != spec.get(key)
+                for key in ("aggregate_reference", "label_kind", "score_semantics", "reference_caveat")):
+            raise PreparationError("Prepared aggregate objective/reference provenance mismatch")
     with measurement.open(encoding="utf-8", newline="") as handle:
         reader = csv.DictReader(handle)
         if reader.fieldnames != FIELDS:
@@ -313,7 +427,7 @@ def verify(data_root: str | Path, landscape: str) -> dict:
         for record in reader:
             if (set(record) != set(FIELDS) or record["qc"] != "valid"
                     or record["source"] != "measured_replay"
-                    or record["label_kind"] != "reported_experimental_assay_score"):
+                    or record["label_kind"] != spec.get("label_kind", "reported_experimental_assay_score")):
                 raise PreparationError("Prepared measurement provenance differs")
             original = expected_rows.pop(record["sequence"], None)
             if original is None:
@@ -339,6 +453,9 @@ def verify(data_root: str | Path, landscape: str) -> dict:
     return {"landscape": landscape, "status": "prepared_verified",
         "directory": str(out), **counts, "source_sha256": spec["source_csv_sha256"],
         "parent_fasta_sha256": spec["source_fasta_sha256"],
+        "label_kind": spec.get("label_kind", "reported_experimental_assay_score"),
+        "metric": spec.get("metric", "fitness"), "unit": spec["unit"],
+        "reference_caveat": spec.get("reference_caveat"),
         "prepared_assets": {p.name: file_sha256(p) for p in (
             task_path, measurement, out / "provenance.json")},
         "available_landscapes_verified": True, "load_replay_verified": True,
@@ -358,6 +475,10 @@ def launch_inventory(data_root: str | Path, *, verified: dict[str, dict]) -> dic
         entries.append({"landscape": name,
             "status": "prepared_verified" if evidence else "not_verified_in_this_invocation",
             "preparation_evidence": evidence, "launch_defaults": manifest["launch_defaults"],
+            "objective": {"label_kind": spec.get("label_kind", "reported_experimental_assay_score"),
+                "metric": spec.get("metric", "fitness"), "unit": spec["unit"],
+                "reference_caveat": spec.get("reference_caveat"),
+                "score_semantics": spec.get("score_semantics")},
             "scientific_validation": "not_executed_by_preparation",
             "launch_allowed": False,
             "launch_gate": "Preparation-only gate: a separate orchestrator records explicit run "
