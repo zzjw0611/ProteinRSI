@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 import os
 import random
 from email.utils import parsedate_to_datetime
@@ -22,7 +23,12 @@ class LLMError(RuntimeError):
 
 
 class ProviderPaused(LLMError):
-    """A known failed request exhausted retries; retain its continuation checkpoint."""
+    """A provider preflight or retry limit paused work; retain its continuation."""
+
+
+# An administrative byte budget, NOT a model token/window claim. Operators must
+# validate their own provider's input/output contract before raising this limit.
+DEFAULT_MAX_REQUEST_BYTES = 256 * 1024
 
 
 class JSONLLM:
@@ -30,7 +36,8 @@ class JSONLLM:
                  api_key: str, max_tokens: int = 4096, timeout: float = 90,
                  api_protocol: str = "chat_completions", reasoning_effort: str | None = None,
                  allow_http: bool = False, max_attempts: int = 4,
-                 transport: httpx.BaseTransport | None = None, connect_timeout: float = 15):
+                 transport: httpx.BaseTransport | None = None, connect_timeout: float = 15,
+                 max_request_bytes: int = DEFAULT_MAX_REQUEST_BYTES):
         parsed = urlsplit(base_url)
         if parsed.scheme != "https" and not (parsed.scheme == "http" and
                 (allow_http or parsed.hostname in ("localhost", "127.0.0.1"))):
@@ -50,6 +57,9 @@ class JSONLLM:
             raise ValueError("LLM max_attempts must be between 1 and 10")
         if type(max_tokens) is not int or max_tokens < 1:
             raise ValueError("LLM max_tokens must be a positive integer")
+        if type(max_request_bytes) is not int or max_request_bytes < 1:
+            raise ValueError("LLM max_request_bytes must be a positive integer; unbounded input is unsupported")
+        self.max_request_bytes = max_request_bytes
         self.max_attempts = max_attempts
         self.store, self.model = store, model
         self.base_url, self.api_key = base_url.rstrip("/"), api_key
@@ -90,7 +100,9 @@ class JSONLLM:
                    allow_http=os.environ.get("PROTEINRSI_ALLOW_HTTP", "").lower() == "true",
                    timeout=float(os.environ.get("PROTEINRSI_LLM_TIMEOUT", "90")),
                    max_attempts=int(os.environ.get("PROTEINRSI_LLM_MAX_ATTEMPTS", "4")),
-                   connect_timeout=float(os.environ.get("PROTEINRSI_LLM_CONNECT_TIMEOUT", "15")))
+                   connect_timeout=float(os.environ.get("PROTEINRSI_LLM_CONNECT_TIMEOUT", "15")),
+                   max_request_bytes=int(os.environ.get("PROTEINRSI_LLM_MAX_REQUEST_BYTES",
+                                                       str(DEFAULT_MAX_REQUEST_BYTES))))
 
     def complete(self, role: str, instructions: str, context: dict[str, Any], schema: dict) -> dict:
         # JSON mode is widely supported; independently validate every response at the caller.
@@ -115,6 +127,7 @@ class JSONLLM:
         key = "llm-" + digest({"role": role, "url": cache_url,
                               "request": payload})
         previous = self.store.get("llm", key)
+        request_body = None
         while True:
             if previous is not None:
                 if previous["state"] == "done":
@@ -123,6 +136,15 @@ class JSONLLM:
                 attempt = previous.get("attempt", 1)
                 if previous["state"] != "failed" or not self._retryable(previous):
                     raise LLMError("Prior call failed or has uncertain completion; inspect audit before retrying")
+            else:
+                attempt = 0
+            # Serialize with the same HTTPX JSON encoder used by the legacy
+            # client, then send these exact bytes. Include schema and all API
+            # envelope fields, not just the user-context text. No socket opens.
+            if request_body is None:
+                request_body = httpx.Request("POST", self.base_url + endpoint, json=payload).content
+            preflight = self._preflight(key, role, context, payload, request_body)
+            if previous is not None:
                 extension = self.store.get("llm_retry_authorizations", key, {}).get("attempt_limit", 0)
                 if attempt >= max(self.max_attempts, extension):
                     raise ProviderPaused(f"Provider retry limit exhausted ({attempt} attempts); authorize retry for {key}")
@@ -133,14 +155,50 @@ class JSONLLM:
                     "attempt": attempt + 1, "delay_seconds": delay,
                     "http_status": previous.get("http_status"), "error_type": previous.get("error_type")})
                 time.sleep(delay)
-            else:
-                attempt = 0
             try:
-                return self._attempt(key, attempt + 1, role, context, endpoint, payload)
+                return self._attempt(key, attempt + 1, role, context, endpoint, payload,
+                                     request_body, preflight)
             except LLMError:
                 previous = self.store.get("llm", key)
                 if not self._retryable(previous):
                     raise
+
+    def _preflight(self, key: str, role: str, context: dict, payload: dict,
+                   request_body: bytes) -> dict:
+        """Reject locally, without spending a call or inventing provider usage.
+
+        Limits deliberately do not enter the scientific request/cache identity:
+        an operator can correct a local cap without replaying a completed call,
+        changing the request, resetting paid attempts, or rewriting old evidence.
+        """
+        from proteinrsi.audit import redact
+        preflight = {"version": 1, "request_bytes": len(request_body),
+            "max_request_bytes": self.max_request_bytes,
+            "request_body_sha256": hashlib.sha256(request_body).hexdigest(),
+            "input_tokens": None, "context_window_verified": False}
+        if len(request_body) <= self.max_request_bytes:
+            return preflight
+        # Repeated rejection of the same bytes and cap has one immutable receipt,
+        # separate from paid attempts. Keep the complete request, never a preview.
+        preflight_key = key + "/preflight-" + digest(preflight)
+        request = redact(payload, (self.api_key,))
+        audit = {"state": "rejected", "reason": "request_bytes_exceeded",
+            "request_key": key, "role": role, "model": self.model,
+            "api_protocol": self.api_protocol, "base_url": self.base_url,
+            "round": context.get("view", {}).get("round_index"),
+            "request": request, "request_redacted": request != payload,
+            "input_preflight": preflight, "network_attempted": False, "llm_calls_charged": 0}
+        audit = redact(audit, (self.api_key,))
+        self.store.put("llm_preflights", preflight_key, audit, immutable=True)
+        self.store.event("llm_preflight_rejected", {"key": key, "preflight_key": preflight_key,
+            "role": audit["role"], "round": audit["round"], "reason": audit["reason"], **preflight})
+        raise ProviderPaused(
+            f"Native request preflight rejected {key}: {len(request_body)} serialized UTF-8 JSON bytes "
+            f"exceed max_request_bytes={self.max_request_bytes}. No network call or LLM budget charge. "
+            "Check the provider model's tokenizer/context window and output allowance before adjusting "
+            "PROTEINRSI_LLM_MAX_REQUEST_BYTES (or max_request_bytes), then resume the same request. "
+            "A byte limit is not token-window verification; do not truncate evidence or authorize retries "
+            "to bypass this guard.")
 
     @staticmethod
     def _retryable(record: dict) -> bool:
@@ -164,7 +222,7 @@ class JSONLLM:
         return delay
 
     def _attempt(self, key: str, attempt: int, role: str, context: dict,
-                 endpoint: str, payload: dict) -> dict:
+                 endpoint: str, payload: dict, request_body: bytes, preflight: dict) -> dict:
         attempt_key = f"{key}/attempt-{attempt}"
         charge_key = key if attempt == 1 else attempt_key
         self.store.reserve(charge_key, "llm_calls", 1, payload)
@@ -174,6 +232,7 @@ class JSONLLM:
         audit = {"attempt": attempt, "request_key": key, "state": "started", "role": role, "model": self.model,
             "api_protocol": self.api_protocol, "base_url": self.base_url,
             "request": redact(payload, (self.api_key,)), "started_at": started,
+            "input_preflight": preflight,
             "round": context.get("view", {}).get("round_index"),
             "provider_reasoning_summary": [], "reasoning_note": "Only explicitly returned summaries are recorded; no hidden thoughts inferred."}
         self.store.put("llm", key, audit)
@@ -183,8 +242,9 @@ class JSONLLM:
         try:
             with httpx.Client(timeout=httpx.Timeout(self.timeout, connect=self.connect_timeout), transport=self.transport,
                               follow_redirects=False, trust_env=False) as client:
-                response = client.post(self.base_url + endpoint, json=payload,
-                                       headers={"Authorization": "Bearer " + self.api_key})
+                response = client.post(self.base_url + endpoint, content=request_body,
+                                       headers={"Authorization": "Bearer " + self.api_key,
+                                                "Content-Type": "application/json"})
                 audit["http_status"] = response.status_code
                 audit["response_headers"] = redact({name: response.headers[name][:1024]
                     for name in ("x-request-id", "request-id", "cf-ray", "retry-after", "date", "server")

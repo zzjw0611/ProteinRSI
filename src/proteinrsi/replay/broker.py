@@ -115,6 +115,11 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
                             "pid": proc.pid, "sandbox": msg["sandbox"]})
                         return msg["done"]
                     if "failed" in msg:
+                        if provider_pause is not None and msg["failed"] == "ProviderPaused":
+                            # The worker receives only the exception type. Keep
+                            # the controller's actionable limit/recovery detail
+                            # when its continuation has finished draining.
+                            raise provider_pause
                         raise WorkerExecutionError(msg["failed"], msg.get("message", ""))
                     try:
                         if provider_pause is not None and msg.get("rpc") in {"llm", "tool"}:

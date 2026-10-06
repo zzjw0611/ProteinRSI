@@ -270,6 +270,6 @@ class SponsoredStore(Store):
             return
         super().put(namespace, key, value, immutable=immutable)
         # These namespaces are operator-only; the worker RPC cannot read them.
-        if namespace in {"llm", "llm_attempts", "tool_jobs", "agent_snapshots", "research_runs", "research_step_outputs", "code_programs"}:
+        if namespace in {"llm", "llm_attempts", "llm_preflights", "tool_jobs", "agent_snapshots", "research_runs", "research_step_outputs", "code_programs"}:
             self.sponsor.put("validation_"+namespace, self.prefix+"/"+key,
                              {"branch": self.prefix, **value}, immutable=immutable)

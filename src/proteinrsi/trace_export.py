@@ -24,6 +24,7 @@ from urllib.parse import quote
 
 TRACE_NAMESPACES = frozenset({
     "llm_attempts", "validation_llm_attempts", "llm", "tool_jobs", "agent_snapshots",
+    "llm_preflights", "validation_llm_preflights",
     "validation_llm", "validation_tool_jobs", "validation_agent_snapshots", "patches",
     "trials", "trial_results", "meta_evaluations", "meta_online_attempts", "research_runs",
     "research_step_outputs", "batches", "measurements", "validation_research_runs",
@@ -35,6 +36,7 @@ TRACE_NAMESPACES = frozenset({
 })
 DETAIL_FIELDS = (
     ("attempt_key", "llm_attempts"), ("key", "llm"), ("key", "tool_jobs"),
+    ("preflight_key", "llm_preflights"),
     ("snapshot_ref", "agent_snapshots"), ("run_id", "research_runs"),
     ("output_id", "research_step_outputs"), ("snapshot_ref", "method_snapshots"),
     ("patch_id", "method_candidates"), ("archive_ref", "gepa_results"),

@@ -14,7 +14,7 @@ def rpc(operation, **arguments):
     if "error" in response:
         if operation == "llm" and response["error"] == "ProviderPaused":
             from proteinrsi.llm import ProviderPaused
-            raise ProviderPaused("Provider retry limit exhausted; inspect controller LLM audit")
+            raise ProviderPaused("Provider paused; inspect controller LLM/preflight audit before resuming")
         raise RuntimeError("Controller rejected operation: " + response["error"])
     return response["result"]
 

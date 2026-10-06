@@ -119,10 +119,14 @@ It losslessly tables revealed observations, optionally encodes mutable residues,
 and replaces exact duplicated views. Other roles can still receive growing context.
 The assistant bridge limits its canonical request payload to 32 MiB minus 1,024
 bytes before adding envelope identity fields; mailbox JSON reads have a 32 MiB cap.
-A native HTTP provider has no input-token/context-window guard in this patch. Its
-configured maximum output tokens is **not** an input-context limit. The bridge does
-not expose verified provider token usage, cost, or model identity. Neither byte
-counts nor character counts establish token counts or native provider acceptance.
+Native HTTP now has a separate, default 256 KiB serialized-request byte preflight;
+see [LLM context and preflight](LLM_CONTEXT.md) for configuration and safe recovery.
+Rejected full requests are preserved in `llm_preflights` (and sponsored
+`validation_llm_preflights`) with linked trace evidence, without a network call or
+LLM charge. This is **not** an input-token/context-window guarantee. Its configured
+maximum output tokens is **not** an input-context limit. The bridge does not expose
+verified provider token usage, cost, or model identity. Neither byte counts nor
+character counts establish token counts or native provider acceptance.
 
 Completed local audits on 2026-10-06 measured persisted request JSON as follows:
 
@@ -131,6 +135,8 @@ Completed local audits on 2026-10-06 measured persisted request JSON as follows:
 | T7 | 118 main | 4,512 | 4,051,623 (A-plan) |
 | ParD3 | 117 main + 8 validation | 4,240 | 1,040,968 (A-plan) |
 
-These are the completed studies' stored requests, not future bounds. T7's largest
-B request was 1,555,624 bytes despite B's presentation encoding. No live native API
-call was made, no prompt or cap changed, and no pinned active engine was modified.
+These are the completed studies' stored requests, not future bounds or the native
+provider's serialized wire bodies. T7's largest B request was 1,555,624 bytes despite
+B's presentation encoding. The measurements were read-only: no live native API
+call was made and no study prompt, cap or pinned active engine was modified. The
+subsequent mutable-source native preflight does not migrate those study engines.
