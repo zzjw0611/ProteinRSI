@@ -113,7 +113,7 @@ class AnalystAgent:
         if self.llm is None:
             return ranked
         # No implicit ESMC/Ridge/predictive scoring in the LLM path, even on cache hits.
-        ranked = [c.model_copy(update={"predicted_value": None, "uncertainty": None,
+        ranked = [c.model_copy(update={"predicted_value": None, "prediction_ref": None, "uncertainty": None,
                                      "evidence_kind": "none"}) for c in ranked]
         from proteinrsi.ranking import request_ranking
         response = request_ranking(self.llm, self.store, "C",

@@ -7,7 +7,7 @@ from typing import Callable
 
 from proteinrsi.contracts import Candidate, sequence_hash, digest
 from proteinrsi.tasks import validate_candidate
-from .resources import SEQUENCES, RANKING, ESTIMATES, ResourceStore
+from .resources import SEQUENCES, RANKING, ESTIMATES, ResourceStore, scope_for
 from .schema import ContractError
 
 
@@ -27,10 +27,27 @@ class TaskProfile:
     validate: Callable[[object, ResourceStore, dict], list[Candidate]]
 
 
+def _validate_predictions(view, resources, candidates):
+    from proteinrsi.research.prediction import prediction_row
+    for candidate in candidates:
+        if candidate.prediction_ref is None:
+            continue
+        try:
+            _, row = prediction_row(resources.store, candidate.prediction_ref, candidate.sequence,
+                scope=scope_for(view), evidence_version=view.evidence_version,
+                workflow=view.workflow.version, metric=view.task.metric, unit=view.task.unit)
+        except ValueError as exc:
+            raise ContractError(str(exc)) from exc
+        if (candidate.predicted_value != row["predicted_value"] or candidate.uncertainty is not None
+                or candidate.evidence_kind != ("proxy" if row["predicted_value"] is not None else "none")):
+            raise ContractError("Candidate prediction differs from its trusted tool artifact")
+
+
 def _validate_candidates(view, resources, outputs):
     candidates = resources.candidates(outputs["candidates"])
     if not candidates:
         raise ContractError("A design result must contain candidates")
+    _validate_predictions(view, resources, candidates)
     task = view.task
     if task.candidate_access == "catalogue":
         from proteinrsi.research.library import catalogue_task
@@ -42,6 +59,7 @@ def _validate_candidates(view, resources, outputs):
 
 def _validate_ranking(view, resources, outputs):
     candidates = resources.ranked_candidates(outputs["ranking"])
+    _validate_predictions(view, resources, candidates)
     if {c.sequence for c in candidates} != set(view.task.candidates):
         raise ContractError("Ranking changed the supplied candidate set")
     return candidates

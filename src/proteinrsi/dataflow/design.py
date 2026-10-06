@@ -133,7 +133,7 @@ def resolve_design(design: Design, resources: ResourceStore, allowed_refs: set[s
         validate_candidate(task, candidate, enforce_universe=task.candidate_access != "open")
         # A design proposal has no authority to manufacture a numerical prediction.
         unique.setdefault(candidate.sequence, candidate.model_copy(update={
-            "predicted_value": None, "uncertainty": None, "evidence_kind": "none"}))
+            "predicted_value": None, "prediction_ref": None, "uncertainty": None, "evidence_kind": "none"}))
     if len(unique) > 384:
         raise ContractError("Resolved candidate union exceeds 384; select smaller resources")
     # Compatibility boundary: old runners consume resolved sequences, never typed edits twice.

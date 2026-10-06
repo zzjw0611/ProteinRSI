@@ -258,6 +258,16 @@ class SponsoredStore(Store):
         self.sponsor.event("validation_event", {"branch": self.prefix, "kind": kind, "payload": payload})
 
     def put(self, namespace, key, value, *, immutable=False):
+        if namespace == "task_predictions":
+            # Frozen main-campaign samples may reference a descendant's predictions.
+            # Publish the exact artifact, not an audit wrapper or new prediction.
+            # This is controller-only: worker RPC still cannot write this namespace.
+            if not isinstance(value, dict) or key != digest(value):
+                raise ValueError("Task predictions must use a content-addressed artifact key")
+            # Check the sponsor first; never replace conflicting evidence in either store.
+            self.sponsor.put(namespace, key, value, immutable=True)
+            super().put(namespace, key, value, immutable=True)
+            return
         super().put(namespace, key, value, immutable=immutable)
         # These namespaces are operator-only; the worker RPC cannot read them.
         if namespace in {"llm", "llm_attempts", "tool_jobs", "agent_snapshots", "research_runs", "research_step_outputs", "code_programs"}:

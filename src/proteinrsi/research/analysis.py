@@ -78,7 +78,18 @@ def prediction_errors(view: TaskView, store) -> dict:
             candidate = sample["candidate"]
             prediction = candidate.get("predicted_value")
             # Uncalibrated proxy scores must never be evaluated as phenotype predictions.
-            if o is None or prediction is None or sample["arm"] == "control":
+            if o is None or sample["arm"] == "control":
+                continue
+            ref = candidate.get("prediction_ref")
+            if ref is not None:
+                from .prediction import prediction_row
+                _, row = prediction_row(store, ref, o.sequence,
+                    evidence_version=batch["evidence_version"], workflow=sample["workflow_version"],
+                    metric=view.task.metric, unit=view.task.unit)
+                if (prediction != row["predicted_value"] or candidate.get("uncertainty") is not None
+                        or candidate.get("evidence_kind") != ("proxy" if prediction is not None else "none")):
+                    raise ValueError("Frozen prediction differs from its trusted tool artifact")
+            if prediction is None:
                 continue
             if candidate["sequence"] != o.sequence or not math.isfinite(prediction):
                 raise ValueError("Saved prediction identity/value mismatch")

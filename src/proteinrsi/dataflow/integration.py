@@ -70,12 +70,13 @@ def build_operations(team, view, resources):
         candidates = resources.candidates(args["candidates"])
         evidence = [args["evidence"]] if args.get("evidence") else []
         ranked = team.analyst.rank(view, candidates, evidence)
-        return {"candidate_set_ref": args["candidates"],
+        annotated = resources.sequences(ranked, producer="agent:C:ranked")
+        return {"candidate_set_ref": annotated["resource_id"],
                 "ordered_ids": ["seq:" + sequence_hash(c.sequence) for c in ranked],
                 "summary": "Analyst ranking; no implicit model execution"}
 
     operations.register(Operation("agent:rank", object_schema({"candidates": ref_schema,
-        "evidence": {"type": "object"}}, ["candidates"]), RANKING, rank, "typed-ranking-v1",
+        "evidence": {"type": "object"}}, ["candidates"]), RANKING, rank, "typed-ranking-v2",
         resource_inputs={"candidates": SEQUENCES}))
 
     def select(args, key):
@@ -105,7 +106,7 @@ def build_operations(team, view, resources):
         return resources.get(descriptor["resource_id"])["data"]
 
     operations.register(Operation("adapter:ranked_sequences", object_schema({"ranking": ref_schema}, ["ranking"]),
-        SEQUENCES, ordered, "ranked-sequences-v1", resource_inputs={"ranking": RANKING}))
+        SEQUENCES, ordered, "ranked-sequences-v2", resource_inputs={"ranking": RANKING}))
 
     def accept_checked(args, key):
         candidates = resources.candidates(args["candidates"])

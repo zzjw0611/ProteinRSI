@@ -137,7 +137,8 @@ class ResourceStore:
         self.store, self.registry, self.scope = store, registry, scope
 
     def put(self, schema_ref: str, data: Any, *, producer: str,
-            parents: list[str] | None = None, is_input: bool = False) -> dict:
+            parents: list[str] | None = None, is_input: bool = False,
+            prediction_refs: dict[str, str] | None = None) -> dict:
         self.registry.validate(schema_ref, data, output=not is_input)
         if schema_ref in MODELS:
             MODELS[schema_ref].model_validate(data)
@@ -145,12 +146,37 @@ class ResourceStore:
             raise ContractError("Scientific resource exceeds 4MB; use a registered artifact")
         if schema_ref == STRUCTURES:
             self._check_structure_artifacts(data)
-        for parent in parents or []:
-            self.get(parent)
+        parent_records = [self.get(parent) for parent in parents or []]
+        annotations = dict(prediction_refs or {})
+        if schema_ref == SEQUENCES:
+            ids = {item["candidate_id"] for item in data["items"]}
+            # Preserve scientific annotations across explicit sequence/ranking bindings.
+            # Values remain in trusted tool artifacts, never in model-authored data.
+            for parent in parent_records:
+                if parent["schema_ref"] == SEQUENCES:
+                    inherited = parent.get("prediction_refs", {})
+                elif parent["schema_ref"] == RANKING:
+                    ranking = RankedSet.model_validate(parent["data"])
+                    source = self.get(ranking.candidate_set_ref, schema_ref=SEQUENCES)
+                    inherited = {key: ref for key, ref in source.get("prediction_refs", {}).items()
+                                 if key in ranking.ordered_ids}
+                else:
+                    continue
+                for key, ref in inherited.items():
+                    if key not in ids:
+                        continue
+                    if key in annotations and annotations[key] != ref:
+                        raise ContractError("Conflicting prediction provenance for one sequence")
+                    annotations[key] = ref
+            self._prediction_fields(data, annotations)
+        elif annotations:
+            raise ContractError("Prediction annotations require a sequence resource")
         payload = {"scope": self.scope, "schema_ref": schema_ref,
                    "schema_sha256": self.registry.fingerprint(schema_ref), "data": data,
                    "producer": producer, "parents": parents or [],
                    "measurement_authority": False}
+        if annotations:
+            payload["prediction_refs"] = annotations
         ref = "resource:" + digest(payload)
         self.store.put(NAMESPACE, ref, payload, immutable=True)
         return self.describe(ref)
@@ -173,6 +199,10 @@ class ResourceStore:
             MODELS[actual].model_validate(payload["data"])
         if actual == STRUCTURES:
             self._check_structure_artifacts(payload["data"])
+        if actual == SEQUENCES:
+            self._prediction_fields(payload["data"], payload.get("prediction_refs", {}))
+        elif payload.get("prediction_refs"):
+            raise ContractError("Prediction annotations require a sequence resource")
         return deepcopy(payload)
 
     def _check_structure_artifacts(self, data):
@@ -198,28 +228,55 @@ class ResourceStore:
             result["preview_is_partial"] = result["preview"] != data
         return result
 
+    def _prediction_fields(self, data, refs):
+        from proteinrsi.research.prediction import prediction_row
+        if not isinstance(refs, dict):
+            raise ContractError("Invalid sequence prediction annotations")
+        by_id = {item["candidate_id"]: item for item in data["items"]}
+        if set(refs) - by_id.keys():
+            raise ContractError("Prediction annotation names an unknown sequence")
+        fields = {}
+        for candidate_id, ref in refs.items():
+            try:
+                _, row = prediction_row(self.store, ref, by_id[candidate_id]["sequence"],
+                                        scope=self.scope)
+            except ValueError as exc:
+                raise ContractError(str(exc)) from exc
+            fields[candidate_id] = {"prediction_ref": ref,
+                "predicted_value": row["predicted_value"], "uncertainty": None,
+                "evidence_kind": "proxy" if row["predicted_value"] is not None else "none"}
+        return fields
+
     def sequences(self, candidates: list, *, producer: str) -> dict:
-        unique = {}
+        unique, refs = {}, {}
         for raw in candidates:
             candidate = raw if isinstance(raw, Candidate) else Candidate.model_validate(raw)
+            candidate_id = "seq:" + sequence_hash(candidate.sequence)
             unique.setdefault(candidate.sequence, SequenceEntry(
-                candidate_id="seq:" + sequence_hash(candidate.sequence), sequence=candidate.sequence,
-                rationale=candidate.rationale))
+                candidate_id=candidate_id, sequence=candidate.sequence, rationale=candidate.rationale))
+            if candidate.prediction_ref is not None:
+                if candidate_id in refs and refs[candidate_id] != candidate.prediction_ref:
+                    raise ContractError("Conflicting prediction provenance for one sequence")
+                refs[candidate_id] = candidate.prediction_ref
+                expected = self._prediction_fields({"items": [unique[candidate.sequence].model_dump()]},
+                                                   {candidate_id: candidate.prediction_ref})[candidate_id]
+                if any(getattr(candidate, field) != value for field, value in expected.items()):
+                    raise ContractError("Candidate prediction differs from its trusted tool artifact")
         data = SequenceSet(items=list(unique.values())).model_dump(mode="json")
-        return self.put(SEQUENCES, data, producer=producer)
+        return self.put(SEQUENCES, data, producer=producer, prediction_refs=refs)
 
     def candidates(self, ref: str) -> list[Candidate]:
         payload = self.get(ref, schema_ref=SEQUENCES)
-        return [Candidate(sequence=i["sequence"], rationale=i["rationale"], source=ref)
-                for i in payload["data"]["items"]]
+        fields = self._prediction_fields(payload["data"], payload.get("prediction_refs", {}))
+        return [Candidate(sequence=i["sequence"], rationale=i["rationale"], source=ref,
+                          **fields.get(i["candidate_id"], {})) for i in payload["data"]["items"]]
 
     def ranked_candidates(self, ref: str, *, require_permutation: bool = True) -> list[Candidate]:
         ranking = RankedSet.model_validate(self.get(ref, schema_ref=RANKING)["data"])
-        data = self.get(ranking.candidate_set_ref, schema_ref=SEQUENCES)["data"]
-        by_id = {i["candidate_id"]: i for i in data["items"]}
+        by_id = {"seq:" + sequence_hash(c.sequence): c
+                 for c in self.candidates(ranking.candidate_set_ref)}
         if set(ranking.ordered_ids) - by_id.keys():
             raise ContractError("Ranking contains unknown IDs")
         if require_permutation and set(ranking.ordered_ids) != by_id.keys():
             raise ContractError("Ranking must contain every input ID exactly once")
-        return [Candidate(sequence=by_id[i]["sequence"], source=ref,
-                          rationale=by_id[i]["rationale"]) for i in ranking.ordered_ids]
+        return [by_id[i].model_copy(update={"source": ref}) for i in ranking.ordered_ids]

@@ -161,6 +161,7 @@ class Candidate(Model):
     rationale: str = ""
     source: str = "agent"
     predicted_value: float | None = None
+    prediction_ref: str | None = Field(default=None, pattern=r"^task_predictions/[0-9a-f]{64}$")
     uncertainty: float | None = Field(default=None, ge=0)
     evidence_kind: Literal["proxy", "calibrated_prediction", "none"] = "none"
 
