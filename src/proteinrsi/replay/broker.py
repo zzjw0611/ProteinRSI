@@ -22,6 +22,13 @@ CONFIG_KEYS = {"research", "know_how", "prompt_bundle", "protein_model", "local_
 ROLES = {"A", "A-plan", "A-review", "A-selection", "B", "C", "C-tools", "C-feedback", "M", "resource-selector", "A-resources"}
 
 
+class WorkerExecutionError(RuntimeError):
+    """A worker returned a complete failure receipt (not a transport interruption)."""
+    def __init__(self, error_type: str, message: str):
+        self.error_type = error_type
+        super().__init__("Guarded worker failed: " + error_type + ": " + message)
+
+
 def reader_roots():
     # Exact package roots, NOT project root/home/data directories.
     roots = {str(Path(p).resolve()) for p in sys.path if p and Path(p).is_dir()
@@ -105,7 +112,7 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
                             "pid": proc.pid, "sandbox": msg["sandbox"]})
                         return msg["done"]
                     if "failed" in msg:
-                        raise RuntimeError("Guarded worker failed: "+msg["failed"]+": "+msg.get("message",""))
+                        raise WorkerExecutionError(msg["failed"], msg.get("message", ""))
                     try:
                         result = dispatch(team, gateway, view, allowed, msg)
                         send({"result": result})

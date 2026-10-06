@@ -33,6 +33,8 @@ def attach(directory: str, args) -> Campaign:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="proteinrsi")
     sub = parser.add_subparsers(dest="command", required=True)
+    from proteinrsi.method_cli import add_parser as add_method_parser
+    add_method_parser(sub)
     start = sub.add_parser("start", help="Interpret a protein research goal and choose a task and feedback route")
     start.add_argument("goal", help="Describe the objective, available sequences, iteration limit and feedback expectations")
     start.add_argument("--input", action="append", default=[], help="Scientific input file (FASTA/PDB/CIF/A3M/JSON); repeatable")
@@ -62,6 +64,7 @@ def main(argv: list[str] | None = None) -> None:
     init.add_argument("--workflow")
     init.add_argument("--meta")
     init.add_argument("--gate")
+    init.add_argument("--method-governance", help="Operator-authored candidate failure/deferral limits")
     init.add_argument("--research-config", help="Operator-authored resource selection and plan limits")
     init.add_argument("--research-mode", choices=["adaptive", "fixed"], default=None,
                       help="New CLI campaigns default to adaptive; fixed retains the v0.3 team path")
@@ -118,6 +121,13 @@ def main(argv: list[str] | None = None) -> None:
         if name == "graph":
             cmd.add_argument("--resume", help="JSON file with explicit approval/measurement payload")
     args = parser.parse_args(argv)
+    if args.command == "methods":
+        from proteinrsi.method_cli import run as run_methods
+        try:
+            print(json.dumps(run_methods(args), ensure_ascii=False, indent=2))
+        except (ValueError, RuntimeError, FileNotFoundError) as exc:
+            parser.error(str(exc))
+        return
     try:
         if args.command == "start":
             from datetime import datetime
@@ -293,7 +303,8 @@ def main(argv: list[str] | None = None) -> None:
             campaign = Campaign.initialize(args.out, TaskSpec.model_validate(load_json(args.task)),
                 workflow=workflow, protein_config=protein_config, local_tools=local_config, research_config=research_config,
                 meta=MetaPolicy.model_validate(load_json(args.meta)) if args.meta else None,
-                gate=GatePolicy.model_validate(load_json(args.gate)) if args.gate else None)
+                gate=GatePolicy.model_validate(load_json(args.gate)) if args.gate else None,
+                governance_config=load_json(args.method_governance) if args.method_governance else None)
             output = campaign.report()
         elif args.command == "esmc-check":
             from proteinrsi.protein.esmc import from_store

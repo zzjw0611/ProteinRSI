@@ -3,30 +3,33 @@ import json
 
 import pytest
 
-from proteinrsi.contracts import MetaPolicy, Observation, Patch
+from proteinrsi.contracts import GatePolicy, MetaPolicy, Observation, Patch
 from proteinrsi.trajectory import export_html, read_trace
 from test_rsi import ScriptedOffspringTeam
 
 
 def stage(campaign):
+    from proteinrsi.runtime import Campaign
+    campaign = Campaign.initialize(str(campaign.store.root / "online-meta-fixture"), campaign.view().task,
+        workflow=campaign.view().workflow, meta=MetaPolicy(min_observations=100),
+        gate=GatePolicy.model_validate(campaign.state["gate"]))
     state = campaign.state
     view = campaign.view()
     state['observations'] = [Observation(sample_id=f'known-{i}', batch_id='known', sequence=s,
         value=0, metric=view.task.metric, unit=view.task.unit, source='synthetic',
         assay_protocol=view.task.assay_protocol).model_dump(mode='json')
         for i, s in enumerate(view.task.candidates[:2])]
-    state['meta'] = MetaPolicy(min_observations=100).model_dump()
     campaign.store.put('campaign', 'state', state)
     base = campaign.view().meta
     campaign.stage_patch(Patch(target='meta', base_version=base.version,
         changes={'min_observations': 2}, task_kind=view.task.kind,
         hypothesis='Artificial test of promotion only', author_backend='synthetic-test'))
-    return base
+    return campaign, base
 
 
 @pytest.mark.parametrize('better,expected', [(True, 'accepted'), (False, 'rejected'), (None, 'inconclusive')])
 def test_online_meta_uses_shared_queries_and_promotes_only_with_evidence(campaign, monkeypatch, better, expected):
-    base = stage(campaign)
+    campaign, base = stage(campaign)
     monkeypatch.setattr('proteinrsi.online_meta.make_validation_team', lambda campaign, store: ScriptedOffspringTeam(store))
     before = campaign.view().workflow.version
     batch = campaign.prepare()
@@ -53,7 +56,7 @@ def test_online_meta_uses_shared_queries_and_promotes_only_with_evidence(campaig
 
 
 def test_meta_insufficient_batch_defers_without_promotion(campaign, monkeypatch):
-    base = stage(campaign)
+    campaign, base = stage(campaign)
     state = campaign.state
     state['gate']['min_per_arm'] = 100
     campaign.store.put('campaign', 'state', state)
@@ -65,7 +68,7 @@ def test_meta_insufficient_batch_defers_without_promotion(campaign, monkeypatch)
 
 
 def test_meta_branch_failure_keeps_old_policy_and_records_error(campaign, monkeypatch):
-    base = stage(campaign)
+    campaign, base = stage(campaign)
     def fail(campaign, store):
         raise ValueError('artificial branch failure')
     monkeypatch.setattr('proteinrsi.online_meta.make_validation_team', fail)
@@ -92,7 +95,7 @@ def test_trace_is_readonly_and_html_does_not_execute_model_text(campaign, tmp_pa
 
 
 def test_identical_meta_descendants_skip_validation_queries(campaign, monkeypatch):
-    stage(campaign)
+    campaign, _ = stage(campaign)
     state = campaign.state
     state['observations'] = []
     campaign.store.put('campaign', 'state', state)
@@ -113,7 +116,7 @@ def test_guarded_meta_branches_support_frozen_external_artifacts(campaign, tmp_p
     from proteinrsi.replay.sandbox import probe
     if not probe()['available']:
         pytest.skip('Host cannot enforce replay isolation')
-    stage(campaign)
+    campaign, _ = stage(campaign)
     artifact = tmp_path/'input.pdb'
     artifact.write_text('HEADER synthetic input\nEND\n')
     original = ArtifactStore(campaign.store).put(artifact, 'pdb')

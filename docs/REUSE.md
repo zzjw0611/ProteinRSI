@@ -87,3 +87,7 @@ not a copy of the server-local guard scripts described in the user's data report
 Model implementations and the original Biomni adaptation retain their prior licenses.
 The provided architecture SVG is byte-for-byte preserved in docs/assets; origin/hash are
 recorded in architecture.provenance.json. It is not a Biomni figure or validation result.
+
+## Method governance increment
+
+`governance.py`, `workflow_trial.py`, `method_cli.py` and controller transactions are original ProteinRSI code. MLflow's version/alias separation and OpenEvolve's candidate archive / staged evaluation are conceptual references only; no new dependency or source transplant is introduced. The existing GEPA API adapter now optionally archives candidate lineage and runtime records using the campaign store. Cross-study ACE-style memory remains unimplemented; local outcome summaries are explicitly unvalidated for transfer. See [METHOD_GOVERNANCE](METHOD_GOVERNANCE.md).

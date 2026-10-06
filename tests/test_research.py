@@ -29,8 +29,12 @@ def enable(campaign, **config):
     return campaign
 
 
-def test_adaptive_round_is_real_control_flow_and_preserves_approvals(campaign, oracle):
-    enable(campaign)
+def test_adaptive_round_is_real_control_flow_and_preserves_approvals(campaign, oracle, tmp_path):
+    # Governed studies freeze configuration at creation, not after initialization.
+    from proteinrsi.contracts import GatePolicy
+    campaign = Campaign.initialize(str(tmp_path/"adaptive"), campaign.view().task,
+        meta=campaign.view().meta, gate=GatePolicy.model_validate(campaign.state["gate"]),
+        research_config=ResearchConfig())
     batch = campaign.prepare()
     assert campaign.report()["status"] == "awaiting_approval"
     assert campaign.store.usage()["experimental_wells"]["committed"] == 0
@@ -356,7 +360,7 @@ def test_both_meta_offspring_get_same_research_context(campaign):
     from test_rsi import stage_meta, make_meta_cases, ScriptedOffspringTeam
     from proteinrsi.evaluation import evaluate_meta
     enable(campaign)
-    stage_meta(campaign)
+    campaign, _ = stage_meta(campaign)
     snapshots = []
     class InspectTeam(ScriptedOffspringTeam):
         def __init__(self, store):

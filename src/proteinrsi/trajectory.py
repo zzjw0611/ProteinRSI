@@ -20,7 +20,10 @@ def read_trace(directory):
         "validation_agent_snapshots", "patches", "trials", "trial_results", "meta_evaluations",
         "meta_online_attempts", "research_runs", "research_step_outputs", "batches", "measurements",
         "validation_research_runs", "validation_research_step_outputs", "computational_iterations",
-        "code_programs", "validation_code_programs", "plate_plans", "workflow_validation_outcomes"}
+        "code_programs", "validation_code_programs", "plate_plans", "workflow_validation_outcomes",
+        "method_candidates", "method_candidate_states", "method_transitions", "method_switches",
+        "method_snapshots", "method_activations", "method_deferrals", "method_proposal_failures",
+        "batch_method_bindings", "gepa_attempts", "gepa_results", "gepa_failures"}
     state = {}
     for ns, key, value in rows:
         if ns == "campaign" and key == "state":
@@ -34,8 +37,13 @@ def read_trace(directory):
             prefix, branch = "validation_", payload["branch"]+"/"
             payload = payload["payload"]
         for field, namespace in (("attempt_key", "llm_attempts"), ("key", "llm"), ("key", "tool_jobs"), ("snapshot_ref", "agent_snapshots"),
-                                 ("run_id", "research_runs"), ("output_id", "research_step_outputs")):
-            record = records.get(prefix+namespace, {}).get(branch+payload.get(field, ""))
+                                 ("run_id", "research_runs"), ("output_id", "research_step_outputs"),
+                                 ("snapshot_ref", "method_snapshots"), ("patch_id", "method_candidates"),
+                                 ("archive_ref", "gepa_results")):
+            ref = payload.get(field)
+            if not isinstance(ref, str):
+                continue
+            record = records.get(prefix+namespace, {}).get(branch+ref)
             if record is not None:
                 event.setdefault("details", {})[namespace] = record
     spent = {k: sum(n for r, n, s in charges if r == k and s == "committed") for k in limits}

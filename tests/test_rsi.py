@@ -42,20 +42,22 @@ class ScriptedOffspringTeam:
 
 
 def stage_meta(campaign):
-    state = campaign.state
-    # Trusted initial policy setting, before any experiment; the successor is a staged patch.
-    state["meta"] = MetaPolicy(min_observations=100).model_dump()
-    campaign.store.put("campaign", "state", state)
-    base = MetaPolicy.model_validate(state["meta"])
+    from proteinrsi.runtime import Campaign
+    # Configure the initial policy before freezing it, rather than rewriting an active version.
+    campaign = Campaign.initialize(str(campaign.store.root / "meta-fixture"), campaign.view().task,
+        workflow=campaign.view().workflow, meta=MetaPolicy(min_observations=100),
+        gate=GatePolicy.model_validate(campaign.state["gate"]),
+        research_config=campaign.store.get("configuration", "research"))
+    base = campaign.view().meta
     patch = Patch(target="meta", base_version=base.version, changes={"min_observations": 2},
         task_kind="variant_design", hypothesis="Use the available evidence earlier to propose a workflow trial",
         author_backend="synthetic-test")
     campaign.stage_patch(patch)
-    return base
+    return campaign, base
 
 
 def test_meta_changes_are_evaluated_on_descendants_and_successor_is_loaded(campaign):
-    base = stage_meta(campaign)
+    campaign, base = stage_meta(campaign)
     assert campaign.view().meta.version == base.version
     report = evaluate_meta(campaign, make_meta_cases(campaign), promote=True,
                            team_factory=ScriptedOffspringTeam)
@@ -73,14 +75,14 @@ def test_meta_changes_are_evaluated_on_descendants_and_successor_is_loaded(campa
 
 
 def test_final_test_cannot_select_a_meta_version(campaign):
-    stage_meta(campaign)
+    campaign, _ = stage_meta(campaign)
     with pytest.raises(ValueError):
         evaluate_meta(campaign, make_meta_cases(campaign, "test"), promote=True,
                       team_factory=ScriptedOffspringTeam)
 
 
 def test_related_cases_do_not_inflate_meta_sample_size(campaign):
-    stage_meta(campaign)
+    campaign, _ = stage_meta(campaign)
     cases = make_meta_cases(campaign)
     for case in cases:
         case.group_id = "same-protein"

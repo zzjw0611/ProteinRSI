@@ -1,0 +1,5 @@
+{
+  "max_consecutive_failures": 3,
+  "max_changed_fields": 3,
+  "max_deferred_rounds": 2
+}

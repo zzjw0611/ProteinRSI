@@ -39,6 +39,9 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         if old["state"] == "planned":
             choices = [(Candidate.model_validate(c), a, w) for c, a, w in old["choices"]]
             return choices, old["trial"]
+        if campaign.methods.enabled:
+            campaign.methods.transition(state, patch, "blocked", {"evaluation_id": evaluation_id,
+                "reason": "Prior Meta attempt did not complete; reconcile before continuing"})
         raise ValueError("This Meta trial was already attempted; inspect its trace before retrying")
     def defer(reason):
         key = digest({"evaluation": evaluation_id, "reason": reason})
@@ -46,6 +49,8 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
             campaign.store.put("meta_deferrals", key, {"reason": reason, "patch_id": patch.patch_id})
             campaign.store.event("meta_validation_deferred", {"patch_id": patch.patch_id, "reason": reason,
                                                             "round": view.round_index})
+        if campaign.methods.enabled:
+            campaign.methods.defer(state, patch, reason)
         return None
     if per_arm < gate.min_per_arm:
         return defer("Next batch lacks enough equal-arm query slots")
@@ -61,6 +66,7 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         "evidence_version": view.evidence_version, "scope": "current_task_only",
         "protocol": "prospective-disjoint-descendants-v1", "per_arm": per_arm,
         "equal_compute_limits": limits}
+    campaign.methods.begin(state, patch)
     campaign.store.put("meta_online_attempts", evaluation_id, attempt)
     campaign.store.event("meta_validation_started", {"evaluation_id": evaluation_id, **attempt})
     full_task = TaskSpec.model_validate(state["task"])
@@ -116,8 +122,7 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
                 "reason": "Identical descendants", "improver_decisions": decisions})
             campaign.store.event("meta_validation_inconclusive", {"evaluation_id": evaluation_id,
                 "reason": "Identical descendants; no validation queries submitted"})
-            state["pending_meta"] = None
-            campaign.store.put("campaign", "state", state)
+            campaign.methods.finish(state, patch, "inconclusive", detail={"evaluation_id": evaluation_id})
             return None
         for arm, (store, team, child_view) in branches.items():
             snapshot(store, "descendant_research_input", child_view, branch=arm)
@@ -134,8 +139,7 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         if not chosen:
             campaign.store.put("meta_online_attempts", evaluation_id, {**attempt, "state": "inconclusive", **allocation})
             campaign.store.event("meta_validation_inconclusive", {"evaluation_id": evaluation_id, **allocation})
-            state["pending_meta"] = None
-            campaign.store.put("campaign", "state", state)
+            campaign.methods.finish(state, patch, "inconclusive", detail={"evaluation_id": evaluation_id})
             return None
         trial = {"target": "meta", "allocation": allocation, "patch": patch.model_dump(mode="json"), "gate": state["gate"],
             "evaluation_id": evaluation_id, "scope": "current_task_only", "transfer_validated": False,
@@ -145,12 +149,17 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         campaign.store.put("meta_online_attempts", evaluation_id, {**attempt, "state": "planned", "trial": trial,
             "choices": [(c.model_dump(mode="json"), a, w) for c, a, w in chosen]})
         return chosen, trial
-    except Exception as exc:  # Includes provider/schema/tool errors; never promotes a failed branch.
-        campaign.store.put("meta_online_attempts", evaluation_id, {**attempt, "state": "failed",
-            "error_type": type(exc).__name__, "reason": str(exc)[:500], "improver_decisions": decisions})
-        campaign.store.event("meta_validation_failed", {"evaluation_id": evaluation_id,
-            "patch_id": patch.patch_id, "error_type": type(exc).__name__, "reason": str(exc)[:500]})
-        state["pending_meta"] = None
-        # Save the failed outcome even if ordinary planning subsequently fails.
-        campaign.store.put("campaign", "state", state)
+    except Exception as exc:  # Failed candidates never publish; uncertain calls remain blocked.
+        with campaign.store.transaction():
+            recoverable = campaign.methods.failure(state, patch, exc) if campaign.methods.enabled else True
+            campaign.store.put("meta_online_attempts", evaluation_id, {**attempt,
+                "state": "failed" if recoverable else "blocked",
+                "error_type": type(exc).__name__, "improver_decisions": decisions})
+            campaign.store.event("meta_validation_failed", {"evaluation_id": evaluation_id,
+                "patch_id": patch.patch_id, "error_type": type(exc).__name__, "blocked": not recoverable})
+            if not campaign.methods.enabled:
+                state["pending_meta"] = None
+                campaign.store.put("campaign", "state", state)
+        if not recoverable:
+            raise
         return None
