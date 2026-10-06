@@ -12,6 +12,7 @@ from proteinrsi.tasks import apply_mutations, validate_candidate
 from proteinrsi.tools import ToolCall
 from .resources import ResourceStore, NAMESPACE, scope_for, standard_registry, RESOURCE_ID_PATTERN
 from .schema import ContractError
+from .context import CONTEXT_FORMAT, prepare_evidence
 
 AA = Annotated[str, Field(pattern=r"^[ACDEFGHIKLMNPQRSTVWY]$")]
 
@@ -35,6 +36,7 @@ class Design(Model):
     candidate_refs: list[Annotated[str, Field(pattern=RESOURCE_ID_PATTERN)]] = Field(
         default_factory=list, max_length=32)
     tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
+    replan_reason: str | None = Field(default=None, max_length=2000)
 
     @model_validator(mode="after")
     def unique_edits(self):
@@ -47,6 +49,9 @@ class Design(Model):
 
 
 DESIGN_HANDOFF = """
+The response schema and proposal_contract define this agent's reply. The plan
+describes scientific intent, not a replacement reply schema. The runtime adapter
+materializes protein.sequence_set/v1 and computes sequence IDs; never invent IDs.
 Use candidate_refs to adopt candidate sets already produced by a successful tool or code.
 Do not retype those sequences or invent alternative edit encodings. Use only resource IDs
 provided in available_candidate_sets. An existing candidate set can be accepted with
@@ -54,7 +59,25 @@ candidate_refs=[its resource_id] and tool_calls=[]. New substitutions must use a
 of {position: integer, from: amino_acid, to: amino_acid} objects for each variant.
 Tools are optional; no request means no protein model or predictor will run. Do not
 invent fitness values. A validation repair changes your output, not the task constraints.
+repair_state describes locally validated candidates retained across repairs, not a
+completed scientific panel. Return corrections/additions only; retained candidates
+are merged automatically. Check the combined panel against the scientific plan,
+including paired backgrounds and allocations, before declaring it complete. If
+the plan cannot be satisfied, return replan_reason instead of fabricating output.
 """
+
+
+def proposal_contract(view) -> dict:
+    substitutions = bool(view.task.reference_sequence and view.task.mutable_positions
+                         and not view.task.allow_indels)
+    return {"agent_reply_schema": Design.model_json_schema(),
+        "step_result_schema": "protein.sequence_set/v1",
+        "adapter_responsibilities": ["apply residue edits to the supplied reference",
+            "validate task constraints", "compute sequence IDs", "publish a candidate resource"],
+        "preferred_representation": "edits_or_candidate_refs" if substitutions else "sequences_or_candidate_refs",
+        "sequence_construction": "For substitution designs, express changes as edits or generate a resource with code; avoid copying unchanged residues.",
+        "tool_policy": "Protein predictors are optional. Local Python construction/validation is a separate optional capability, not a protein prediction.",
+        "panel_validation": "Validate the combined panel's scientific grouping/pairing with explicit code or a protocol validation step; sequence validity alone does not verify a panel."}
 
 
 def _candidate_payload(result: dict):
@@ -129,11 +152,12 @@ def _issues(exc) -> list[dict]:
 
 def request_design(llm, store, instructions, view, plan, tool_results, catalog) -> Design:
     resources = ResourceStore(store, standard_registry(), scope_for(view))
-    compact, allowed = prepare_handoff(resources, tool_results)
-    context = {"view": view.model_dump(mode="json"), "plan": plan.model_dump(mode="json"),
+    presented_view, evidence = prepare_evidence(view.model_dump(mode="json"), tool_results)
+    compact, allowed = prepare_handoff(resources, evidence)
+    context = {"view": presented_view, "plan": plan.model_dump(mode="json"),
                "tool_results": compact, "available_tools": catalog,
-               "available_candidate_sets": list(allowed.values())}
-    instructions = instructions + "\n" + DESIGN_HANDOFF
+               "available_candidate_sets": list(allowed.values()), "proposal_contract": proposal_contract(view)}
+    instructions = instructions + "\n" + DESIGN_HANDOFF + "\n" + CONTEXT_FORMAT
     settings = store.get("configuration", "research", {}) or {}
     repairs = min(3, max(0, int(settings.get("max_format_repairs", 2))))
     key = "design-handoff:" + digest({"scope": resources.scope, "context": context,
@@ -147,19 +171,38 @@ def request_design(llm, store, instructions, view, plan, tool_results, catalog) 
         attempt = record["attempts"]
         # Includes repair identity in the LLM request/cache. Provider failures use the
         # existing client retry policy; they are not misclassified as schema errors.
-        request = {**context, "format_attempt": attempt, "validation_errors": record["errors"]}
-        record["attempts"] += 1
-        store.put(NAMESPACE, key, record)
+        offered = dict(allowed)
+        retained_ref = record.get("retained_ref")
+        if retained_ref:
+            offered[retained_ref] = resources.describe(retained_ref)
+        request = {**context, "format_attempt": attempt, "validation_errors": record["errors"][:10],
+            "available_candidate_sets": list(offered.values()),
+            "repair_state": {"retained_candidate_set": offered.get(retained_ref),
+                "retained_count": len(record.get("retained", [])),
+                "invalid_count": len(record["errors"]), "panel_status": "requires_combined_validation"}}
+        # A provider failure keeps the exact same request and repair index on resume.
         raw = llm.complete("B", instructions, request, Design.model_json_schema())
+        record["attempts"] += 1
+        from .repair import inspect_reply, merge_retained
         try:
-            result = resolve_design(Design.model_validate(raw), resources, set(allowed), view)
-            record["result"] = result.model_dump(mode="json", by_alias=True)
-            store.put(NAMESPACE, key, record)
-            return result
+            header, valid, errors = inspect_reply(raw, resources, offered, view)
+            retained = merge_retained(record, valid)
+            if retained:
+                record["retained_ref"] = resources.sequences(retained, producer="design-repair:" + key)["resource_id"]
+            if errors:
+                record["errors"] = errors
+            else:
+                result = header.model_copy(update={"candidates": retained})
+                record["result"] = result.model_dump(mode="json", by_alias=True)
+                store.put(NAMESPACE, key, record)
+                return result
         except (ValidationError, ContractError, ValueError) as exc:
+            if isinstance(exc, ContractError) and exc.code == "plan_infeasible":
+                store.put(NAMESPACE, key, record)
+                raise
             record["errors"] = _issues(exc)
-            store.put(NAMESPACE, key, record)
-            store.event("candidate_validation_feedback", {"phase": "design_handoff",
-                "round": view.round_index, "attempt": attempt, "errors": record["errors"],
-                "upstream_tools_rerun": False})
+        store.put(NAMESPACE, key, record)
+        store.event("candidate_validation_feedback", {"phase": "design_handoff",
+            "round": view.round_index, "attempt": attempt, "errors": record["errors"][:10],
+            "retained_count": len(record.get("retained", [])), "upstream_tools_rerun": False})
     raise ContractError("Design format/constraint repair budget exhausted; successful resources retained")

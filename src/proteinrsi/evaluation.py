@@ -143,6 +143,15 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
         if (current["workflow"] != snapshot["workflow"] or current["meta"] != snapshot["meta"]
                 or current["pending_meta"] != snapshot["pending_meta"] or current["status"] != "ready"):
             raise Conflict("Campaign changed before Meta evaluation")
+        campaign.methods.assert_plannable(current)
+        # The claim belongs to the candidate, not just this case manifest. An
+        # interrupted evaluation or a prepared online trial must be reconciled
+        # before another evaluator can spend budget or publish that candidate.
+        for namespace in ("meta_attempts", "meta_online_attempts"):
+            if any(attempt.get("patch_id") == patch.patch_id
+                   and attempt.get("state") in {"started", "blocked", "planned"}
+                   for attempt in campaign.store.all(namespace).values()):
+                raise Conflict("Candidate already has an unfinished Meta evaluation; reconcile it before continuing")
         if campaign.store.get("meta_attempts", evaluation_id):
             raise Conflict("This meta evaluation was already attempted; inspect its report/charges, no silent fresh-budget retry")
         if required_queries > campaign.store.remaining("experimental_wells"):

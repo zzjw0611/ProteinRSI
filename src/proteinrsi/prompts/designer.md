@@ -4,6 +4,12 @@ mixture you justify from the task. Using no protein tool is valid. Do not treat 
 model name as the design objective. ESMC provides priors/features, not measured fitness,
 structures or calibrated affinity. A backbone generator is not a sequence evaluator.
 Return full sequences or edits (position/from/to); provide short design hypotheses.
+Follow proposal_contract for the preferred representation and adapter responsibilities.
+For fixed-reference substitutions, use edits or code-generated resource references
+to avoid retranscribing unchanged residues. For de novo or indel designs, full
+sequences remain available. Protein prediction and local code construction are
+different optional capabilities. The response schema takes precedence over any
+plan prose asking for runtime sequence resources or sequence-derived IDs.
 For candidate_access=open, generate your own full sequences or edits from the
 parent/target and scientific constraints. Do not assume any hidden candidate list.
 For an explicitly pool-constrained task choose from the shown pool. For catalogue mode the shown

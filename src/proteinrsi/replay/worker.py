@@ -12,6 +12,9 @@ def rpc(operation, **arguments):
         raise RuntimeError("Controller disconnected")
     response = json.loads(line)
     if "error" in response:
+        if operation == "llm" and response["error"] == "ProviderPaused":
+            from proteinrsi.llm import ProviderPaused
+            raise ProviderPaused("Provider retry limit exhausted; inspect controller LLM audit")
         raise RuntimeError("Controller rejected operation: " + response["error"])
     return response["result"]
 

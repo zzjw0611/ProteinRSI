@@ -161,3 +161,41 @@ def test_output_allowance_can_be_configured_for_large_batches(tmp_path, monkeypa
     monkeypatch.setenv('PROTEINRSI_LLM_MAX_OUTPUT_TOKENS', '0')
     with pytest.raises(ValueError, match='max_tokens'):
         JSONLLM.from_env(store)
+
+
+def test_explicit_recovery_preserves_failed_attempts_and_charges(tmp_path, monkeypatch):
+    from proteinrsi.llm import ProviderPaused
+    from proteinrsi.recovery import authorize_retry
+    from proteinrsi.storage import Conflict
+    calls = []
+    def handler(request):
+        calls.append(request.content)
+        return httpx.Response(503) if len(calls) == 1 else success()
+    llm = client(tmp_path, monkeypatch, handler, max_attempts=1)
+    with pytest.raises(ProviderPaused):
+        llm.complete(*ARGS)
+    key = next(iter(llm.store.all('llm')))
+    old = llm.store.get('llm_attempts', key+'/attempt-1')
+    authorize_retry(llm.store, key, operator='test', reason='Provider recovered')
+    with pytest.raises(Conflict, match='unused'):
+        authorize_retry(llm.store, key, operator='test', reason='Duplicate authorization')
+    assert llm.complete(*ARGS) == {'ok': True}
+    assert calls[0] == calls[1]
+    assert llm.store.get('llm_attempts', key+'/attempt-1') == old
+    assert llm.store.usage()['llm_calls']['committed'] == 2
+    assert llm.store.usage()['lab_wells']['committed'] == 0
+
+
+def test_recovery_cannot_reset_uncertain_or_permanent_failures(tmp_path, monkeypatch):
+    from proteinrsi.recovery import authorize_retry
+    from proteinrsi.storage import Conflict
+    llm = client(tmp_path, monkeypatch, lambda _: httpx.Response(401))
+    with pytest.raises(LLMError):
+        llm.complete(*ARGS)
+    key, record = next(iter(llm.store.all('llm').items()))
+    with pytest.raises(Conflict):
+        authorize_retry(llm.store, key, operator='test', reason='Must not bypass authentication')
+    record['state'] = 'started'
+    llm.store.put('llm', key, record)
+    with pytest.raises(Conflict):
+        authorize_retry(llm.store, key, operator='test', reason='Unknown completion')

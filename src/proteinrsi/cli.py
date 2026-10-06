@@ -33,6 +33,12 @@ def attach(directory: str, args) -> Campaign:
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="proteinrsi")
     sub = parser.add_subparsers(dest="command", required=True)
+    retry = sub.add_parser("retry-llm", help="Authorize bounded retries of a failed request without resetting checkpoints or costs")
+    retry.add_argument("--campaign", required=True)
+    retry.add_argument("--request-key", required=True)
+    retry.add_argument("--operator", required=True)
+    retry.add_argument("--reason", required=True)
+    retry.add_argument("--attempts", type=int, default=1)
     from proteinrsi.method_cli import add_parser as add_method_parser
     add_method_parser(sub)
     start = sub.add_parser("start", help="Interpret a protein research goal and choose a task and feedback route")
@@ -129,7 +135,13 @@ def main(argv: list[str] | None = None) -> None:
             parser.error(str(exc))
         return
     try:
-        if args.command == "start":
+        if args.command == "retry-llm":
+            from proteinrsi.recovery import authorize_retry
+            if not (Path(args.campaign)/"state.sqlite3").is_file():
+                raise ValueError("No existing campaign database")
+            output = authorize_retry(Store(args.campaign), args.request_key,
+                operator=args.operator, reason=args.reason, attempts=args.attempts)
+        elif args.command == "start":
             from datetime import datetime
             from proteinrsi.goal import prepare_research_goal
             from proteinrsi.replay.controller import run_replay

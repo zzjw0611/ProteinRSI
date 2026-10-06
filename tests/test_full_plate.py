@@ -70,6 +70,24 @@ def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded, 
         elif '# B — protein design' in instructions:
             fill = view['research_context']['plate_completion']
             excluded = set(fill['exclude_sequences'])
+            # Act as a consumer of the documented prompt encoding. The mock
+            # previously read only the explicit, duplicated exclusion list.
+            if fill.get('exclude_observed_sequences'):
+                observed = view['observations']
+                if isinstance(observed, dict):
+                    rows = [{**observed['shared_fields'], **dict(zip(observed['columns'], cells))}
+                            for cells in observed['rows']]
+                    for row in rows:
+                        if observed.get('sequence_encoding'):
+                            sequence = list(view['task']['reference_sequence'])
+                            for position, residue in zip(
+                                    observed['sequence_encoding']['positions_1based'], row['sequence']):
+                                sequence[position - 1] = residue
+                            excluded.add(''.join(sequence))
+                        else:
+                            excluded.add(row['sequence'])
+                else:
+                    excluded.update(row['sequence'] for row in observed)
             selected = [s for s in sequences() if s not in excluded][:128]
             panels.append((view['round_index'], fill['required_new_candidates']))
             result = {'candidates': [{'sequence': s} for s in selected]}

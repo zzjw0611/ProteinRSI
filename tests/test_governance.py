@@ -421,3 +421,95 @@ def test_active_definition_cannot_drift_from_snapshot(campaign):
     with pytest.raises(Conflict, match="differs from its snapshot"):
         campaign.prepare()
     assert campaign.store.usage()["experimental_wells"]["committed"] == 0
+
+
+@pytest.mark.parametrize("promote", [False, True])
+@pytest.mark.parametrize("namespace,status", [
+    ("meta_attempts", "started"), ("meta_attempts", "blocked"),
+    ("meta_online_attempts", "started"), ("meta_online_attempts", "planned"),
+    ("meta_online_attempts", "blocked"),
+])
+def test_offline_meta_cannot_bypass_unfinished_candidate(campaign, namespace, status, promote):
+    patch = Patch(target="meta", base_version=campaign.view().meta.version,
+        changes={"mode": "diagnostic"}, task_kind=campaign.view().task.kind,
+        hypothesis="Artificial interrupted candidate validation")
+    campaign.stage_patch(patch)
+    campaign.methods.begin(campaign.state, patch)
+    # A different manifest produces a different evaluation ID, but it is still
+    # the same candidate. Reopen the database to exercise restart protection.
+    campaign.store.put(namespace, "another-manifest", {"state": status, "patch_id": patch.patch_id})
+    before_state, before_usage = campaign.state, campaign.store.usage()
+    before_events = campaign.store.events()
+    restarted = Campaign(Store(campaign.store.root))
+    def must_not_execute(store):
+        pytest.fail("An unfinished candidate must be rejected before child execution")
+    with pytest.raises(Conflict, match="uncertain|unfinished"):
+        evaluate_meta(restarted, make_meta_cases(campaign), promote=promote, team_factory=must_not_execute)
+    assert restarted.state == before_state
+    assert restarted.store.usage() == before_usage
+    assert restarted.store.events() == before_events
+    assert restarted.store.get(namespace, "another-manifest")["state"] == status
+    assert not restarted.store.all("meta_evaluations")
+    assert not restarted.store.all("method_switches")
+
+
+def test_offline_meta_checks_frozen_configuration_before_spending(campaign):
+    campaign.stage_patch(Patch(target="meta", base_version=campaign.view().meta.version,
+        changes={"mode": "diagnostic"}, task_kind=campaign.view().task.kind,
+        hypothesis="Artificial snapshot drift check"))
+    state = campaign.state
+    state["workflow"]["exploration"] = 0.9
+    campaign.store.put("campaign", "state", state)
+    before = campaign.store.usage()
+    with pytest.raises(Conflict, match="differs from its snapshot"):
+        evaluate_meta(campaign, make_meta_cases(campaign), team_factory=ScriptedOffspringTeam)
+    assert campaign.store.usage() == before
+    assert not campaign.store.all("meta_attempts")
+
+
+def test_completed_report_allows_new_manifest_validation(campaign):
+    campaign.stage_patch(Patch(target="meta", base_version=campaign.view().meta.version,
+        changes={"mode": "diagnostic"}, task_kind=campaign.view().task.kind,
+        hypothesis="Artificial sequential report-only validations"))
+    cases = make_meta_cases(campaign)[:2]
+    evaluate_meta(campaign, cases, team_factory=ScriptedOffspringTeam)
+    for case in cases:
+        case.case_id += "-second"
+    evaluate_meta(campaign, cases, team_factory=ScriptedOffspringTeam)
+    attempts = campaign.store.all("meta_attempts")
+    assert len(attempts) == 2
+    assert all(attempt["state"] == "completed" for attempt in attempts.values())
+    assert campaign.store.usage()["experimental_wells"]["committed"] == 32
+    assert not campaign.store.all("method_switches")
+
+
+def test_concurrent_offline_evaluators_claim_candidate_once(campaign):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    campaign.stage_patch(Patch(target="meta", base_version=campaign.view().meta.version,
+        changes={"mode": "diagnostic"}, task_kind=campaign.view().task.kind,
+        hypothesis="Artificial concurrent validation check"))
+    entered, release = Event(), Event()
+    class WaitingTeam(ScriptedOffspringTeam):
+        def run(self, view):
+            entered.set()
+            assert release.wait(15), "Test did not release the first evaluator"
+            return super().run(view)
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        first = pool.submit(evaluate_meta, campaign, make_meta_cases(campaign), team_factory=WaitingTeam)
+        try:
+            assert entered.wait(15), "First evaluator never reached child execution"
+            usage = campaign.store.usage()
+            second_cases = make_meta_cases(campaign)
+            for case in second_cases:
+                case.case_id += "-concurrent"
+            with pytest.raises(Conflict, match="uncertain|unfinished"):
+                evaluate_meta(Campaign(Store(campaign.store.root)), second_cases,
+                              promote=True, team_factory=ScriptedOffspringTeam)
+            assert campaign.store.usage() == usage
+            assert len(campaign.store.all("meta_attempts")) == 1
+        finally:
+            release.set()
+        assert first.result(timeout=15)["promoted"] is False
+    assert campaign.store.usage()["experimental_wells"]["committed"] == 32

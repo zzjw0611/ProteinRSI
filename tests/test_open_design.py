@@ -68,7 +68,20 @@ def test_open_design_two_rounds_receive_only_queried_feedback(tmp_path, guarded)
                 assert len(view['observations']) == 1
                 residues = ['V', 'G']  # G is legal but has no historical measurement.
             else:
-                observations = {o['sequence']: o for o in view['observations']}
+                table = view['observations']
+                if isinstance(table, dict):
+                    rows = [{**table['shared_fields'], **dict(zip(table['columns'], row))}
+                            for row in table['rows']]
+                    for row in rows:
+                        if table.get('sequence_encoding'):
+                            sequence = list(view['task']['reference_sequence'])
+                            for position, residue in zip(
+                                    table['sequence_encoding']['positions_1based'], row['sequence']):
+                                sequence[position - 1] = residue
+                            row['sequence'] = ''.join(sequence)
+                else:
+                    rows = table
+                observations = {o['sequence']: o for o in rows}
                 assert observations['AVDE']['value'] == 2
                 assert observations['AGDE']['value'] is None
                 assert observations['AGDE']['qc'] == 'unavailable'

@@ -16,20 +16,35 @@ def complete_candidates(campaign, view, count, *, excluded=(), initial=(), max_a
     selected = dict(list(selected.items())[:count])
     for candidate in selected.values():
         validate_candidate(view.task, candidate)
-    while len(selected) < count and record['attempts'] < max_attempts:
-        attempt = record['attempts'] + 1
+    while len(selected) < count and (record['attempts'] < max_attempts or record.get('pending_request')):
+        resuming = bool(record.get('pending_request'))
+        attempt = record['attempts'] if resuming else record['attempts'] + 1
         request = {'required_new_candidates': count - len(selected), 'target_count': count,
                    'already_selected': [c.model_dump(mode='json') for c in selected.values()],
                    'exclude_sequences': sorted(excluded | set(selected)), 'attempt': attempt,
                    'instruction': 'Complete this same experimental plate. Generate additional distinct legal designs; '
                        'multiple scientific panels may share the plate. No experiment has run and no round has elapsed.'}
+        if resuming:
+            request = record['pending_request']
         context = {**view.research_context, 'plate_completion': request}
         # Persist intent first; ambiguous interrupted work must not silently reset its attempt budget.
-        record.update(attempts=attempt, state='planning')
+        record.update(attempts=attempt, state='planning', pending_request=request)
         campaign.store.put('plate_plans', key, record)
         campaign.store.event('plate_completion_requested', {'key': key, 'round': view.round_index,
             'attempt': attempt, 'missing': count - len(selected), 'target': count})
-        proposed = campaign.team.run(view.model_copy(deep=True, update={'research_context': context}))
+        try:
+            proposed = campaign.team.run(view.model_copy(deep=True, update={'research_context': context}))
+        except Exception as exc:
+            from proteinrsi.llm import ProviderPaused
+            from proteinrsi.replay.broker import WorkerExecutionError
+            paused = isinstance(exc, ProviderPaused) or (
+                isinstance(exc, WorkerExecutionError) and exc.error_type == 'ProviderPaused')
+            record['state'] = 'paused_provider' if paused else 'blocked'
+            if not paused:
+                record.pop('pending_request', None)
+            campaign.store.put('plate_plans', key, record)
+            raise
+        record.pop('pending_request', None)
         for candidate in proposed:
             validate_candidate(view.task, candidate)
             if candidate.sequence not in excluded:

@@ -81,6 +81,7 @@ class Operation:
     implementation: str
     # Constraints on root resources, in addition to ordinary tool argument validation.
     resource_inputs: dict[str, str] | None = None
+    agent_reply_contract: dict | None = None
 
 
 class OperationRegistry:
@@ -97,7 +98,8 @@ class OperationRegistry:
         self.schemas.schema(operation.output_schema_ref)
         self._operations[operation.name] = Operation(
             operation.name, deepcopy(operation.input_schema), operation.output_schema_ref,
-            operation.invoke, operation.implementation, deepcopy(operation.resource_inputs))
+            operation.invoke, operation.implementation, deepcopy(operation.resource_inputs),
+            deepcopy(operation.agent_reply_contract))
 
     def get(self, name):
         if name not in self._operations:
@@ -111,7 +113,8 @@ class OperationRegistry:
         return [{"name": op.name, "input_schema": deepcopy(op.input_schema),
                  "output_schema_ref": op.output_schema_ref,
                  "output_schema": self.schemas.schema(op.output_schema_ref),
-                 "resource_inputs": deepcopy(op.resource_inputs or {}), "implementation": op.implementation}
+                 "resource_inputs": deepcopy(op.resource_inputs or {}), "implementation": op.implementation,
+                 "agent_reply_contract": deepcopy(op.agent_reply_contract)}
                 for op in self._operations.values()]
 
 
@@ -217,7 +220,7 @@ class ProtocolExecutor:
                         "protocol": protocol.version})
                     if receipt is not None and receipt["status"] == "started":
                         raise ContractError("Prior execution has uncertain completion; reconcile it before retrying", code="uncertain_completion")
-                    if receipt is None:
+                    if receipt is None or receipt["status"] == "paused_provider":
                         self.store.put(NAMESPACE, step_key, {"status": "started"})
                         raw = op.invoke(args, step_key)
                         self.schemas.validate(op.output_schema_ref, raw, output=True)
@@ -239,7 +242,10 @@ class ProtocolExecutor:
                     current = self.store.get(NAMESPACE, step_key) if step_key else None
                     if current and current.get("status") == "started" and not (
                             isinstance(exc, ContractError) and exc.code == "uncertain_completion"):
-                        self.store.put(NAMESPACE, step_key, {"status": "failed", "error_type": type(exc).__name__})
+                        from proteinrsi.llm import ProviderPaused
+                        self.store.put(NAMESPACE, step_key, {
+                            "status": "paused_provider" if isinstance(exc, ProviderPaused) else "failed",
+                            "error_type": type(exc).__name__})
                     journal.update(status="blocked", failed_step=step.step_id, error_type=type(exc).__name__)
                     self.store.put(NAMESPACE, run_key, journal)
                     if (on_error and isinstance(exc, ContractError) and exc.code != "uncertain_completion"
@@ -351,13 +357,13 @@ def register_agent_operations(protocol, operations, llm, resources, context, *, 
             record = resources.store.get(NAMESPACE, record_key, {"attempts": 0, "errors": []})
             while record["attempts"] <= max_repairs:
                 attempt = record["attempts"]
-                record["attempts"] += 1
-                resources.store.put(NAMESPACE, record_key, record)
                 from proteinrsi.prompting import compose
                 raw = llm.complete(definition.role,
                     compose(resources.store, "protocol_step", definition.instructions),
                     {"view": context, "inputs": arguments, "format_attempt": attempt,
                      "validation_errors": record["errors"]}, output_schema)
+                record["attempts"] += 1
+                resources.store.put(NAMESPACE, record_key, record)
                 try:
                     operations.schemas.validate(definition.output_schema_ref, raw, output=True)
                     return raw

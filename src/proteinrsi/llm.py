@@ -21,12 +21,16 @@ class LLMError(RuntimeError):
     pass
 
 
+class ProviderPaused(LLMError):
+    """A known failed request exhausted retries; retain its continuation checkpoint."""
+
+
 class JSONLLM:
     def __init__(self, store: Store, *, model: str, base_url: str,
                  api_key: str, max_tokens: int = 4096, timeout: float = 90,
                  api_protocol: str = "chat_completions", reasoning_effort: str | None = None,
                  allow_http: bool = False, max_attempts: int = 4,
-                 transport: httpx.BaseTransport | None = None):
+                 transport: httpx.BaseTransport | None = None, connect_timeout: float = 15):
         parsed = urlsplit(base_url)
         if parsed.scheme != "https" and not (parsed.scheme == "http" and
                 (allow_http or parsed.hostname in ("localhost", "127.0.0.1"))):
@@ -50,6 +54,7 @@ class JSONLLM:
         self.store, self.model = store, model
         self.base_url, self.api_key = base_url.rstrip("/"), api_key
         self.max_tokens, self.timeout, self.transport = max_tokens, timeout, transport
+        self.connect_timeout = connect_timeout
         self.api_protocol, self.reasoning_effort = api_protocol, reasoning_effort
 
     @property
@@ -77,7 +82,8 @@ class JSONLLM:
                    reasoning_effort=os.environ.get("PROTEINRSI_REASONING_EFFORT") or None,
                    allow_http=os.environ.get("PROTEINRSI_ALLOW_HTTP", "").lower() == "true",
                    timeout=float(os.environ.get("PROTEINRSI_LLM_TIMEOUT", "90")),
-                   max_attempts=int(os.environ.get("PROTEINRSI_LLM_MAX_ATTEMPTS", "4")))
+                   max_attempts=int(os.environ.get("PROTEINRSI_LLM_MAX_ATTEMPTS", "4")),
+                   connect_timeout=float(os.environ.get("PROTEINRSI_LLM_CONNECT_TIMEOUT", "15")))
 
     def complete(self, role: str, instructions: str, context: dict[str, Any], schema: dict) -> dict:
         # JSON mode is widely supported; independently validate every response at the caller.
@@ -110,8 +116,9 @@ class JSONLLM:
                 attempt = previous.get("attempt", 1)
                 if previous["state"] != "failed" or not self._retryable(previous):
                     raise LLMError("Prior call failed or has uncertain completion; inspect audit before retrying")
-                if attempt >= self.max_attempts:
-                    raise LLMError(f"Provider retry limit exhausted ({attempt} attempts); inspect audit")
+                extension = self.store.get("llm_retry_authorizations", key, {}).get("attempt_limit", 0)
+                if attempt >= max(self.max_attempts, extension):
+                    raise ProviderPaused(f"Provider retry limit exhausted ({attempt} attempts); authorize retry for {key}")
                 # Archive legacy failures as well; never erase the cause on resume.
                 self.store.put("llm_attempts", f"{key}/attempt-{attempt}", previous, immutable=True)
                 delay = self._retry_delay(previous, attempt)
@@ -167,7 +174,7 @@ class JSONLLM:
                                          "round": audit["round"], "attempt": attempt, "attempt_key": attempt_key})
         content, body, response = None, None, None
         try:
-            with httpx.Client(timeout=self.timeout, transport=self.transport,
+            with httpx.Client(timeout=httpx.Timeout(self.timeout, connect=self.connect_timeout), transport=self.transport,
                               follow_redirects=False, trust_env=False) as client:
                 response = client.post(self.base_url + endpoint, json=payload,
                                        headers={"Authorization": "Bearer " + self.api_key})

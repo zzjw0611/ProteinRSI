@@ -101,10 +101,13 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
                 proc.stdin.write((canonical(obj)+"\n").encode())
                 proc.stdin.flush()
             send(start)
+            provider_pause = None
             try:
                 for _ in range(4096):
                     msg = _readline(proc, timeout)
                     if "done" in msg:
+                        if provider_pause is not None:
+                            raise provider_pause
                         proc.stdin.close()
                         if proc.wait(timeout=10) != 0:
                             raise RuntimeError("Worker exit failure")
@@ -114,10 +117,18 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
                     if "failed" in msg:
                         raise WorkerExecutionError(msg["failed"], msg.get("message", ""))
                     try:
+                        if provider_pause is not None and msg.get("rpc") in {"llm", "tool"}:
+                            raise provider_pause
                         result = dispatch(team, gateway, view, allowed, msg)
                         send({"result": result})
                     except Exception as exc:
                         send({"error": type(exc).__name__})
+                        from proteinrsi.llm import ProviderPaused
+                        if isinstance(exc, ProviderPaused):
+                            # Let the worker persist its continuation before exiting.
+                            # No further model/tool work is allowed during this drain.
+                            provider_pause = exc
+                            continue
                         raise
                 raise RuntimeError("Worker RPC count exceeded")
             finally:

@@ -13,7 +13,7 @@ from pydantic import ValidationError
 
 from proteinrsi.contracts import Candidate, digest, sequence_hash
 from proteinrsi.prompting import compose
-from .design import _candidate_payload
+from .design import _candidate_payload, proposal_contract
 from .protocol import (Operation, OperationRegistry, Protocol, ProtocolExecutor, ProtocolReview,
                        register_agent_operations, register_tool_operations)
 from .resources import (ResourceStore, SEQUENCES, RANKING, NAMESPACE,
@@ -64,7 +64,7 @@ def build_operations(team, view, resources):
 
     operations.register(Operation("agent:propose", object_schema({
         "question": {"type": "string"}, "reuse": ref_schema, "evidence": {"type": "object"}}, ["question"]),
-        SEQUENCES, propose, "typed-designer-v1"))
+        SEQUENCES, propose, "typed-designer-v2", agent_reply_contract=proposal_contract(view)))
 
     def rank(args, key):
         candidates = resources.candidates(args["candidates"])
@@ -106,6 +106,42 @@ def build_operations(team, view, resources):
 
     operations.register(Operation("adapter:ranked_sequences", object_schema({"ranking": ref_schema}, ["ranking"]),
         SEQUENCES, ordered, "ranked-sequences-v1", resource_inputs={"ranking": RANKING}))
+
+    def accept_checked(args, key):
+        candidates = resources.candidates(args["candidates"])
+        check = resources.get(args["check_result"])
+        if not check["producer"].startswith("tool:"):
+            raise ContractError("Panel checks require an executed tool result, not an agent assertion")
+        result = check["data"]
+        if not isinstance(result, dict) or result.get("status") != "ok":
+            raise ContractError("Panel validation code/tool did not succeed")
+        output = result.get("output", result)
+        if not isinstance(output, dict):
+            raise ContractError("Panel check output must be an object")
+        identities = ["seq:" + sequence_hash(c.sequence) for c in candidates]
+        checked = output.get("candidate_ids", [])
+        if (not isinstance(checked, list) or any(not isinstance(x, str) for x in checked)
+                or len(checked) != len(identities) or set(checked) != set(identities)):
+            raise ContractError("Panel checks belong to a different candidate set")
+        checks = output.get("checks", [])
+        if (not isinstance(checks, list) or not checks
+                or any(not isinstance(c, dict) or not isinstance(c.get("name"), str)
+                       or c.get("passed") is not True for c in checks)):
+            raise ContractError("Panel contains failed or malformed scientific checks")
+        if not set(args["required_checks"]) <= {c["name"] for c in checks}:
+            raise ContractError("Panel result omitted a required check")
+        return resources.get(args["candidates"], schema_ref=SEQUENCES)["data"]
+
+    operations.register(Operation("adapter:accept_checked_candidates", object_schema({
+        "candidates": ref_schema, "check_result": ref_schema,
+        "required_checks": {"type": "array", "items": {"type": "string", "minLength": 1},
+                            "minItems": 1, "uniqueItems": True}},
+        ["candidates", "check_result", "required_checks"]), SEQUENCES, accept_checked,
+        "checked-panel-v1", resource_inputs={"candidates": SEQUENCES}, agent_reply_contract={
+            "purpose": "Accept candidates only after actual code/tool checks of this exact set.",
+            "check_output": {"candidate_ids": "All sequence-derived IDs checked by the executed code",
+                "checks": [{"name": "A planner-defined check name", "passed": True}]},
+            "usage": "Bind a tool result by reference. Define task-specific grouping/pairing checks in optional Python; return this adapter result as final candidates."}))
     sequence_args = resources.registry.register("protein.sequence_arguments/v1", object_schema({
         "sequences": {"type": "array", "items": {"type": "string"}}}, ["sequences"]))
     operations.register(Operation("adapter:sequence_arguments", object_schema({"candidates": ref_schema}, ["candidates"]),
@@ -142,8 +178,6 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
             raise ContractError("Typed protocol planning requires an LLM or an explicit Protocol")
         while plan_record["attempts"] <= config.max_format_repairs:
             attempt = plan_record["attempts"]
-            plan_record["attempts"] += 1
-            team.store.put(NAMESPACE, plan_key, plan_record)
             raw = team.llm.complete("A-plan", compose(team.store, "protocol_planner", view.workflow.principal_prompt) +
                 "\nThis is a resource-protocol-v1 plan, NOT the legacy five-operation plan. "
                 "Choose operations from the supplied registry; no scientific tool is mandatory. "
@@ -157,6 +191,8 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                  "operations": operations.catalog(), "schemas": resources.registry.catalog(),
                  "format_attempt": attempt, "validation_errors": plan_record["errors"],
                  "max_steps": min(config.max_plan_steps, config.max_executed_steps)}, Protocol.model_json_schema())
+            plan_record["attempts"] += 1
+            team.store.put(NAMESPACE, plan_key, plan_record)
             try:
                 candidate = Protocol.model_validate(raw)
                 # Use a fresh registry per failed attempt; do not retain invalid definitions.
@@ -213,8 +249,6 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
             return Protocol.model_validate(raw) if raw else None
         while saved["attempts"] <= config.max_format_repairs:
             attempt = saved["attempts"]
-            saved["attempts"] += 1
-            team.store.put(NAMESPACE, key, saved)
             raw = team.llm.complete("A-review", compose(team.store, "protocol_step", view.workflow.principal_prompt) +
                 "\nReview actual resource outputs. replacement=null keeps the protocol. "
                 "Only replace unexecuted steps; completed steps, operation definitions, schemas and final task contract "
@@ -224,6 +258,8 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                  "validation_errors": saved["errors"], "format_attempt": attempt,
                  "execution_error": failure.detail() if failure else None,
                  "operations": operations.catalog(), "schemas": resources.registry.catalog()}, ProtocolReview.model_json_schema())
+            saved["attempts"] += 1
+            team.store.put(NAMESPACE, key, saved)
             try:
                 decision = ProtocolReview.model_validate(raw)
                 revised = decision.replacement

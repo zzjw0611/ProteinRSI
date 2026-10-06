@@ -1,5 +1,9 @@
 ## Unreleased — method governance
 
+- Describe designer reply contracts separately from final sequence resources; preserve valid contributions across local repairs and support explicit protocol replanning and executed panel checks.
+- Preserve typed protocol/plate checkpoints on exhausted provider retries, with audited operator retry allowances and separate connection/response timeouts.
+- Deduplicate designer evidence and losslessly compact revealed measurements and plate exclusions in B requests; keep runtime/tool contracts and full audit facts intact.
+- Prevent offline Meta validation from bypassing unfinished evaluations with a different case manifest; check frozen methods and online/offline attempts atomically before spending budget.
 - Add immutable W/M method/source snapshots, parent-linked candidates and per-batch provenance.
 - Unify candidate failure/uncertainty states and online/offline adoption records; definite failed W candidates no longer own ordinary research progress.
 - Add operator-only `methods status/snapshot/rollback/abandon/resume`, bounded failure pauses and distinct-round deferrals.
