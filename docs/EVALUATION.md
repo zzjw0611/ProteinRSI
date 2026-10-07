@@ -1,117 +1,109 @@
 # Evaluation protocol and evidence boundaries
 
-## Three claims that must not be confused
+## Three different claims
 
-1. Software mechanisms work: restart, schema checks, accounting, trials, rollback and successor activation.
-2. A workflow improves a particular scientific task under fixed resources.
-3. A successor improver is better at producing future workflow improvements on independent tasks.
+1. Software mechanisms work: restart, schema checks, accounting, evidence isolation, trials and successor activation
+2. A workflow helps a particular scientific task under the stated resources
+3. A successor improver is better at producing future workflow improvements on independent tasks
 
-Unit tests establish the first, not the second or third. The artificial demo uses a known generated numerical landscape and deterministic roles. The test `ScriptedOffspringTeam` intentionally makes the acceptance branch observable; it is not a protein model or experimental result.
+Unit tests establish the first, not the second or third. Scripted provider fixtures deliberately exercise acceptance and rejection branches. They are not protein models, actual experiments, or evidence of scientific superiority.
 
-## Experimental resources
+## LLM-defined evaluation for new LLM studies
 
-Controls, failed submitted assays and technical repeats consume budget. Baseline and challenger arms receive equal submitted variant counts in a trial. Both see the same revealed data and use the same maximum role/tool-call bounds. Inspect actual usage; caches and different tool choices make wall time differ. Token/GPU-time/dollar fairness is not implemented as a full scheduler and must be added for those claims.
+New LLM-backed CLI/natural-language studies use `llm_adjudicated_v1`. The explicit configuration is `configs/gate.llm_adjudicated.json`, containing only:
 
-Historical query simulation and prospective wet experiments have different source tags. An unknown replay variant causes an error, not a surrogate 'ground truth'. Keep future labels in a trusted service inaccessible to any code-capable agent.
+```json
+{"criterion": "llm_adjudicated_v1"}
+```
 
-## Workflow gate
+Evaluation has two actual LLM calls, **E-plan** and **E-verdict**. E is an evaluation role of the research system, not a separate source of scientific measurements. Neither call has a deterministic fallback.
 
-The legacy default is `mean_bootstrap`: mean signed outcome among submitted variants,
-with task direction determining the sign. Its existing exploratory bootstrap and
-loading behavior are unchanged. Old saved results are not recomputed or reclassified.
-Changing criteria requires a new study, never an edit to an existing run.
+### E-plan: scientific criteria before validation outcomes
 
-### Opt-in observed multi-metric gate
+Before acquiring or exposing future validation outcomes, the LLM receives the public task objective, current revealed evidence, proposed method change, and available resources. It chooses:
 
-Use `init --gate configs/gate.observed_pareto.json` **when creating a new study**. The
-immutable acceptance policy is stored at initialization, included in method snapshots
-and candidate validation plans, and shown in each role's research context. A changed
-policy on resume is rejected. Neither W nor M can change the gate.
+- One or more top-N values
+- Its scientific acceptance criteria and rationale
+- How gains and losses should be interpreted together
+- How unavailable results, QC failures, incomplete top-N coverage and other missing evidence affect its judgment
 
-`observed_pareto_v1` prespecifies these equally required objectives:
+These are scientific decisions made by the LLM. The controller does not specify a numerical acceptance threshold, effect direction, weighting scheme, Pareto rule, average-only rule, or a preferred N. Criteria can be qualitative or quantitative according to the LLM's judgment. The budget-derived arm capacity is disclosed as context; it does not impose a scientific ceiling on the chosen N.
 
-- `best`: maximum for maximize tasks; minimum for minimize tasks
-- `top5mean` and `top10mean`: means of the best 5 and 10 unique sequences, respectively
-- `avg`: mean over all valid unique sequences in that comparison arm
+The plan is schema-validated, content-addressed and durably bound to the evaluation before arm execution. Valid criteria are not rewritten after seeing the results. Evaluation identities, request context, prompt snapshots and LLM backend identity cannot silently change on restart.
 
-`top_ns` is configurable before initialization; `[5, 10]` is the default. Technical
-repeats are first averaged within sequence, so repeated wells neither weight `avg`
-nor inflate independent-unit counts. Valid-only means are descriptive: submitted,
-returned, valid, unavailable, other nonvalid, not-returned, unique-valid and repeat
-counts remain explicit. Every top-N requires its full N; it is `null` with the
-required/effective N reported when unavailable, never a silently smaller top-N.
-Controls, research filler wells and the reference/parent are excluded from the arm
-gate. The provided-parent measurement remains zero-query initial evidence and cannot
-inflate either arm's best score. Outcome metric, units, direction and assay must match.
+### Trusted arithmetic: describe all requested evidence
 
-All comparisons use signed metrics so higher is better, including minimize tasks.
-For each metric j, delta_j = challenger_j - baseline_j in that signed orientation.
-The fixed rule is:
+After actual returned measurements, trusted controller code computes and presents all three requested families:
 
-1. Accept only if every delta_j >= -absolute_tolerance_j and at least one
-   delta_j > improvement_margin_j
-2. Mixed gains and losses beyond the declared tolerance are `inconclusive`, with
-   descriptive outcome `tradeoff`; no weights or scalar utility hide the loss
-3. No positive delta and at least one worsening beyond tolerance is `rejected`
-4. Ties/below-margin changes, too few units, missing historical coverage, excessive
-   QC failure, or any incomplete required top-N are `inconclusive`
+- Maximum observed outcome, with best-in-task-direction also explicit
+- Every top-N mean chosen by the LLM in its frozen plan
+- Average over valid unique sequences in the arm
 
-The checked-in policy declares **zero absolute tolerances and zero improvement
-margins for every metric**: exact weak dominance plus one strictly positive gain.
-This does not claim assay noise is zero; it is a deterministic rule for observed
-panels. If nonzero tolerances/margins are appropriate, declare them in the task's
-measurement units before creating the study. No relative scaling, data-dependent
-threshold, preference weight or adaptive margin is used. `min_effect` must be zero;
-use per-metric `improvement_margins`. Legacy `confidence` and `bootstrap_samples`
-fields are retained for loading compatibility but unused in this mode.
+Task direction comes from the task's objective and describes the reported summaries; it is not a controller-owned acceptance rule. Technical repeats are first averaged within sequence. The reference/provided-parent, control wells and non-comparison research filler are excluded from trial-arm summaries. Provided-parent measurements remain zero-query initial evidence.
 
-W and online M require at least `max(min_per_arm, max(top_ns))` distinct eligible
-sequences per planned arm. Capacity below that threshold defers validation without
-spending an impossible validation panel. Final valid unique-unit count and full-N
-coverage are checked again after results. Overlapping arm sequences remain invalid;
-missing values are never imputed as zero. Failed assays still consume their slots,
-and the prespecified maximum QC-failure fraction remains enforced.
+Submitted, returned, valid, unavailable, other nonvalid, not-returned, unique-valid and repeat counts remain visible. A top-N with fewer than N valid unique measurements is `null`, accompanied by required/effective counts. Missing values are never zero-imputed, missing case summaries are never silently dropped, and technical repeats never create independent units.
 
-This gate computes **no bootstrap confidence interval, p-value or significance claim**
-for maxima or any other metric. The legacy bootstrap-of-the-mean is not reused as a
-max test. Observed panel dominance is exploratory task-local evidence, not a
-population, cross-protein or repeated-search error-control guarantee. Related
-variants can still be correlated. Confirmatory evidence needs fresh independent
-validation, appropriate grouping, and prespecified selection/multiplicity control.
+Equal, nonempty, disjoint submitted arms are execution/identity requirements. One submitted candidate makes an arm executable; this is not a minimum scientifically sufficient valid count. No controller rule converts small samples, QC rates, null metrics, losses, gains or ties into an acceptance verdict in this mode. The LLM sees those facts and judges their implications under its plan.
 
-The selection of a new workflow is a policy comparison, not proof that every new candidate is better. Data acquired during a trial remain available after rejection. The same prediction model updated with more data is an inner-loop baseline and must be included in comparisons.
+### E-verdict: the LLM decides acceptance
 
-## Meta-policy case format
+E-verdict receives the exact frozen plan and trusted current-evaluation evidence, including all summaries and denominators. It returns:
 
-`evaluate-meta` requires a queued M patch and an evaluator-only JSON array. Each element includes:
+- `accepted`, `rejected` or `inconclusive`
+- A scientific explanation
+- The exact plan reference
+- Nonempty supporting references drawn from this evaluation's evidence set
+- An optional descriptive tradeoff label
+
+The controller checks response structure, provenance and immutable identity. It honors every valid LLM decision without a numerical veto. In particular, an LLM may accept a justified tradeoff or reject an apparently dominating panel. A tradeoff label does not itself determine acceptance. Valid `inconclusive` is an actual completed LLM decision; an absent or malformed response is a paused evaluation, not an invented `inconclusive` result.
+
+Only accepted, validated verdicts can drive the existing authorized successor-adoption path. The complete plan, evidence and verdict are persisted before adoption. Workflow or Meta patches cannot write their own evaluation receipts or change the controller's evidence/budget/isolation rules.
+
+### Durable requests, repair and provider recovery
+
+E calls use the real configured `team.llm.complete` route and ordinary LLM accounting. Every request, returned response, plan, evidence report and verdict is auditable. Successful cached calls are reused without additional provider calls, measurement spending or verdict resampling. Provider pauses preserve the same request and trial continuation; retry authorization follows the existing provider recovery protocol.
+
+A response with invalid JSON shape, a wrong plan reference, or unsupported evidence references can receive up to two bounded format/provenance repair calls. Each has its own durable request identity and the same scientific context or frozen plan/evidence, plus the recorded validation error and invalid response. All invalid receipts remain retained. Repairs are not triggered by a valid scientific decision or by unfavorable metric values. Exhausted repairs pause the evaluation; no auto-acceptance, numerical fallback or synthetic decision is produced. Further recovery requires explicit reconciliation of the recorded failure.
+
+Replay workers cannot access evaluator-only label sources or write evaluation namespaces. Raw label paths, complete hidden label tables and unrevealed scores do not enter E-plan or E-verdict. Revealed measurements are factual evidence, never permissions or instructions to modify the protocol.
+
+## Experimental resources and interpretation
+
+Controls, failed submitted assays, unavailable replay queries and technical repeats consume budget. Baseline and challenger receive equal submitted variant counts and the same maximum role/tool-call bounds. Inspect actual usage: caching and different tool choices can change costs and elapsed time. Token/GPU-time/dollar fairness is not implemented as a full scheduler.
+
+Historical measured-label replay and prospective wet experiments have different source tags. Unavailable replay records are not low fitness, assay failure or biological infeasibility. Keep future labels in a trusted service inaccessible to code-capable research agents.
+
+Observed maxima, top-N means and averages describe the measured panel. LLM acceptance is not a confidence interval, p-value, population-level effect estimate, independent confirmation or cross-protein generalization guarantee. Related variants can remain correlated. A stronger scientific claim needs appropriate fresh evidence, grouping and controls for selection and repeated search, chosen and stated for that study. A workflow comparison does not establish that every new candidate is better. Trial data remain available after rejection. Updating the same prediction model with more data is an inner-loop baseline, not by itself RSI.
+
+## Meta-policy evaluations
+
+Online M evaluation freezes old and candidate improvers, gives each the same revealed context, and evaluates their descendant workflows under equal arm budgets. An E-plan is frozen before the next returned validation outcomes; E-verdict interprets their complete metrics and coverage. Only the MetaPolicy is promoted if its validated verdict is accepted.
+
+Offline `evaluate-meta` requires a queued M patch and an evaluator-only case array:
 
 ```text
 case_id, group_id, split ('development'/'validation'/'test')
 task: full TaskSpec
-initial: list of Observation (public bootstrap measurements)
+initial: list of public Observation records
 history: public prior summaries (optional)
 labels: evaluator-only sequence -> measured value mapping
 query_budget: equal additional queries for each descendant
 ```
 
-Never give the full case file to the agent or put private case labels in the repository. The initial measurements must agree with labels. Common bootstrap measurements are supplied identically to both policies; the comparison budgets additional queries separately. Group related cases/seeds from one protein together. Different metric units/directions are not averaged into one acceptance test.
+Never supply the complete case file to an agent or publish private labels. Initial observations must agree with evaluator-owned measurements. Both descendants see identical public bootstrap evidence. Related cases or seeds remain grouped by protein; they are not independent proteins. Reports preserve aligned per-case summaries, missingness, group identities and denominators. Where group summaries are used, a per-case best and a group-average best are distinguished from a maximum over unrelated proteins. Heterogeneous metric units and directions are not silently collapsed.
 
-The old and candidate M are frozen during the one-step test, each starting from the same W. Their proposed descendant W is run with the same cases and limits. Under the legacy gate, signed scalar group means are compared pairwise. Under the
-multi-metric gate, each descendant's selected **unique-sequence** panel produces the
-full same metric vector first. Each metric is averaged equally over aligned cases
-within a group, then equally over groups. Thus `best` means the mean of per-case
-bests, not the maximum across unrelated proteins. All case/group IDs are aligned;
-missing case metrics are never dropped. Each case must supply full top-N coverage,
-while `min_per_arm` counts independent groups, not related seeds or wells. The same
-observed Pareto rule gates the resulting group-aggregate vector. Per-case summaries,
-denominators, group vectors and policy are retained in the report.
+The LLM plan is frozen before offline descendant outcomes. Durable branch stores and trace checkpoints allow a paused E verdict to resume without regenerating or remeasuring completed arms. A meta patch is evaluated by actual descendant evidence, not by its self-written explanation. `--promote` remains restricted to validation cases; test cases are report-only. These split and publication boundaries are data-use controls, not numerical scientific acceptance criteria.
 
-A meta patch needs improvement in descendants, not a better self-written explanation. `--promote` is allowed only on validation cases. Test cases are report-only. The evaluator generates the gate result internally; there is no endpoint to publish arbitrary claimed scores.
+This is a diagnostic of one-step improvement ability. Recursive claims also require multi-generation comparisons of fixed M and accepted successor M under stated total resources and suitable fresh confirmation tasks.
 
-This is a diagnostic of one-step improvement ability. For recursive evaluation, additionally compare full multi-generation campaigns using (a) fixed M and (b) accepted successor M, with prespecified total resources and fresh confirmation tasks. Do not count reusing the same protein under many seeds as independent cross-protein evidence.
+## Historical compatibility
+
+Saved `mean_bootstrap` and `observed_pareto_v1` studies retain their original identities and evaluation behavior. Legacy policies and results are neither recomputed nor reclassified. The old mean/bootstrap and fixed observed-Pareto implementations remain available only for explicit compatibility and reproduction; they are not the acceptance procedure for a new `llm_adjudicated_v1` study. Deterministic demonstrations may retain the legacy configuration explicitly.
+
+Legacy mean evaluation uses its configured signed-mean/bootstrap comparison. Legacy observed-Pareto evaluation uses its previously configured metric set, margins, tolerances and coverage rules. Their configurations remain immutable for those studies. Changing the evaluation protocol requires a new study; never edit a saved run to disguise a historical fixed-rule result as LLM-adjudicated evidence.
 
 ## Dataset roles
 
-SSMuLA-style tables can support repeatable measured-label query simulation after explicit normalization. They do not create new wet experiments. Historical round datasets can support retrospective/future-round prediction only within their label availability assumptions. Missing counterfactual measurements cannot be invented. Dataset-specific licenses, train-time contamination, group splits and temporal label construction are operator responsibilities.
+SSMuLA-style tables can support repeatable measured-label query simulation after explicit normalization. They do not create new wet experiments. Historical round datasets support retrospective or future-round analyses only within their label-availability assumptions. Missing counterfactual measurements cannot be invented. Dataset licenses, train-time contamination, group splits and temporal label construction remain operator responsibilities.
 
 This repository redistributes no external datasets and reports no scientific superiority over ALDE, ProteinSwarm, Biomni, Virtual Lab or other baselines.

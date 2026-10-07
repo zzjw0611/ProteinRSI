@@ -27,7 +27,7 @@ class ReadOnlyRecords:
             "SELECT key,value FROM kv WHERE namespace=?", (namespace,))}
 
 
-def summarize(campaign: str | Path, *, top_ns=(5, 10), query_bin_size: int = 100) -> dict:
+def summarize(campaign: str | Path, *, top_ns=None, query_bin_size: int = 100) -> dict:
     path = Path(campaign).resolve(strict=True) / "state.sqlite3"
     if not path.is_file():
         raise ValueError("Campaign state does not exist")
@@ -39,7 +39,9 @@ def summarize(campaign: str | Path, *, top_ns=(5, 10), query_bin_size: int = 100
         if state is None:
             raise ValueError("No initialized campaign")
         task = state["task"]
-        top_ns = tuple(top_ns)
+        from proteinrsi.reporting_metrics import evaluation_report_configuration
+        evaluation_context = evaluation_report_configuration(records, state, top_ns)
+        top_ns = tuple(evaluation_context["top_ns"])
         direction, reference = task.get("direction", "maximize"), task.get("reference_sequence", "")
         all_batches, all_measurements = records.all("batches"), records.all("measurements")
         initial = records.get("configuration", "provided_initial_evidence", {}).get("observations", [])
@@ -134,6 +136,7 @@ def summarize(campaign: str | Path, *, top_ns=(5, 10), query_bin_size: int = 100
             charges.setdefault(resource, {}).setdefault(status, 0)
             charges[resource][status] += amount
         return {"campaign_id": state["campaign_id"], "status": state["status"],
+            **evaluation_context,
             "completed_rounds": state["round_index"], "metric": task["metric"], "unit": task["unit"],
             "direction": direction, "top_ns": list(top_ns),
             "metric_display_names": metric_display_names(direction, top_ns),
@@ -156,8 +159,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", required=True)
     parser.add_argument("--out", required=True)
-    parser.add_argument("--top-n", nargs="+", type=int, default=[5, 10],
-                        help="Unique-sequence top-N means to report (default: 5 10)")
+    parser.add_argument("--top-n", nargs="+", type=int,
+                        help="Descriptive override only; default uses saved LLM choices, then presentation defaults5/10")
     parser.add_argument("--query-bin-size", type=int, default=100)
     args = parser.parse_args()
     result = summarize(args.campaign, top_ns=args.top_n, query_bin_size=args.query_bin_size)

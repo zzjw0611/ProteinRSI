@@ -128,6 +128,8 @@ def compare_metric_vectors(baseline: dict, challenger: dict, policy: GatePolicy,
 
 def evaluate_trial(batch: Batch, observations: list[Observation], policy: GatePolicy,
                    *, direction: str, reference_sequence: str | None = None) -> GateResult:
+    if policy.criterion == "llm_adjudicated_v1":
+        raise ValueError("LLM-adjudicated trials require a frozen E plan and actual E verdict")
     by_id = {o.sample_id: o for o in observations}
     if set(by_id) != {s.sample_id for s in batch.samples} or len(by_id) != len(observations):
         raise ValueError("Evaluation requires one final observation per scheduled sample")

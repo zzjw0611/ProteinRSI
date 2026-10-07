@@ -4,7 +4,8 @@ from importlib.resources import files
 from proteinrsi.contracts import digest
 
 PROMPT_NAMES = ("common", "principal_plan", "principal_fixed_plan", "principal_review",
-                "principal_selection", "designer", "analyst", "analysis_tools", "feedback", "meta", "protocol_planner", "protocol_step")
+                "principal_selection", "designer", "analyst", "analysis_tools", "feedback", "meta", "protocol_planner", "protocol_step",
+                "evaluation_plan", "evaluation_verdict")
 
 def packaged_prompts():
     root = files("proteinrsi").joinpath("prompts")

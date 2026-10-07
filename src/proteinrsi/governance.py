@@ -120,7 +120,7 @@ class MethodGovernance:
             if state[key]:
                 patch = Patch.model_validate(state[key])
                 record = self.store.get("method_candidate_states", patch.patch_id, {})
-                offline_running = any(attempt.get("state") == "started"
+                offline_running = any(attempt.get("state") in {"started", "paused_provider", "measurements_committed"}
                     and attempt.get("patch_id") == patch.patch_id
                     for attempt in self.store.all("meta_attempts").values())
                 if record.get("status") == "blocked" or offline_running:
@@ -146,7 +146,7 @@ class MethodGovernance:
             "round": state["round_index"], "campaign_id": state["campaign_id"],
             "validation_plan": {"stages": ["contract_preflight", "bounded_candidate_execution", "experimental_comparison"],
                 "gate": state["gate"], "metric": ("direction_adjusted_best_topN_avg"
-                    if state["gate"].get("criterion") == "observed_pareto_v1" else "mean_signed_outcome"),
+                    if state["gate"].get("criterion") in {"observed_pareto_v1", "llm_adjudicated_v1"} else "mean_signed_outcome"),
                 "task_metric": state["task"]["metric"], "direction": state["task"]["direction"],
                 "budget_scope": "shared_campaign", "transfer_validated": False}}
         self.store.put("method_candidates", patch.patch_id, record, immutable=True)
@@ -191,7 +191,7 @@ class MethodGovernance:
                 self.store.put("method_deferrals", key,
                     {"patch_id": patch.patch_id, "round": state["round_index"], "reason": reason}, immutable=True)
             count = sum(item["patch_id"] == patch.patch_id for item in self.store.all("method_deferrals").values())
-            if count >= self.policy.max_deferred_rounds:
+            if count >= self.policy.max_deferred_rounds and state["gate"].get("criterion") != "llm_adjudicated_v1":
                 self.finish(state, patch, "inconclusive", detail={"reason": reason, "deferred_rounds": count})
 
     def _count_failure(self, state: dict, reason: str) -> None:
@@ -218,6 +218,21 @@ class MethodGovernance:
 
     def complete(self, state: dict, patch: Patch, result, candidate, *, evaluation_ref: str) -> None:
         """Trusted gate entrypoint, called only with a freshly computed gate result."""
+        if state["gate"].get("criterion") == "llm_adjudicated_v1":
+            # Structural provenance only: no numeric acceptance rule is applied.
+            # Even an internal caller must present the actual durable E verdict.
+            from proteinrsi.llm_evaluation import load_evaluation_plan
+            detail = result.details or {}
+            plan_ref, verdict_ref = detail.get("evaluation_plan_ref"), detail.get("evaluation_verdict_ref")
+            if not isinstance(verdict_ref, str) or not verdict_ref.startswith("evaluation_verdicts/"):
+                raise Conflict("Adoption requires the recorded E verdict")
+            plan = load_evaluation_plan(self.store, plan_ref)
+            verdict = self.store.get("evaluation_verdicts", verdict_ref.split("/", 1)[1])
+            inputs = self.store.get("evaluation_trial_inputs", plan["evaluation_id"], {})
+            if (not verdict or verdict.get("result") != result.model_dump(mode="json")
+                    or verdict.get("plan_ref") != plan_ref or plan["target"] != patch.target
+                    or inputs.get("context", {}).get("patch") != patch.model_dump(mode="json")):
+                raise Conflict("Evaluation verdict is not bound to this candidate and frozen plan")
         with self.store.transaction():
             if result.decision == "accepted":
                 if self.enabled:
@@ -393,6 +408,8 @@ class MethodGovernance:
             workflows[Workflow.model_validate(definition).version] = definition
         llm = getattr(self.campaign.team, "llm", None)
         record = {"batch_id": batch.batch_id, "evidence_version": batch.evidence_version,
+            **({"evaluation_plan_ref": trial["evaluation_plan_ref"]}
+               if trial.get("evaluation_plan_ref") else {}),
             "workflow_snapshots": {version: self._snapshot("workflow", Workflow.model_validate(w))
                 for version, w in workflows.items()},
             "meta_snapshots": {version: self._snapshot("meta", MetaPolicy.model_validate(m))
@@ -427,6 +444,9 @@ class MethodGovernance:
         return {"enabled": self.enabled,
             "control": self.campaign.state.get("method_governance"),
             "candidates": self.store.all("method_candidates"),
+            "evaluation_plans": self.store.all("evaluation_plans"),
+            "evaluation_bindings": self.store.all("evaluation_bindings"),
+            "evaluation_verdicts": self.store.all("evaluation_verdicts"),
             "candidate_states": self.store.all("method_candidate_states"),
             "switches": sorted(self.store.all("method_switches").values(), key=lambda x: x["sequence"])}
 

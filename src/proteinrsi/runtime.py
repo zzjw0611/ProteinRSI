@@ -37,7 +37,7 @@ class Campaign:
             if store.get("campaign", "state") is not None:
                 raise Conflict("Campaign already exists; use resume/status, not init")
             workflow, meta, gate = workflow or Workflow(), meta or MetaPolicy(), gate or GatePolicy()
-            if gate.criterion == "observed_pareto_v1":
+            if gate.criterion in {"observed_pareto_v1", "llm_adjudicated_v1"}:
                 store.put("configuration", "acceptance_policy", gate.model_dump(), immutable=True)
             from proteinrsi.prompting import snapshot_prompts
             snapshot_prompts(store)
@@ -98,7 +98,7 @@ class Campaign:
         if state is None:
             raise ValueError("No campaign; run init first")
         frozen_gate = self.store.get("configuration", "acceptance_policy")
-        if frozen_gate is not None or state.get("gate", {}).get("criterion") == "observed_pareto_v1":
+        if frozen_gate is not None or state.get("gate", {}).get("criterion") in {"observed_pareto_v1", "llm_adjudicated_v1"}:
             if frozen_gate != state.get("gate"):
                 raise Conflict("Acceptance policy differs from the frozen study; start a new study")
         return state
@@ -125,7 +125,7 @@ class Campaign:
             research_context={"workflow_validation_outcomes":
                 list(self.store.all("workflow_validation_outcomes").values()),
                 **({"method_history": self.methods.visible_history()} if self.methods.enabled else {}),
-                **({"acceptance_policy": state["gate"]} if state["gate"].get("criterion") == "observed_pareto_v1" else {})})
+                **({"acceptance_policy": state["gate"]} if state["gate"].get("criterion") in {"observed_pareto_v1", "llm_adjudicated_v1"} else {})})
 
     def prepare(self) -> Batch | None:
         # Feedback commits before the improver runs. A stopped controller may have
@@ -252,7 +252,10 @@ class Campaign:
                 if trial_patch:
                     self.store.put("trials", batch_id, meta_trial or {"target": "workflow",
                         "patch": trial_patch.model_dump(mode="json"),
-                        "challenger": challenger_workflow.model_dump(), "gate": state["gate"], "allocation": allocation}, immutable=True)
+                        "challenger": challenger_workflow.model_dump(), "gate": state["gate"], "allocation": allocation,
+                        **({"evaluation_id": allocation["evaluation_id"],
+                            "evaluation_plan_ref": allocation["evaluation_plan_ref"]}
+                           if "evaluation_plan_ref" in allocation else {})}, immutable=True)
                 state["pending_batch"], state["status"] = batch_id, "awaiting_approval"
                 if trial_patch:
                     self.methods.transition(state, trial_patch, "awaiting_approval", {"batch_id": batch_id})
@@ -285,7 +288,14 @@ class Campaign:
                     raise ValueError("Cannot fill a plate with duplicate research candidates")
             batch = Batch.model_validate(self.store.get("batches", batch_id))
             if batch.patch_id:
-                patch = Patch.model_validate(self.store.get("trials", batch_id)["patch"])
+                trial = self.store.get("trials", batch_id)
+                if trial["gate"].get("criterion") == "llm_adjudicated_v1":
+                    from proteinrsi.llm_evaluation import MAX_RESPONSE_REPAIRS
+                    headroom = 1 + MAX_RESPONSE_REPAIRS
+                    if self.store.remaining("llm_calls") < headroom:
+                        raise ProviderPaused("E-verdict requires remaining LLM budget for its initial response "
+                            "and bounded schema repairs; batch is not approved and no assay was charged")
+                patch = Patch.model_validate(trial["patch"])
                 self.methods.transition(state, patch, "awaiting_results", {"batch_id": batch_id})
             self.store.settle("lab-" + batch_id)
             state["status"] = "awaiting_results"
@@ -338,6 +348,18 @@ class Campaign:
             if state["pending_batch"] != batch_id or state["status"] != "awaiting_results":
                 raise Conflict("Only approved current batches accept results")
             self.store.put("measurements", batch_id, normalized, immutable=True)
+            # Raw measurements are already durable. E runs before the short adoption
+            # transaction so provider pauses cannot roll back paid calls or facts.
+            result = None
+            if batch.patch_id:
+                trial = self.store.get("trials", batch_id)
+                policy = GatePolicy.model_validate(trial["gate"])
+                if policy.criterion == "llm_adjudicated_v1":
+                    from proteinrsi.evaluation import evaluate_llm_trial
+                    result = evaluate_llm_trial(self, batch, observations, trial, task)
+                    # Completed E evaluation survives an unrelated final commit
+                    # failure. Re-ingestion never resamples an actual verdict.
+                    self.store.put("trial_results", batch_id, result.model_dump(), immutable=True)
             with self.store.transaction():
                 by_id = {o.sample_id: o for o in observations}
                 errors = [abs(s.candidate.predicted_value - by_id[s.sample_id].value) for s in batch.samples
@@ -363,9 +385,10 @@ class Campaign:
                 if batch.patch_id:
                     trial = self.store.get("trials", batch_id)
                     patch = Patch.model_validate(trial["patch"])
-                    result = evaluate_trial(batch, observations, GatePolicy.model_validate(trial["gate"]),
-                                            direction=task.direction, reference_sequence=task.reference_sequence)
-                    self.store.put("trial_results", batch_id, result.model_dump(), immutable=True)
+                    if result is None:  # Preserve legacy numerical-mode transaction semantics.
+                        result = evaluate_trial(batch, observations, GatePolicy.model_validate(trial["gate"]),
+                            direction=task.direction, reference_sequence=task.reference_sequence)
+                        self.store.put("trial_results", batch_id, result.model_dump(), immutable=True)
                     self.memory.record(patch, result, campaign_id=state["campaign_id"],
                         observations=len(state["observations"]) - len(normalized), source=task.feedback_source)
                     target = trial.get("target", "workflow")

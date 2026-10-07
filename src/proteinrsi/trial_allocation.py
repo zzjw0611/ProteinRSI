@@ -1,12 +1,12 @@
 # SPDX-License-Identifier: MIT
 """Feasible, equal, disjoint arms chosen before any outcomes are revealed."""
 
-def allocate_trial(arms, versions, slots, minimum, excluded, seed):
+def allocate_trial(arms, versions, slots, minimum, excluded, seed, *, allow_identical=False):
     excluded = set(excluded)
     maps = {a: {c.sequence: c for c in arms[a] if c.sequence not in excluded}
             for a in ('baseline', 'challenger')}
     keys = {a: set(m) for a, m in maps.items()}
-    if list(maps['baseline']) == list(maps['challenger']):
+    if not allow_identical and list(maps['baseline']) == list(maps['challenger']):
         return [], {'reason': 'Identical candidate priorities; no distinct policy comparison', 'per_arm': 0}
     size = min(slots // 2, len(keys['baseline']), len(keys['challenger']),
                len(keys['baseline'] | keys['challenger']) // 2)

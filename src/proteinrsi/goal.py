@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
-from proteinrsi.contracts import Model, TaskSpec, Workflow
+from proteinrsi.contracts import GatePolicy, Model, TaskSpec, Workflow
 from proteinrsi.llm import JSONLLM
 from proteinrsi.localtools.artifacts import ArtifactStore, file_sha256
 from proteinrsi.localtools.config import LocalToolsConfig, load_config
@@ -272,6 +272,7 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
     from proteinrsi.research.contracts import ResearchConfig
     campaign = Campaign.initialize(str(out), task,
         workflow=Workflow(tool_names=list(dict.fromkeys(tool_names)), skill_names=skills, analysis_tool_rounds=3),
+        gate=GatePolicy(criterion='llm_adjudicated_v1'),
         protein_config=local.esmc, local_tools=local,
         research_config=ResearchConfig(resource_selection='llm', enable_generated_code=True, protocol_mode=protocol_mode))
     spent = intake.usage()['llm_calls']['committed']

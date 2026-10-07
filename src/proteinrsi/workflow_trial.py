@@ -13,6 +13,10 @@ def prepare_workflow_trial(campaign, state, view, patch, workflow, baseline, slo
         if campaign.methods.enabled:
             campaign.methods.defer(state, patch, detail["reason"])
         return [], {}
+    evaluation = None
+    if gate.criterion == "llm_adjudicated_v1":
+        from proteinrsi.evaluation import freeze_trial_plan
+        evaluation = freeze_trial_plan(campaign, state, view, patch, slots)
     campaign.methods.begin(state, patch)
     challenge_view = campaign.view(state, workflow)
     challenge_view.research_context = {**challenge_view.research_context,
@@ -29,17 +33,26 @@ def prepare_workflow_trial(campaign, state, view, patch, workflow, baseline, slo
         chosen, allocation = allocate_trial(
             {"baseline": baseline, "challenger": challenger},
             {"baseline": view.workflow.version, "challenger": workflow.version},
-            slots, gate.required_per_arm, excluded, view.task.seed + view.round_index)
+            slots, gate.required_per_arm, excluded, view.task.seed + view.round_index,
+            allow_identical=gate.criterion == "llm_adjudicated_v1")
     except Exception as exc:
         if not campaign.methods.failure(state, patch, exc):
             raise
         campaign.store.event("workflow_validation_failed", {
             "patch_id": patch.patch_id, "round": view.round_index, "error_type": type(exc).__name__})
         return [], {}
+    if evaluation is not None:
+        allocation.update(evaluation_id=evaluation["evaluation_id"],
+                          evaluation_plan_ref=evaluation["plan_ref"])
     campaign.store.event("workflow_validation_allocation", {"patch_id": patch.patch_id,
         "round": view.round_index, **allocation})
     if not chosen:
-        detail = {"decision": "inconclusive", "round": view.round_index, **allocation}
+        detail = {"decision": "not_executed" if gate.criterion == "llm_adjudicated_v1" else "inconclusive",
+                  "round": view.round_index, **allocation}
         campaign.store.put("workflow_validation_outcomes", patch.patch_id, detail)
-        campaign.methods.finish(state, patch, "inconclusive", detail=detail)
+        if gate.criterion == "llm_adjudicated_v1":
+            # No experiment was run, so do not manufacture a scientific verdict.
+            campaign.methods.transition(state, patch, "staged", {"not_executed": detail})
+        else:
+            campaign.methods.finish(state, patch, "inconclusive", detail=detail)
     return chosen, allocation

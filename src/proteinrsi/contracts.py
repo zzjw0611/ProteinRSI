@@ -210,14 +210,14 @@ class MetaPolicy(Model):
 
 
 class GatePolicy(Model):
-    """Trusted configuration, never an evolvable agent component."""
-    min_per_arm: int = Field(default=4, ge=2)
+    """Evaluation protocol; legacy numerical gates are historical compatibility only."""
+    min_per_arm: int = Field(default=4, ge=1)
     min_effect: float = Field(default=0.0, ge=0)
     confidence: float = Field(default=0.95, gt=0.5, lt=1)
     bootstrap_samples: int = Field(default=2000, ge=100)
     max_qc_failure_fraction: float = Field(default=0.25, ge=0, lt=1)
-    criterion: Literal["mean_bootstrap", "observed_pareto_v1"] = "mean_bootstrap"
-    top_ns: list[int] = Field(default_factory=lambda: [5, 10], min_length=1)
+    criterion: Literal["mean_bootstrap", "observed_pareto_v1", "llm_adjudicated_v1"] = "mean_bootstrap"
+    top_ns: list[int] = Field(default_factory=lambda: [5, 10])
     absolute_tolerances: dict[str, float] = Field(default_factory=dict)
     improvement_margins: dict[str, float] = Field(default_factory=dict)
 
@@ -230,6 +230,18 @@ class GatePolicy(Model):
 
     @model_validator(mode="after")
     def prespecified_metrics(self):
+        if self.criterion == "llm_adjudicated_v1":
+            legacy = {"min_per_arm", "min_effect", "confidence", "bootstrap_samples",
+                      "max_qc_failure_fraction", "top_ns", "absolute_tolerances",
+                      "improvement_margins"}
+            if legacy & self.model_fields_set:
+                raise ValueError("llm_adjudicated_v1 has no configured numeric acceptance criteria; "
+                                 "the LLM defines its evaluation plan before outcomes")
+            object.__setattr__(self, "min_per_arm", 1)
+            object.__setattr__(self, "top_ns", [])
+            return self
+        if self.min_per_arm < 2 or not self.top_ns:
+            raise ValueError("Legacy gates require min_per_arm >= 2 and nonempty top_ns")
         if any(type(n) is not int or n < 1 for n in self.top_ns) or len(set(self.top_ns)) != len(self.top_ns):
             raise ValueError("top_ns must contain distinct positive integers")
         names = {"best", "avg", *(f"top{n}mean" for n in self.top_ns)}
@@ -247,15 +259,76 @@ class GatePolicy(Model):
 
     @property
     def required_per_arm(self) -> int:
+        if self.criterion == "llm_adjudicated_v1":
+            # One submitted candidate makes an arm executable. This is not an
+            # efficacy, valid-measurement, coverage, or significance threshold.
+            return 1
         return max(self.min_per_arm, *self.top_ns) if self.criterion == "observed_pareto_v1" else self.min_per_arm
 
     @model_serializer(mode="wrap")
     def serialize_gate(self, handler):
         data = handler(self)
+        if self.criterion == "llm_adjudicated_v1":
+            return {"criterion": self.criterion}
         if self.criterion == "mean_bootstrap":
             for name in ("criterion", "top_ns", "absolute_tolerances", "improvement_margins"):
                 data.pop(name, None)
         return data
+
+
+class EvaluationPlan(Model):
+    """Scientific criteria authored by an actual LLM before validation outcomes."""
+    top_ns: list[int] = Field(min_length=1)
+    criteria: list[str] = Field(min_length=1)
+    rationale: str = Field(min_length=1, max_length=12000)
+    tradeoff_handling: str = Field(min_length=1, max_length=12000)
+    missing_evidence_handling: str = Field(min_length=1, max_length=12000)
+
+    @field_validator("top_ns", mode="before")
+    @classmethod
+    def valid_top_ns(cls, value):
+        if (not isinstance(value, list) or not value
+                or any(type(n) is not int or n < 1 for n in value)
+                or len(set(value)) != len(value)):
+            raise ValueError("LLM top_ns must contain distinct positive integers")
+        return value
+
+    @field_validator("criteria")
+    @classmethod
+    def nonempty_criteria(cls, value):
+        if any(not item.strip() for item in value):
+            raise ValueError("Evaluation criteria must be nonempty")
+        return value
+
+    @field_validator("rationale", "tradeoff_handling", "missing_evidence_handling")
+    @classmethod
+    def nonblank_explanation(cls, value):
+        if not value.strip():
+            raise ValueError("Evaluation explanations must be nonempty")
+        return value
+
+
+class EvaluationVerdict(Model):
+    """LLM decision, with provenance checked independently of scientific preference."""
+    plan_ref: str = Field(pattern=r"^evaluation_plans/[0-9a-f]{64}$")
+    decision: Literal["accepted", "rejected", "inconclusive"]
+    reason: str = Field(min_length=1, max_length=16000)
+    supporting_evidence_refs: list[str] = Field(min_length=1)
+    tradeoff_label: str | None = Field(default=None, max_length=1000)
+
+    @field_validator("reason")
+    @classmethod
+    def nonblank_reason(cls, value):
+        if not value.strip():
+            raise ValueError("A verdict requires a scientific explanation")
+        return value
+
+    @field_validator("supporting_evidence_refs")
+    @classmethod
+    def distinct_evidence_refs(cls, value):
+        if any(not ref.strip() for ref in value) or len(set(value)) != len(value):
+            raise ValueError("Verdict evidence references must be nonempty and distinct")
+        return value
 
 
 class Observation(Model):

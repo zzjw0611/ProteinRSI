@@ -10,6 +10,33 @@ from proteinrsi.contracts import digest
 from proteinrsi.metrics import summarize_metrics
 
 
+def evaluation_report_configuration(records, state: dict, top_ns=None) -> dict:
+    """Expose saved LLM criteria without selecting or reevaluating any verdict.
+
+    A union of recorded N values is a descriptive reporting convenience. Each
+    individual adoption remains bound to its own immutable pre-results plan.
+    """
+    plans = records.all("evaluation_plans")
+    chosen = sorted({n for record in plans.values()
+                     for n in record.get("plan", {}).get("top_ns", [])})
+    if top_ns is not None:
+        selected, source = list(top_ns), "explicit_descriptive_report_override"
+    elif chosen:
+        selected, source = chosen, "union_of_recorded_llm_plan_top_ns"
+    elif state.get("gate", {}).get("top_ns"):
+        selected, source = state["gate"]["top_ns"], "recorded_legacy_gate_configuration"
+    else:
+        selected, source = [5, 10], "presentation_defaults_not_acceptance_criteria"
+    return {"top_ns": selected, "top_n_source": source,
+            "llm_chosen_top_ns": chosen,
+            "evaluation_mode_as_recorded": state.get("gate", {}).get("criterion", "mean_bootstrap"),
+            "llm_evaluation_plans": {"evaluation_plans/" + key: record for key, record in plans.items()},
+            "llm_evaluation_verdicts": {"evaluation_verdicts/" + key: record
+                                        for key, record in records.all("evaluation_verdicts").items()},
+            "evaluation_reporting_note": "Stored criteria and verdicts are reported as recorded. "
+                "Descriptive top-N display choices never change an adoption decision or its plan."}
+
+
 def metric_display_names(direction: str, top_ns=(5, 10)) -> dict[str, str]:
     return {"best": "max" if direction == "maximize" else "min",
             **{f"top{n}mean": f"top{n}mean" for n in top_ns}, "avg": "avg"}

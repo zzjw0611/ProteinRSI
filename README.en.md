@@ -9,12 +9,26 @@ This release integrates the delivered v0.3 local tools with resource-aware typed
 planning. It is research software, not a validated protein design product. No NIM
 service is required. Generated Python runs only in a separate resource-limited sandbox; generated shell commands are not executed.
 
+## LLM-defined evaluation for new studies
+
+New CLI `init` and natural-language `start` studies select `llm_adjudicated_v1`.
+Before held-out results, the LLM records its Top-N choices, criteria, rationale,
+tradeoff handling and treatment of missing evidence. After the controller computes
+best/max, Top-N means, average and measurement denominators, the LLM explicitly
+accepts, rejects or declares the comparison inconclusive. No numeric threshold,
+average-only rule or Pareto condition determines the verdict in this mode.
+The controller enforces evidence identity, budgets, permissions, schemas and durable
+exactly-once adoption. E-plan/E-verdict are evaluation calls, not another protein
+prediction capability. Missing or invalid replies pause; they never approve a method.
+Existing studies and historical gates are not reclassified or silently migrated.
+See [evaluation](docs/EVALUATION.md) and `configs/gate.llm_adjudicated.json`.
+
 ## Four logical roles and one campaign controller
 
 A selects resources and creates/revises the unexecuted portion of a ResearchPlan.
 B proposes constrained sequences/edits or calls registered design tools. C performs
 read-only evidence analysis and candidate review. M proposes persistent workflow or
-MetaPolicy patches; only independent gates may adopt them. All can share one chat LLM.
+MetaPolicy patches; adoption requires a separate recorded evaluation. All can share one chat LLM.
 
 ![User-supplied protein agent conceptual architecture](docs/assets/proteinrsi-architecture-zh.svg)
 

@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Budgeted historical replay. Labels live in the controller, research runs in a fresh worker."""
 from pathlib import Path
-from proteinrsi.contracts import TaskSpec
+from proteinrsi.contracts import Observation, TaskSpec
 from proteinrsi.lab import CSVOracle, UnknownMeasurement
 from proteinrsi.localtools.artifacts import file_sha256
 from .broker import GuardedTeam, GuardedMetaAgent, reader_roots
@@ -50,9 +50,13 @@ def run_replay(campaign, dataset, *, guarded=True):
         if task.candidate_access != "open" and any(s.candidate.sequence not in oracle._labels for s in batch.samples):
             raise UnknownMeasurement("Batch contains an unavailable sequence; not approved, no phenotype returned")
         campaign.approve(batch.batch_id, operator="explicit-guarded-replay" if guarded else "explicit-inprocess-replay")
-        observations = oracle.measure(batch)
+        saved = campaign.store.get("measurements", batch.batch_id)
+        # E may pause after paid observations are durable but before adoption.
+        # Resume that exact evidence rather than querying the oracle again.
+        observations = ([Observation.model_validate(row) for row in saved]
+                        if saved is not None else oracle.measure(batch))
         missing = [o.sample_id for o in observations if o.qc == "unavailable"]
-        if missing:
+        if missing and saved is None:
             campaign.store.event("replay_unavailable", {"batch_id": batch.batch_id,
                 "sample_ids": missing, "charged_queries": len(missing),
                 "reason": "No historical measurement; not a failed assay or low fitness"})

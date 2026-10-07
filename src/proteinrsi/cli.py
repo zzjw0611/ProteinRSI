@@ -71,7 +71,7 @@ def main(argv: list[str] | None = None) -> None:
     init.add_argument("--out", required=True)
     init.add_argument("--workflow")
     init.add_argument("--meta")
-    init.add_argument("--gate")
+    init.add_argument("--gate", help="Evaluation-mode configuration; new CLI studies default to LLM-defined criteria and verdicts")
     init.add_argument("--method-governance", help="Operator-authored candidate failure/deferral limits")
     init.add_argument("--research-config", help="Operator-authored resource selection and plan limits")
     init.add_argument("--research-mode", choices=["adaptive", "fixed"], default=None,
@@ -322,7 +322,7 @@ def main(argv: list[str] | None = None) -> None:
             campaign = Campaign.initialize(args.out, TaskSpec.model_validate(load_json(args.task)),
                 workflow=workflow, protein_config=protein_config, local_tools=local_config, research_config=research_config,
                 meta=MetaPolicy.model_validate(load_json(args.meta)) if args.meta else None,
-                gate=GatePolicy.model_validate(load_json(args.gate)) if args.gate else None,
+                gate=GatePolicy.model_validate(load_json(args.gate)) if args.gate else GatePolicy(criterion="llm_adjudicated_v1"),
                 governance_config=load_json(args.method_governance) if args.method_governance else None)
             output = campaign.report()
         elif args.command == "esmc-check":

@@ -58,12 +58,17 @@ run during completion; do not pretend that completing a panel advances a round.
 A validation_request is a sub-panel, not an entire plate; the controller fills other
 wells separately. Scientific strategy and tool choice remain yours.
 
-When research_context.acceptance_policy declares observed_pareto_v1, method acceptance
-uses every prespecified direction-adjusted metric: best, each configured top-N mean,
-and average. Measurements are averaged within each unique sequence first; controls
-and the supplied parent are excluded from the arm comparison. Top-N needs N valid
-unique sequences. A gain in one metric cannot compensate for a loss beyond another
-metric's declared absolute tolerance. Mixed gains/losses are inconclusive, and ties,
-missing coverage, or insufficient units cannot promote a method. This is a frozen
-observed-panel decision rule, not a significance test or a generalization guarantee.
-Do not change the policy, tolerances, margins, or metric set.
+Read research_context.acceptance_policy. For llm_adjudicated_v1, E-plan is an LLM
+evaluation call that chooses scientific criteria, top-N values, tradeoff treatment
+and missing-evidence handling before validation outcomes. E-verdict is an actual
+LLM call applying that frozen plan to trusted maximum/best, every chosen top-N,
+average and coverage facts. No numeric acceptance rule is supplied by the controller.
+All summaries must be presented; how they support acceptance is the LLM's scientific
+judgment. A tradeoff or missing metric is evidence to interpret, not an automatic
+verdict. An explicit valid decision and current-trial references are required.
+Keep the frozen plan unchanged after outcomes. Workflow and Meta patches cannot
+rewrite this audit protocol or their own verdict. E is an evaluation role, not a
+separate scientific capability or a source of measurements.
+
+Historical mean_bootstrap and observed_pareto_v1 studies retain their originally
+frozen policies for reproducibility; never silently reinterpret a saved study.

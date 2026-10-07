@@ -37,6 +37,8 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
     old = campaign.store.get("meta_online_attempts", evaluation_id)
     resuming = bool(old and old["state"] == "paused_provider")
     if old and not resuming:
+        if old["state"] == "deferred" and gate.criterion == "llm_adjudicated_v1":
+            return None  # Reuse the recorded no-execution result at this round.
         if old["state"] == "planned":
             choices = [(Candidate.model_validate(c), a, w) for c, a, w in old["choices"]]
             return choices, old["trial"]
@@ -58,10 +60,21 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         return None
     if not resuming and per_arm < gate.required_per_arm:
         return defer("Next batch lacks enough equal-arm query slots")
+    evaluation = None
+    if gate.criterion == "llm_adjudicated_v1":
+        from proteinrsi.evaluation import freeze_trial_plan
+        evaluation = freeze_trial_plan(campaign, state, view, patch, slots,
+                                       evaluation_id=evaluation_id)
     usage = campaign.store.usage()
     limits = old["equal_compute_limits"] if resuming else {k: campaign.store.remaining(k)//2 for k in usage}
+    if not resuming and gate.criterion == "llm_adjudicated_v1":
+        from proteinrsi.llm_evaluation import MAX_RESPONSE_REPAIRS
+        # Keep initial E-verdict plus bounded schema repairs out of the two
+        # science-arm allocations. Network retry costs still use the same ledger.
+        headroom = 1 + MAX_RESPONSE_REPAIRS
+        limits["llm_calls"] = max(0, campaign.store.remaining("llm_calls") - headroom) // 2
     if not resuming and campaign.team.llm is not None and limits.get("llm_calls", 0) < 2:
-        return defer("Insufficient shared LLM budget for two improvers and their descendants")
+        return defer("Insufficient shared LLM budget for two improvers, descendants and E verdict headroom")
     # No additional experiment lookup takes place in either child. Queries are
     # submitted/settled ONCE by Campaign for the final disjoint two-arm batch.
     limits["experimental_wells"] = view.remaining_wells
@@ -121,7 +134,7 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
             descendants[arm] = workflow.model_dump()
             store.event("frozen_improver_decision", {"response": decisions[arm], "workflow": workflow.version})
             branches[arm] = (store, team, child_view)
-        if descendants["baseline"] == descendants["challenger"]:
+        if gate.criterion != "llm_adjudicated_v1" and descendants["baseline"] == descendants["challenger"]:
             campaign.store.put("meta_online_attempts", evaluation_id, {**attempt, "state": "inconclusive",
                 "reason": "Identical descendants", "improver_decisions": decisions})
             campaign.store.event("meta_validation_inconclusive", {"evaluation_id": evaluation_id,
@@ -139,17 +152,25 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         versions = {arm: Workflow.model_validate(descendants[arm]).version for arm in arms}
         from proteinrsi.trial_allocation import allocate_trial
         chosen, allocation = allocate_trial(arms, versions, slots, gate.required_per_arm,
-                                           excluded, full_task.seed + view.round_index)
+                                           excluded, full_task.seed + view.round_index,
+                                           allow_identical=gate.criterion == "llm_adjudicated_v1")
         if not chosen:
-            campaign.store.put("meta_online_attempts", evaluation_id, {**attempt, "state": "inconclusive", **allocation})
-            campaign.store.event("meta_validation_inconclusive", {"evaluation_id": evaluation_id, **allocation})
-            campaign.methods.finish(state, patch, "inconclusive", detail={"evaluation_id": evaluation_id})
+            not_executed = gate.criterion == "llm_adjudicated_v1"
+            campaign.store.put("meta_online_attempts", evaluation_id, {**attempt,
+                "state": "deferred" if not_executed else "inconclusive", **allocation})
+            campaign.store.event("meta_validation_deferred" if not_executed else "meta_validation_inconclusive",
+                                 {"evaluation_id": evaluation_id, **allocation})
+            if not_executed:
+                campaign.methods.transition(state, patch, "staged", {"not_executed": allocation})
+            else:
+                campaign.methods.finish(state, patch, "inconclusive", detail={"evaluation_id": evaluation_id})
             return None
         trial = {"target": "meta", "allocation": allocation, "patch": patch.model_dump(mode="json"), "gate": state["gate"],
             "evaluation_id": evaluation_id, "scope": "current_task_only", "transfer_validated": False,
             "baseline_meta": view.meta.model_dump(), "challenger_meta": candidate_meta.model_dump(),
             "descendants": descendants, "improver_decisions": decisions,
-            "evidence_version": view.evidence_version, "protocol": attempt["protocol"]}
+            "evidence_version": view.evidence_version, "protocol": attempt["protocol"],
+            **({"evaluation_plan_ref": evaluation["plan_ref"]} if evaluation else {})}
         campaign.store.put("meta_online_attempts", evaluation_id, {**attempt, "state": "planned", "trial": trial,
             "choices": [(c.model_dump(mode="json"), a, w) for c, a, w in chosen]})
         return chosen, trial

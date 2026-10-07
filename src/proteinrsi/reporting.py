@@ -3,7 +3,8 @@
 from collections import Counter
 from proteinrsi.contracts import TaskSpec
 from proteinrsi.prompting import prompt_version
-from proteinrsi.reporting_metrics import arm_metrics, charged_metrics, metric_display_names, sample_metrics
+from proteinrsi.reporting_metrics import (arm_metrics, charged_metrics, metric_display_names,
+                                         sample_metrics, evaluation_report_configuration)
 
 def mutation_list(reference, sequence):
     if not reference:
@@ -20,7 +21,8 @@ def study_details(campaign, *, top_ns=None, query_bin_size=100):
         "value": best["value"], "sample_id": best["sample_id"], "batch_id": best["batch_id"],
         "source": best["source"]} if best else None)
     initial = store.get("configuration", "provided_initial_evidence", {}).get("observations", [])
-    top_ns = tuple(top_ns if top_ns is not None else state.get("gate", {}).get("top_ns", (5, 10)))
+    evaluation_context = evaluation_report_configuration(store, state, top_ns)
+    top_ns = tuple(evaluation_context["top_ns"])
     batches, measurements = store.all("batches"), store.all("measurements")
     with store.connect() as connection:
         charges = [dict(row) for row in connection.execute(
@@ -75,6 +77,7 @@ def study_details(campaign, *, top_ns=None, query_bin_size=100):
                 tokens[k] += v
     n = len(queried)
     return {"objective": task.objective_description or f"{task.direction} measured {task.metric}",
+        **evaluation_context,
         "direction": task.direction, "top_ns": list(top_ns),
         "metric_display_names": metric_display_names(task.direction, top_ns),
         **{key: value for key, value in accounting.items() if key != "batch_endpoints"},
