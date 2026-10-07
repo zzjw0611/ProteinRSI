@@ -78,7 +78,7 @@ result = {{'diagnostics': {{'observations': rows}}}}
                {"name": "synthetic-missing-and-negative", "inputs": {
                     "subjects": {"baseline": {"values": []},
                                  "challenger": {"values": [-2, 0]}}, "normalizer": 1},
-                "expected_output": output_fixture(None, -1, name=name)}])
+                "expected_output": output_fixture(None, -1.0, name=name)}])
 
 
 def envelope_fixture(plan):
@@ -764,7 +764,8 @@ from proteinrsi.storage import Store
 original = code.subprocess.Popen
 def observed(*args, **kwargs):
     child = original(*args, **kwargs)
-    print(json.dumps({'pid': child.pid, 'work': kwargs['cwd']}), flush=True)
+    if args and 'proteinrsi.research.code_worker' in args[0]:
+        print(json.dumps({'pid': child.pid, 'work': kwargs['cwd']}), flush=True)
     return child
 code.subprocess.Popen = observed
 code.execute_code(Store(sys.argv[1]), None, {'code': "import os, time\nos.write(1, b'ACTIVE\\n')\ntime.sleep(120)\nresult = {}", 'inputs': {}}, pure=True)
@@ -776,7 +777,9 @@ code.execute_code(Store(sys.argv[1]), None, {'code': "import os, time\nos.write(
         try:
             import select
             assert select.select([controller.stdout], [], [], 10)[0]
-            observed = json.loads(controller.stdout.readline())
+            line = controller.stdout.readline()
+            assert line, "Controller exited before worker start: " + controller.stderr.read()
+            observed = json.loads(line)
             worker_pid = observed['pid']
             output = Path(observed['work']) / 'stdout'
             deadline = time.monotonic() + 10
