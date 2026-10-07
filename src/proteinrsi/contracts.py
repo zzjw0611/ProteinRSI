@@ -276,8 +276,67 @@ class GatePolicy(Model):
         return data
 
 
+class EvaluationMetricDefinition(Model):
+    """Task-authored meaning; the controller does not choose scientific preferences."""
+    name: str = Field(pattern=r"^[A-Za-z][A-Za-z0-9_.-]{0,79}$")
+    description: str = Field(min_length=1, max_length=4000)
+    unit: str = Field(min_length=1, max_length=120)
+    direction: Literal["maximize", "minimize", "descriptive"]
+
+
+class EvaluationMetricFixture(Model):
+    """Pre-outcome synthetic contract test, never scientific evidence."""
+    name: str = Field(min_length=1, max_length=100)
+    inputs: dict[str, Any]
+    expected_output: dict[str, Any]
+
+
+class EvaluationMetricProgram(Model):
+    """Versioned pure computation contract over controller-scoped JSON inputs."""
+    version: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,79}$")
+    definitions: list[EvaluationMetricDefinition] = Field(min_length=1, max_length=32)
+    code: str = Field(min_length=1, max_length=30000)
+    input_schema: dict[str, Any]
+    output_schema: dict[str, Any]
+    input_bindings: dict[str, str] = Field(min_length=1, max_length=32)
+    output_rows_pointer: str = "/rows"
+    subject_pointer: str = "/subject_ref"
+    name_pointer: str = "/name"
+    value_pointer: str = "/value"
+    uncertainty_pointer: str | None = None
+    tests: list[EvaluationMetricFixture] = Field(min_length=2, max_length=8)
+
+    @model_validator(mode="after")
+    def distinct_names_and_pointers(self):
+        import re
+        if len({item.name for item in self.definitions}) != len(self.definitions):
+            raise ValueError("Metric names must be distinct")
+        if len({item.name for item in self.tests}) != len(self.tests):
+            raise ValueError("Metric fixture names must be distinct")
+        if len({digest(item.inputs) for item in self.tests}) != len(self.tests):
+            raise ValueError("Metric fixtures must test distinct inputs")
+        pointers = [*self.input_bindings.values(), self.output_rows_pointer,
+                    self.subject_pointer, self.name_pointer, self.value_pointer]
+        if self.uncertainty_pointer is not None:
+            pointers.append(self.uncertainty_pointer)
+        if any(not isinstance(p, str) or (p and not p.startswith("/"))
+               or re.search(r"~(?![01])", p) for p in pointers):
+            raise ValueError("Metric bindings must be JSON pointers")
+        if any(not name or len(name) > 120 for name in self.input_bindings):
+            raise ValueError("Metric input names must be nonempty and bounded")
+        # A capability catalog, not a filesystem or general object accessor.
+        allowed = {"protocol", "evaluation_id", "target", "task", "top_ns", "subject_refs",
+                   "arms", "cases", "denominators"}
+        if any(not p or p.split("/", 2)[1] not in allowed for p in self.input_bindings.values()):
+            raise ValueError("Metric input binding is outside the stable evidence envelope")
+        if not self.code.strip():
+            raise ValueError("Metric code must be nonblank")
+        return self
+
+
 class EvaluationPlan(Model):
     """Scientific criteria authored by an actual LLM before validation outcomes."""
+    metric_program: EvaluationMetricProgram | None = None
     top_ns: list[int] = Field(min_length=1)
     criteria: list[str] = Field(min_length=1)
     rationale: str = Field(min_length=1, max_length=12000)

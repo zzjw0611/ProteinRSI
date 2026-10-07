@@ -1,3 +1,11 @@
+# Unreleased — frozen custom evaluation metrics
+
+- Extend EvaluationPlan with task-specific metric definitions, executable source, JSON I/O schemas, scoped bindings and pre-outcome synthetic fixtures
+- Reuse generated-code isolation and MetricTable, freezing source/contracts/runtime before W/M validation and failing closed on unsupported hosts
+- Make online W/M and offline M verdicts and reports consume one persisted metric result/hash, with no fixed-metric fallback
+- Verify determinism, schema/identity/evidence integrity, bounded pre-outcome repair and durable restart without duplicate execution or measurement charges
+- Preserve historical plans and scientific records; CI explicitly requires real supported-kernel metric execution, separately from synthetic wiring tests
+
 ## Unreleased — method governance
 
 - Describe designer reply contracts separately from final sequence resources; preserve valid contributions across local repairs and support explicit protocol replanning and executed panel checks.

@@ -118,7 +118,7 @@ def restrict(read_roots, work, *, generated_code=False):
             "fchownat", "utime", "utimes", "futimesat", "utimensat",
             "setxattr", "lsetxattr", "fsetxattr", "removexattr", "lremovexattr", "fremovexattr"]
         if generated_code:
-            blocked += ["clone", "clone3", "prlimit64", "setrlimit"]
+            blocked += ["clone", "clone3", "prlimit64", "setrlimit", "prctl"]
         for name in blocked:
             nr = sec.seccomp_syscall_resolve_name(name.encode())
             if nr >= 0 and sec.seccomp_rule_add(ctx, 0x00050000 | errno.EPERM, nr, 0) != 0:

@@ -12,6 +12,13 @@ from proteinrsi.llm_evaluation import (MAX_RESPONSE_REPAIRS, adjudicate_evaluati
 from proteinrsi.storage import Conflict, Store
 
 
+@pytest.fixture(autouse=True)
+def historical_pending_evaluations(monkeypatch):
+    """Keep historical plan/summary behavior as an explicit migration regression."""
+    from legacy_evaluation_fixture import install_legacy_pending_requests
+    install_legacy_pending_requests(monkeypatch)
+
+
 PLAN = {"top_ns": [3, 7], "criteria": ["Judge biological usefulness under the task objective"],
         "rationale": "Separate observed panel performance from broader claims",
         "tradeoff_handling": "Evaluate gains and losses in their scientific context",

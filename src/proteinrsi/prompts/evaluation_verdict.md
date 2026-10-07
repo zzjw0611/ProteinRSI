@@ -6,9 +6,14 @@ plan_ref, and nonempty supporting_evidence_refs selected only from
 available_evidence_refs. Describe a tradeoff with tradeoff_label when useful; that
 label is descriptive and does not determine the decision.
 
-The controller calculated the displayed maximum/best, LLM-chosen top-N means,
-average, valid/submitted/unique denominators and missing/QC facts. Null metrics are
-missing information, never zero. Technical repeats do not become independent units.
+For a custom metric plan, the authoritative numerical evidence is the exact
+persisted evaluation_metric_results artifact produced by your frozen code and I/O
+contract. Its MetricTable, program hash, input reference and result hash are shared
+unchanged with the report. Cite that exact artifact in supporting_evidence_refs.
+Do not recalculate, redefine or substitute metrics. Controller-owned denominators
+and missing/QC facts accompany the result. Null metrics are missing information,
+never zero. Technical repeats do not become independent units. For explicitly
+historical plans without metric_program, use the recorded legacy descriptive facts.
 Evaluate all presented evidence and apply your pre-outcome missing-evidence and
 tradeoff treatment. You may accept tradeoffs or reject apparently dominating panels
 if that is justified by your frozen plan and the evidence. There is no controller

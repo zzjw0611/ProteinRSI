@@ -21,7 +21,9 @@ MAX_RESPONSE_REPAIRS = 2  # Transport/schema repair budget, never a scientific g
 # Keep the exact RPC exception name recognized by the existing guarded workers.
 EvaluationPaused = ProviderPaused
 EVALUATION_NAMESPACES = frozenset({"evaluation_requests", "evaluation_plans",
-    "evaluation_bindings", "evaluation_evidence", "evaluation_verdicts", "evaluation_trial_inputs"})
+    "evaluation_bindings", "evaluation_evidence", "evaluation_verdicts", "evaluation_trial_inputs",
+    "evaluation_metric_validations", "evaluation_metric_inputs", "evaluation_metric_results",
+    "evaluation_metric_attempts"})
 
 
 @contextmanager
@@ -156,6 +158,9 @@ def load_evaluation_plan(store, plan_ref: str) -> dict:
     if digest(body) != key:
         raise Conflict("Evaluation plan content does not match its frozen identity")
     EvaluationPlan.model_validate(record["plan"])
+    if record["plan"].get("metric_program") is not None:
+        from proteinrsi.evaluation_metrics import verify_plan_program
+        verify_plan_program(store, record)
     return record
 
 
@@ -175,12 +180,44 @@ def ensure_evaluation_plan(store, team, *, evaluation_id: str, target: str,
     snapshot_prompts(store)
     request_context = {"evaluation_id": evaluation_id, "target": target,
         "scientific_context": context, "available_unique_arm_capacity": max_top_n,
-        "available_summaries": ["maximum", "best_in_task_direction", "LLM_chosen_top_N_means", "average"],
-        "future_validation_outcomes_present": False}
-    request_ref, request = _request(store, team, "E-plan", "evaluation_plan",
-                                   request_context, EvaluationPlan.model_json_schema())
+        "future_validation_outcomes_present": False,
+        "metric_execution_contract": {
+            "required": True, "protocol": "evaluation_inputs/v1",
+            "input_envelope_fields": {
+                "protocol": "evaluation_inputs/v1", "evaluation_id": "this evaluation identity",
+                "target": "workflow or meta", "task": "public TaskSpec JSON",
+                "top_ns": "your chosen positive integers", "subject_refs": ["baseline", "challenger"],
+                "arms": "online: baseline/challenger lists of observed rows; offline: empty lists",
+                "cases": "online: []; offline: [{case_id,group_id,arms:{baseline:[observed rows],challenger:[observed rows]}}]",
+                "denominators": "controller-observed submitted, valid, missing and group counts"},
+            "observed_row": "sequence,value (finite number or null),qc (valid/failed/inconclusive/unavailable); online also sample identity/protocol",
+            "input_bindings": "Object name -> JSON pointer under the listed envelope fields; mapped object is inputs",
+            "output": "Set result to an object matching output_schema. output_rows_pointer selects a row list; subject_pointer,name_pointer,value_pointer select each row's fields. Optional uncertainty_pointer.",
+            "subjects": ["baseline", "challenger"],
+            "rows": "Exactly one row per declared metric and subject; use null for missing metrics. Unit/method/evidence are controller-owned MetricTable fields.",
+            "tests": "At least two distinct synthetic fixtures with inputs and exact expected_output, including missing/QC/edge cases. No future measurements.",
+            "runtime": "Python standard library/numpy; pure calculation, no files/network/processes/credentials/artifacts; 10 CPU seconds,20 wall seconds,2GB memory,512KB output per run",
+            "determinism": "Every fixture and observed input is computed twice; exact JSON agreement is required",
+            "repair": "At most two pre-outcome code/schema/test repairs; frozen versions never retuned after measurements"}}
+    schema = EvaluationPlan.model_json_schema()
+    schema["required"] = list(dict.fromkeys([*schema.get("required", []), "metric_program"]))
+    request_ref, request = _request(store, team, "E-plan", "evaluation_plan", request_context, schema)
     with _evaluation_lock(store):
         binding = store.get("evaluation_bindings", evaluation_id)
+        # Existing prospective evaluations keep their exact historical request,
+        # including pending pre-custom-metric plans. Never rewrite old records.
+        legacy_request = False
+        if binding is not None:
+            original_ref = binding.get("planning_request_ref", "")
+            original = store.get("evaluation_requests", original_ref.split("/", 1)[-1])
+            if original and "metric_execution_contract" not in original.get("context", {}):
+                prior_context = original["context"]
+                if (prior_context.get("scientific_context") != context
+                        or prior_context.get("target") != target
+                        or prior_context.get("available_unique_arm_capacity") != max_top_n
+                        or original.get("backend") != _backend(team)):
+                    raise Conflict("Evaluation identity cannot acquire a different plan, context, or LLM backend")
+                request_ref, request, legacy_request = original_ref, original, True
         expected = {"evaluation_id": evaluation_id, "target": target,
                     "planning_request_ref": request_ref}
         if binding is not None:
@@ -192,10 +229,42 @@ def ensure_evaluation_plan(store, team, *, evaluation_id: str, target: str,
             # Bind the first request before LLM I/O, including a provider pause.
             binding = {**expected, "plan_ref": None}
             store.put("evaluation_bindings", evaluation_id, binding)
-        plan, completed_ref = _validated_response(store, team, request_ref, request, EvaluationPlan)
+        validation = None
+        def validate_program(response):
+            nonlocal validation
+            if response.metric_program is None:
+                if not legacy_request:
+                    raise ValueError("New evaluation plans require metric_program with definitions, code, contracts and synthetic tests")
+                return
+            _check_public(response.model_dump(mode="json"))
+            from proteinrsi.evaluation_metrics import validate_metric_program
+            from proteinrsi.dataflow.schema import pointer
+            from proteinrsi.replay.sandbox import SandboxUnavailable
+            # Validate statically known fields before outcomes; observation-list
+            # indices remain dynamic and fail as a paused computation if absent.
+            static = {"protocol": "evaluation_inputs/v1", "evaluation_id": evaluation_id,
+                      "target": target, "top_ns": response.top_ns,
+                      "subject_refs": ["baseline", "challenger"]}
+            task_context = context.get("task") or context.get("view", {}).get("task")
+            if task_context is not None:
+                static["task"] = task_context
+            for path in response.metric_program.input_bindings.values():
+                if path.split("/", 2)[1] in static:
+                    pointer(static, path)
+            try:
+                validation = validate_metric_program(store, response.metric_program)
+            except SandboxUnavailable as exc:
+                raise EvaluationPaused("Custom metric validation requires supported Landlock/seccomp isolation; no fallback") from exc
+        plan, completed_ref = _validated_response(store, team, request_ref, request, EvaluationPlan, validate_program)
+        plan_data = plan.model_dump(mode="json")
+        if plan.metric_program is None:
+            plan_data.pop("metric_program")
         body = {"criterion": CRITERION, "evaluation_id": evaluation_id, "target": target,
                 "request_ref": completed_ref, "initial_request_ref": request_ref,
-                "plan": plan.model_dump(mode="json")}
+                "plan": plan_data}
+        if validation is not None:
+            body["metric_validation_ref"] = validation["validation_ref"]
+            body["metric_program_sha256"] = validation["program_sha256"]
         key = digest(body)
         record = {**body, "plan_ref": "evaluation_plans/" + key}
         with store.transaction():
@@ -233,6 +302,21 @@ def adjudicate_evaluation(store, team, *, evaluation_id: str, plan_ref: str,
     if any(type(n) is not int or n < 0 for n in (n_baseline, n_challenger)):
         raise ValueError("Evidence denominators must be nonnegative integer counts")
     _check_public(evidence)
+    required_metric_ref = None
+    if plan["plan"].get("metric_program") is not None:
+        from proteinrsi.evaluation_metrics import RESULT_NS, load_evaluation_metric_result
+        candidates = [ref for ref in evidence if ref.startswith(RESULT_NS + "/")]
+        if len(candidates) != 1:
+            raise Conflict("Custom metric verdict requires exactly one persisted MetricTable result")
+        required_metric_ref = candidates[0]
+        saved_metrics = load_evaluation_metric_result(store, required_metric_ref)
+        if saved_metrics != evidence[required_metric_ref] or saved_metrics["plan_ref"] != plan_ref:
+            raise Conflict("Verdict evidence differs from the persisted metric result")
+        denominators = saved_metrics["denominators"]
+        expected = ([denominators["n_groups"]] * 2 if denominators.get("unit") == "independent_group"
+                    else [denominators[arm]["unique_valid"] for arm in ("baseline", "challenger")])
+        if [n_baseline, n_challenger] != expected:
+            raise Conflict("Verdict denominators differ from the persisted metric result")
     evidence_body = {"evaluation_id": evaluation_id, "plan_ref": plan_ref,
                      "evidence": evidence, "n_baseline": n_baseline, "n_challenger": n_challenger}
     evidence_key = digest(evidence_body)
@@ -258,6 +342,7 @@ def adjudicate_evaluation(store, team, *, evaluation_id: str, plan_ref: str,
             if (result.decision != verdict.decision or result.reason != verdict.reason
                     or verdict.plan_ref != plan_ref
                     or not set(verdict.supporting_evidence_refs) <= set(evidence)
+                    or (required_metric_ref and required_metric_ref not in verdict.supporting_evidence_refs)
                     or result.n_baseline != n_baseline or result.n_challenger != n_challenger
                     or not result.details or result.details.get("evidence") != evidence
                     or result.details.get("verdict") != verdict.model_dump(mode="json")):
@@ -273,6 +358,8 @@ def adjudicate_evaluation(store, team, *, evaluation_id: str, plan_ref: str,
                 raise ValueError("Verdict cites a different evaluation plan")
             if not set(verdict.supporting_evidence_refs) <= set(evidence):
                 raise ValueError("Verdict cites evidence outside this evaluation")
+            if required_metric_ref and required_metric_ref not in verdict.supporting_evidence_refs:
+                raise ValueError("Verdict must cite the exact persisted custom MetricTable result")
         verdict, completed_ref = _validated_response(store, team, request_ref, request,
                                                      EvaluationVerdict, valid_references)
         verdict_body = {"evaluation_id": evaluation_id, "plan_ref": plan_ref,

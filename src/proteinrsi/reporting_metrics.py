@@ -17,6 +17,8 @@ def evaluation_report_configuration(records, state: dict, top_ns=None) -> dict:
     individual adoption remains bound to its own immutable pre-results plan.
     """
     plans = records.all("evaluation_plans")
+    verdicts = records.all("evaluation_verdicts")
+    metric_results = _saved_metric_results(records, plans, verdicts)
     chosen = sorted({n for record in plans.values()
                      for n in record.get("plan", {}).get("top_ns", [])})
     if top_ns is not None:
@@ -32,9 +34,60 @@ def evaluation_report_configuration(records, state: dict, top_ns=None) -> dict:
             "evaluation_mode_as_recorded": state.get("gate", {}).get("criterion", "mean_bootstrap"),
             "llm_evaluation_plans": {"evaluation_plans/" + key: record for key, record in plans.items()},
             "llm_evaluation_verdicts": {"evaluation_verdicts/" + key: record
-                                        for key, record in records.all("evaluation_verdicts").items()},
-            "evaluation_reporting_note": "Stored criteria and verdicts are reported as recorded. "
-                "Descriptive top-N display choices never change an adoption decision or its plan."}
+                                        for key, record in verdicts.items()},
+            "llm_evaluation_metric_results": metric_results,
+            "evaluation_reporting_note": "Stored criteria, verdicts and authoritative custom MetricTables "
+                "are reported as recorded, with verified result, program, input and table hashes. "
+                "Descriptive top-N display choices never change an adoption decision, its plan, "
+                "or its saved custom metrics."}
+
+
+class _ReadOnlyRecords:
+    """Adapt snapshot/report sources that intentionally expose only all()."""
+    def __init__(self, records):
+        self.records = records
+        self.cache = {}
+
+    def get(self, namespace, key, default=None):
+        if callable(getattr(self.records, "get", None)):
+            return self.records.get(namespace, key, default)
+        if namespace not in self.cache:
+            self.cache[namespace] = self.records.all(namespace)
+        return self.cache[namespace].get(key, default)
+
+
+def _saved_metric_results(records, plans, verdicts):
+    """Expose authoritative executed metrics; fail closed on broken provenance.
+
+    Reporting only reads saved evidence. It must never rerun a metric program or
+    reconstruct a convenient replacement from raw samples or display settings.
+    """
+    from proteinrsi.evaluation import validate_saved_metric_evidence
+    from proteinrsi.evaluation_metrics import load_evaluation_metric_result
+    from proteinrsi.llm_evaluation import load_evaluation_plan
+    from proteinrsi.storage import Conflict
+    source = _ReadOnlyRecords(records)
+    results = {}
+    for key in records.all("evaluation_metric_results"):
+        ref = "evaluation_metric_results/" + key
+        results[ref] = load_evaluation_metric_result(source, ref)
+    for verdict in verdicts.values():
+        plan_ref = verdict.get("plan_ref")
+        saved_plan = plans.get(plan_ref.split("/", 1)[1]) if isinstance(plan_ref, str) and "/" in plan_ref else None
+        # Legacy display-only snapshots need no new metric artifact. A custom
+        # verdict must not hide deleted artifacts by simply listing fewer results.
+        result = verdict.get("result") or {}
+        evidence = (result.get("details") or {}).get("evidence") or {}
+        cites_custom = any(ref.startswith("evaluation_metric_results/") for ref in evidence)
+        custom_plan = saved_plan and saved_plan.get("plan", {}).get("metric_program") is not None
+        if custom_plan or cites_custom:
+            plan = load_evaluation_plan(source, plan_ref)
+            if not isinstance(result, dict) or not result:
+                raise Conflict("Custom evaluation verdict lacks its saved evidence")
+            authoritative = validate_saved_metric_evidence(source, result, plan)
+            if authoritative is None or authoritative["result_ref"] not in results:
+                raise Conflict("Custom evaluation verdict cites a missing metric result")
+    return results
 
 
 def metric_display_names(direction: str, top_ns=(5, 10)) -> dict[str, str]:

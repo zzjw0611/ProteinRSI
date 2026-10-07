@@ -1,11 +1,13 @@
 # SPDX-License-Identifier: MIT
 """Disposable Python process: generated code has no RPC, keys, oracle or database."""
 import contextlib
+import ctypes
 import io
 import json
 import os
 from pathlib import Path
 import resource
+import signal
 import sys
 
 
@@ -18,6 +20,12 @@ class BoundedText(io.StringIO):
 
 def main():
     request = json.loads(sys.stdin.readline(4 * 1024 * 1024))
+    # Kernel-enforced lifetime: a killed controller cannot orphan an idle worker.
+    # The later generated-code seccomp profile blocks prctl to prevent disabling it.
+    libc = ctypes.CDLL(None, use_errno=True)
+    if (sys.platform != "linux" or libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0
+            or os.getppid() != request.get("parent_pid")):
+        raise RuntimeError("Cannot bind generated worker lifetime to its controller")
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
     resource.setrlimit(resource.RLIMIT_AS, (2 * 1024**3, 2 * 1024**3))

@@ -16,11 +16,13 @@ from proteinrsi.tools import ToolSpec
 CODE_TOOL = 'research_python'
 
 
-def execute_code(store, view, arguments):
+def execute_code(store, view, arguments, *, pure=False):
     from proteinrsi.replay.broker import reader_roots
     from proteinrsi.replay.sandbox import probe, SandboxUnavailable
     if not probe()['available']:
         raise SandboxUnavailable('Generated code requires Landlock and seccomp')
+    if pure and set(arguments) - {'code', 'inputs'}:
+        raise ValueError('Pure metric execution cannot request artifacts or capabilities')
     source_hash = digest(arguments['code'])
     programs = store.root/'programs'
     programs.mkdir(exist_ok=True)
@@ -44,15 +46,16 @@ def execute_code(store, view, arguments):
             destination = root/'inputs'/source.name
             shutil.copyfile(source, destination)
             files[ref] = str(destination)
-        context = view.model_dump(mode='json')
+        context = {} if pure else view.model_dump(mode='json')
         request = {'code': arguments['code'], 'inputs': arguments.get('inputs', {}),
-            'artifacts': files, 'context': context, 'read_roots': reader_roots(), 'work': work}
+            'artifacts': files, 'context': context, 'read_roots': reader_roots(), 'work': work,
+            'parent_pid': os.getpid()}
         payload = canonical(request).encode()+b'\n'
         if len(payload) > 4 * 1024**2:
             raise ValueError('Generated-code context exceeds 4MB')
         env = {'PATH': '/usr/bin:/bin', 'HOME': work, 'TMPDIR': work, 'LANG': 'C.UTF-8',
             'PYTHONPATH': str(Path(__file__).resolve().parents[2]), 'PYTHONDONTWRITEBYTECODE': '1',
-            'PYTHONNOUSERSITE': '1', 'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1',
+            'PYTHONNOUSERSITE': '1', 'PYTHONHASHSEED': '0', 'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1',
             'LD_LIBRARY_PATH': str(Path(sys.base_prefix)/'lib')}
         with (root/'stdout').open('wb') as out, (root/'stderr').open('wb') as err:
             proc = subprocess.Popen([sys.executable, '-m', 'proteinrsi.research.code_worker'],
@@ -63,19 +66,33 @@ def execute_code(store, view, arguments):
                 if proc.returncode != 0:
                     result = {'status': 'failed', 'error_type': 'WorkerExit', 'returncode': proc.returncode}
                 else:
-                    result = json.loads((root/'stdout').read_bytes()[:1024**2])
+                    response = (root/'stdout').read_bytes()
+                    if len(response.rstrip(b'\n')) > 512000:
+                        raise ValueError('Generated-code response exceeds 512KB')
+                    result = json.loads(response)
             except subprocess.TimeoutExpired:
                 os.killpg(proc.pid, signal.SIGKILL)
                 proc.communicate()
                 result = {'status': 'failed', 'error_type': 'Timeout', 'error': '20-second wall limit'}
             except (ValueError, UnicodeError):
                 result = {'status': 'failed', 'error_type': 'InvalidWorkerOutput'}
+            finally:
+                # Interruptions must not leave a still-running pure-code process
+                # alive alongside a restart. Parent death is handled in the child.
+                if proc.poll() is None:
+                    try:
+                        os.killpg(proc.pid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    proc.wait(timeout=5)
         if not isinstance(result, dict) or result.get('status') not in {'ok', 'failed'}:
             result = {'status': 'failed', 'error_type': 'InvalidWorkerOutput'}
         if result['status'] == 'ok':
             output = result.get('output', {})
             if not isinstance(output, dict):
                 raise ValueError('Code output must be an object')
+            if pure and 'artifacts' in output:
+                raise ValueError('Pure metric output cannot create artifacts')
             registered = []
             for item in output.pop('artifacts', []):
                 name = item['name']
@@ -93,7 +110,8 @@ def execute_code(store, view, arguments):
             result['artifacts'] = registered
             if 'candidates' in output:
                 result['candidates'] = output['candidates']
-        result.update(evidence_kind='computed_unvalidated', code_sha256=source_hash,
+        result.update(execution_backend='landlock_seccomp_generated_v1',
+                      evidence_kind='computed_unvalidated', code_sha256=source_hash,
                       measurement_authority=False, source_file='programs/'+source_path.name)
         store.event('generated_code_completed', {'code_sha256': source_hash, 'status': result['status']})
         return result

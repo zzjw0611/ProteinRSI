@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import json
 import re
 from typing import Any
 
@@ -50,7 +51,7 @@ def pointer(value: Any, path: str) -> Any:
     return result
 
 
-def _check_schema(schema: dict, *, custom: bool) -> None:
+def _check_schema(schema: dict, *, custom: bool) -> int:
     """Only local nonrecursive refs; bound schema size before meta-validation.
 
     Custom schemas cannot introduce regex validators or measurement authority.
@@ -59,15 +60,23 @@ def _check_schema(schema: dict, *, custom: bool) -> None:
     if len(canonical(schema).encode()) > 100_000:
         raise ContractError("Schema exceeds 100KB")
     refs: list[str] = []
+    expanded_nodes = 0
 
     def walk(node: Any, depth: int = 0):
+        nonlocal expanded_nodes
+        expanded_nodes += 1
+        if custom and expanded_nodes > 4096:
+            raise ContractError("Custom schema expansion exceeds bounded validation work")
         if depth > 32:
             raise ContractError("Schema nesting limit exceeded")
         if isinstance(node, dict):
             if "$dynamicRef" in node or "$recursiveRef" in node:
                 raise ContractError("Dynamic and recursive schemas are unsupported")
-            if custom and any(k in node for k in ("pattern", "patternProperties", "format")):
-                raise ContractError("Custom schemas cannot add regex/format validators")
+            if custom and any(key in node for key in ("$id", "$schema", "$anchor", "$dynamicAnchor")):
+                raise ContractError("Custom schemas cannot rebase references or change schema dialect")
+            if custom and any(k in node for k in ("pattern", "patternProperties", "format",
+                                                  "unevaluatedItems", "unevaluatedProperties")):
+                raise ContractError("Custom schemas cannot add regex/format or unevaluated annotation validators")
             if "$ref" in node:
                 ref = node["$ref"]
                 if not isinstance(ref, str) or not ref.startswith("#/$defs/"):
@@ -90,6 +99,36 @@ def _check_schema(schema: dict, *, custom: bool) -> None:
         raise ContractError("Invalid JSON Schema: " + exc.message[:500],
                             path="/" + "/".join(map(str, exc.absolute_path)),
                             code="invalid_schema") from exc
+    return expanded_nodes
+
+
+def _unique_checks(schema):
+    pending, count = [schema], 0
+    while pending:
+        node = pending.pop()
+        if isinstance(node, dict):
+            count += node.get("uniqueItems") is True
+            if "$ref" in node:
+                pending.append(pointer(schema, node["$ref"][1:]))
+            pending.extend(value for key, value in node.items() if key != "$ref")
+        elif isinstance(node, list):
+            pending.extend(node)
+    return count
+
+
+def _json_nodes(value):
+    """Iterative size bound, independent of task-authored schema traversal."""
+    pending, count = [value], 0
+    while pending:
+        node = pending.pop()
+        count += 1
+        if count > 100_000:
+            raise ContractError("Custom schema input exceeds bounded JSON node count")
+        if isinstance(node, dict):
+            pending.extend(node.values())
+        elif isinstance(node, list):
+            pending.extend(node)
+    return count
 
 
 class SchemaRegistry:
@@ -98,6 +137,8 @@ class SchemaRegistry:
     def __init__(self):
         self._schemas: dict[str, dict] = {}
         self._input_only: set[str] = set()
+        self._custom_work: dict[str, int] = {}
+        self._custom_unique: dict[str, int] = {}
 
     def register(self, name: str, schema: dict, *, custom: bool = False,
                  input_only: bool = False) -> str:
@@ -105,12 +146,18 @@ class SchemaRegistry:
             raise ContractError("Schema names must be versioned identifiers")
         if custom and not name.startswith("custom."):
             raise ContractError("LLM schemas must use the custom. namespace")
-        _check_schema(schema, custom=custom)
+        if custom:
+            schema = json.loads(canonical(schema))
+        expanded_nodes = _check_schema(schema, custom=custom)
         existing = self._schemas.get(name)
         if existing is not None and (digest(existing) != digest(schema)
                                     or (name in self._input_only) != input_only):
             raise ContractError("Schema version already has a different definition")
-        self._schemas[name] = deepcopy(schema)
+        # Stable ordering makes first-error repair identities restart-safe.
+        self._schemas[name] = json.loads(canonical(schema)) if custom else deepcopy(schema)
+        if custom:
+            self._custom_work[name] = expanded_nodes
+            self._custom_unique[name] = _unique_checks(schema)
         if input_only:
             self._input_only.add(name)
         return name
@@ -126,11 +173,19 @@ class SchemaRegistry:
     def validate(self, name: str, value: Any, *, output: bool = False) -> None:
         if output and name in self._input_only:
             raise ContractError("This schema can only be supplied by the task boundary")
-        canonical(value)  # Reject non-JSON / NaN / Infinity, including in unconstrained fields.
-        errors = sorted(Draft202012Validator(self.schema(name)).iter_errors(value),
-                        key=lambda e: str(list(e.absolute_path)))
-        if errors:
-            error = errors[0]
+        encoded = canonical(value)  # Reject non-JSON / NaN / Infinity, including unconstrained fields.
+        schema = self.schema(name)
+        if name in self._custom_work:
+            nodes = _json_nodes(value)
+            work = self._custom_work[name] * nodes + self._custom_unique[name] * nodes * nodes
+            # Branch validators can interpolate repr(instance) into every error
+            # even when the outer consumer requests only the first error.
+            error_bytes = self._custom_work[name] * len(encoded.encode())
+            if work > 2_000_000 or error_bytes > 16_000_000:
+                raise ContractError("Custom schema/input pair exceeds bounded validation work")
+        # Do not enumerate/sort an unbounded set of errors from generated schemas.
+        error = next(Draft202012Validator(schema).iter_errors(value), None)
+        if error is not None:
             path = "/" + "/".join(str(k) for k in error.absolute_path)
             # Do not echo a large result or input into repair messages.
             message = f"{error.validator} validation failed for schema {name}"

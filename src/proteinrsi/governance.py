@@ -233,6 +233,9 @@ class MethodGovernance:
                     or verdict.get("plan_ref") != plan_ref or plan["target"] != patch.target
                     or inputs.get("context", {}).get("patch") != patch.model_dump(mode="json")):
                 raise Conflict("Evaluation verdict is not bound to this candidate and frozen plan")
+            if plan["plan"].get("metric_program") is not None:
+                from proteinrsi.evaluation import validate_saved_metric_evidence
+                validate_saved_metric_evidence(self.store, result.model_dump(mode="json"), plan)
         with self.store.transaction():
             if result.decision == "accepted":
                 if self.enabled:

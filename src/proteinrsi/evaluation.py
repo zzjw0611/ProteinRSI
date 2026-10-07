@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from pathlib import Path
+from math import isfinite
 from tempfile import TemporaryDirectory
 from typing import Callable
 import json
@@ -115,7 +116,9 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
             top_ns=selected_top_ns if llm_evaluation else gate_policy.top_ns, submitted=case.query_budget)
         trace = {"case_id": case.case_id, "group_id": case.group_id, "meta": meta.version,
             "descendant": child.version, "selected": [c.sequence for c in selected],
-            "metric_summary": summary, "parent_excluded": True, "usage": store.usage()}
+            "metric_summary": summary, "parent_excluded": True, "usage": store.usage(),
+            "observed_rows": measured_rows, "submitted": case.query_budget,
+            "metric_summary_scope": "descriptive_legacy_summaries_not_custom_program_output"}
         score = summary["signed_metrics"]["avg"]
         if llm_evaluation:
             store.put("offline_arm_results", "result", {"score": score, "trace": trace}, immutable=True)
@@ -336,8 +339,127 @@ def freeze_trial_plan(campaign, state, view, patch, slots, *, evaluation_id=None
         context=saved["context"], max_top_n=saved["max_top_n"])
 
 
+
+def _measurement_denominators(rows: list[dict], submitted: int) -> dict:
+    """Count coverage without assigning a metric or scientific aggregation."""
+    if type(submitted) is not int or submitted < len(rows):
+        raise ValueError("Submitted count cannot be smaller than returned observations")
+    counts = {"submitted": submitted, "returned": len(rows), "valid": 0,
+              "unavailable": 0, "other_nonvalid": 0, "not_returned": submitted - len(rows)}
+    unique_valid = set()
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("sequence"), str) or not row["sequence"]:
+            raise ValueError("Measured rows require sequence identity")
+        value, qc = row.get("value"), row.get("qc", "valid")
+        if qc == "valid":
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not isfinite(value):
+                raise ValueError("Valid measured rows require finite values")
+            counts["valid"] += 1
+            unique_valid.add(row["sequence"])
+        elif value is not None:
+            raise ValueError("Non-valid measurements cannot contain numeric outcomes")
+        elif qc == "unavailable":
+            counts["unavailable"] += 1
+        elif qc in {"failed", "inconclusive"}:
+            counts["other_nonvalid"] += 1
+        else:
+            raise ValueError("Unknown observation QC")
+    counts.update(unique_valid=len(unique_valid), technical_repeats=counts["valid"] - len(unique_valid),
+                  nonvalid=counts["unavailable"] + counts["other_nonvalid"])
+    return counts
+
+
+def validate_saved_metric_evidence(store, result: dict, plan: dict) -> dict | None:
+    """A cached adoption must still cite the exact, intact custom metric artifact."""
+    if plan["plan"].get("metric_program") is None:
+        return None
+    from proteinrsi.evaluation_metrics import load_evaluation_metric_result
+    details = result.get("details") or {}
+    if details.get("evaluation_plan_ref") != plan["plan_ref"]:
+        raise Conflict("Cached result cites a different evaluation plan")
+    verdict_ref = details.get("evaluation_verdict_ref")
+    if not isinstance(verdict_ref, str) or not verdict_ref.startswith("evaluation_verdicts/"):
+        raise Conflict("Cached custom result has no persisted verdict")
+    verdict = store.get("evaluation_verdicts", verdict_ref.split("/", 1)[1])
+    body = {key: value for key, value in (verdict or {}).items() if key not in {"result", "verdict_ref"}}
+    if (not verdict or verdict.get("verdict_ref") != verdict_ref
+            or verdict_ref != "evaluation_verdicts/" + digest(body)
+            or verdict.get("result") != result or verdict.get("plan_ref") != plan["plan_ref"]
+            or verdict.get("evaluation_id") != plan["evaluation_id"]
+            or verdict.get("verdict", {}).get("decision") != result.get("decision")
+            or verdict.get("verdict", {}).get("reason") != result.get("reason")
+            or verdict.get("verdict") != details.get("verdict")):
+        raise Conflict("Cached custom result disagrees with its persisted LLM verdict")
+    evidence = details.get("evidence") or {}
+    refs = [ref for ref in evidence if ref.startswith("evaluation_metric_results/")]
+    if len(refs) != 1:
+        raise Conflict("Custom evaluation requires exactly one saved metric result")
+    if refs[0] not in verdict["verdict"].get("supporting_evidence_refs", []):
+        raise Conflict("Cached LLM verdict does not cite the authoritative custom metric result")
+    record = load_evaluation_metric_result(store, refs[0])
+    if (record != evidence[refs[0]] or record.get("plan_ref") != plan["plan_ref"]
+            or record.get("evaluation_id") != plan["evaluation_id"]):
+        raise Conflict("Cached evaluation disagrees with its saved custom metric evidence")
+    denominators = record["denominators"]
+    if denominators.get("unit") == "independent_group":
+        expected = {arm: denominators["n_groups"] for arm in ("baseline", "challenger")}
+    else:
+        expected = {arm: denominators[arm]["unique_valid"] for arm in ("baseline", "challenger")}
+    if any(type(result.get("n_" + arm)) is not int or result["n_" + arm] != value
+           for arm, value in expected.items()):
+        raise Conflict("Cached evaluation denominators disagree with its saved custom metric evidence")
+    return record
+
+
+def _validated_meta_report(store, key: str) -> dict:
+    from proteinrsi.llm_evaluation import load_evaluation_plan
+    report = store.get("meta_evaluations", key)
+    if not isinstance(report, dict):
+        raise Conflict("Missing completed Meta evaluation report")
+    plan = load_evaluation_plan(store, report["evaluation_plan_ref"])
+    metric_result = validate_saved_metric_evidence(store, report["gate"], plan)
+    if metric_result is not None and report.get("metric_facts") != metric_result:
+        raise Conflict("Meta report disagrees with its authoritative custom metric result")
+    return report
+
+
+def _offline_metric_envelope(plan, task, cases, traces):
+    """Assemble only already-disclosed observations, never labels or label paths."""
+    if len(traces) != len(cases):
+        raise Conflict("Custom Meta metrics require all aligned case observations")
+    aligned, denominators, seen, groups = [], [], set(), set()
+    for case, pair in zip(cases, traces):
+        if case.case_id in seen:
+            raise ValueError("Meta evaluation requires uniquely identified cases")
+        seen.add(case.case_id)
+        groups.add(case.group_id)
+        arms, counts = {}, {}
+        for arm in ("baseline", "challenger"):
+            trace = pair[arm]
+            if trace.get("case_id") != case.case_id or trace.get("group_id") != case.group_id:
+                raise Conflict("Custom Meta metrics require aligned case identities")
+            rows = trace.get("observed_rows")
+            if not isinstance(rows, list) or trace.get("submitted") != case.query_budget:
+                raise Conflict("Frozen offline trace lacks saved observed rows; cannot remeasure or "
+                               "reinterpret it as custom metric evidence")
+            if (len(rows) != case.query_budget
+                    or [row.get("sequence") for row in rows] != trace.get("selected")
+                    or any(row.get("sequence") == case.task.reference_sequence for row in rows)):
+                raise Conflict("Saved offline observations differ from selected measurement identities")
+            arms[arm] = rows
+            counts[arm] = _measurement_denominators(rows, case.query_budget)
+        aligned.append({"case_id": case.case_id, "group_id": case.group_id, "arms": arms})
+        denominators.append({"case_id": case.case_id, "group_id": case.group_id, **counts})
+    return {"protocol": "evaluation_inputs/v1", "evaluation_id": plan["evaluation_id"],
+        "target": plan["target"], "task": task.model_dump(mode="json"),
+        "top_ns": plan["plan"]["top_ns"], "subject_refs": ["baseline", "challenger"],
+        "arms": {"baseline": [], "challenger": []}, "cases": aligned,
+        "denominators": {"n_cases": len(aligned), "n_groups": len(groups),
+            "unit": "independent_group", "cases": denominators, "parent_excluded": True}}
+
+
 def evaluate_llm_trial(campaign, batch, observations, trial, task):
-    """Compute descriptive facts; E alone makes the scientific adoption decision."""
+    """Execute the frozen metric program; E makes the scientific adoption decision."""
     from proteinrsi.contracts import GateResult
     from proteinrsi.llm_evaluation import adjudicate_evaluation, load_evaluation_plan
     if not trial.get("evaluation_plan_ref") or not trial.get("evaluation_id"):
@@ -347,6 +469,7 @@ def evaluate_llm_trial(campaign, batch, observations, trial, task):
         raise Conflict("Evaluation plan belongs to a different trial")
     saved_result = campaign.store.get("trial_results", batch.batch_id)
     if saved_result is not None:
+        validate_saved_metric_evidence(campaign.store, saved_result, plan)
         return GateResult.model_validate(saved_result)
     by_id = {o.sample_id: o for o in observations}
     if len(by_id) != len(observations) or set(by_id) != {s.sample_id for s in batch.samples}:
@@ -367,6 +490,27 @@ def evaluate_llm_trial(campaign, batch, observations, trial, task):
         raise ValueError("Unequal submitted arm budgets")
     if {r["sequence"] for r in rows["baseline"]} & {r["sequence"] for r in rows["challenger"]}:
         raise ValueError("Trial arms must have disjoint candidate identities")
+    if plan["plan"].get("metric_program") is not None:
+        from proteinrsi.evaluation_metrics import execute_evaluation_metrics
+        denominators = {arm: _measurement_denominators(values, len(values))
+                        for arm, values in rows.items()}
+        envelope = {"protocol": "evaluation_inputs/v1", "evaluation_id": trial["evaluation_id"],
+            "target": plan["target"], "task": task.model_dump(mode="json"),
+            "top_ns": plan["plan"]["top_ns"], "subject_refs": ["baseline", "challenger"],
+            "arms": rows, "cases": [], "denominators": {
+                **denominators, "parent_excluded": parents, "unit": "unique_sequence",
+                "controls_and_research_excluded": True}}
+        result = execute_evaluation_metrics(campaign.store, plan, envelope)
+        return adjudicate_evaluation(campaign.store, campaign.team,
+            evaluation_id=trial["evaluation_id"], plan_ref=trial["evaluation_plan_ref"],
+            evidence={result["result_ref"]: result,
+                "measurements/" + batch.batch_id: {"batch_id": batch.batch_id, "arms": rows,
+                    "denominators": envelope["denominators"]},
+                "trials/" + batch.batch_id: trial},
+            n_baseline=result["denominators"]["baseline"]["unique_valid"],
+            n_challenger=result["denominators"]["challenger"]["unique_valid"])
+    # Historical plans keep their frozen descriptive evidence shape. They are
+    # never relabelled as having executed a newly generated metric program.
     summaries = {arm: summarize_evaluation_metrics(values, direction=task.direction,
                     top_ns=plan["plan"]["top_ns"], submitted=len(values))
                  for arm, values in rows.items()}
@@ -438,7 +582,7 @@ def _evaluate_meta_llm(campaign, cases, *, promote=False, team_factory=None):
                 if a.get("state") == "completed" and a.get("manifest_hash") == manifest_hash
                 and a.get("promote_requested") == promote]
             if completed:
-                return campaign.store.get("meta_evaluations", completed[-1]["report_key"])
+                return _validated_meta_report(campaign.store, completed[-1]["report_key"])
         if state.get("execution_semantics") != "on-demand-v1":
             raise Conflict("New E evaluation requires a new on-demand study")
         if state["status"] != "ready" or state["pending_batch"] or not state["pending_meta"]:
@@ -467,7 +611,7 @@ def _evaluate_meta_llm(campaign, cases, *, promote=False, team_factory=None):
                                             "workflow": base_w.version})
         prior = campaign.store.get("meta_attempts", evaluation_id)
         if prior and prior["state"] == "completed":
-            return campaign.store.get("meta_evaluations", prior["report_key"])
+            return _validated_meta_report(campaign.store, prior["report_key"])
         if prior and prior.get("promote_requested") != promote:
             raise Conflict("Resume the original report/promotion intent; do not repurpose a measured trial")
         for namespace in ("meta_attempts", "meta_online_attempts"):
@@ -497,13 +641,14 @@ def _evaluate_meta_llm(campaign, cases, *, promote=False, team_factory=None):
         if frozen is None:
             frozen = {"target": "meta", "max_top_n": max(c.query_budget for c in cases),
                 "context": {"patch": patch.model_dump(mode="json"),
+                    "task": task.model_dump(mode="json"),
                     "baseline_workflow": base_w.model_dump(mode="json"),
                     "baseline_meta": base_m.model_dump(mode="json"),
                     "cases": [{"case_id": c.case_id, "group_id": c.group_id, "split": c.split,
                         "task": c.task.model_dump(mode="json"),
                         "initial": [o.model_dump(mode="json") for o in c.initial],
                         "history": c.history, "query_budget": c.query_budget} for c in cases],
-                    "protocol": "one-step frozen improvers; aligned cases; equal independent group means",
+                    "protocol": "one-step frozen improvers; aligned cases; program-defined aggregation",
                     "required_query_slots": required_queries, "scope": "declared_cases_only"}}
             campaign.store.put("evaluation_trial_inputs", evaluation_id, frozen, immutable=True)
         attempt = prior or {"state": "started", "patch_id": patch.patch_id,
@@ -535,16 +680,26 @@ def _evaluate_meta_llm(campaign, cases, *, promote=False, team_factory=None):
                         campaign.store.put("meta_arm_results", key, saved, immutable=True)
                     pair[arm] = saved["trace"]
                 traces.append(pair)
-            facts = _grouped_metric_facts(traces, plan["plan"]["top_ns"])
             attempt = {**attempt, "state": "measurements_committed", "evaluation_plan_ref": plan["plan_ref"]}
             campaign.store.put("meta_attempts", evaluation_id, attempt)
-            evidence = {"meta_metrics/" + evaluation_id: facts}
-            evidence.update({"meta_arm_results/" + key: value
-                for key, value in campaign.store.all("meta_arm_results").items()
-                if value.get("evaluation_id") == evaluation_id})
+            if plan["plan"].get("metric_program") is not None:
+                from proteinrsi.evaluation_metrics import execute_evaluation_metrics
+                envelope = _offline_metric_envelope(plan, task, cases, traces)
+                # One execution receives every aligned case. Aggregation belongs
+                # to the frozen program, not an implicit controller group mean.
+                facts = execute_evaluation_metrics(campaign.store, plan, envelope)
+                evidence = {facts["result_ref"]: facts}
+                n_groups = facts["denominators"]["n_groups"]
+            else:
+                facts = _grouped_metric_facts(traces, plan["plan"]["top_ns"])
+                evidence = {"meta_metrics/" + evaluation_id: facts}
+                evidence.update({"meta_arm_results/" + key: value
+                    for key, value in campaign.store.all("meta_arm_results").items()
+                    if value.get("evaluation_id") == evaluation_id})
+                n_groups = facts["n_groups"]
             gate = adjudicate_evaluation(campaign.store, campaign.team,
                 evaluation_id=evaluation_id, plan_ref=plan["plan_ref"], evidence=evidence,
-                n_baseline=facts["n_groups"], n_challenger=facts["n_groups"])
+                n_baseline=n_groups, n_challenger=n_groups)
         except Exception as exc:
             if is_provider_paused(exc):
                 campaign.store.put("meta_attempts", evaluation_id, {**attempt,

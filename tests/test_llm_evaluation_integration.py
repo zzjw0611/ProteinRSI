@@ -21,6 +21,13 @@ from proteinrsi.storage import Conflict, Store
 from test_rsi import ScriptedOffspringTeam, make_meta_cases
 
 
+@pytest.fixture(autouse=True)
+def historical_pending_evaluations(monkeypatch):
+    """Keep historical plan/summary behavior as an explicit migration regression."""
+    from legacy_evaluation_fixture import install_legacy_pending_requests
+    install_legacy_pending_requests(monkeypatch)
+
+
 PLAN = {
     "top_ns": [1, 2],
     "criteria": ["Consider measured best, top-N means, average, and evidence quality together."],
