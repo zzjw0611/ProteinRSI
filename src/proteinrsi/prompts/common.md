@@ -57,3 +57,13 @@ unique candidates and exclude the already selected identities. No experiments ha
 run during completion; do not pretend that completing a panel advances a round.
 A validation_request is a sub-panel, not an entire plate; the controller fills other
 wells separately. Scientific strategy and tool choice remain yours.
+
+When research_context.acceptance_policy declares observed_pareto_v1, method acceptance
+uses every prespecified direction-adjusted metric: best, each configured top-N mean,
+and average. Measurements are averaged within each unique sequence first; controls
+and the supplied parent are excluded from the arm comparison. Top-N needs N valid
+unique sequences. A gain in one metric cannot compensate for a loss beyond another
+metric's declared absolute tolerance. Mixed gains/losses are inconclusive, and ties,
+missing coverage, or insufficient units cannot promote a method. This is a frozen
+observed-panel decision rule, not a significance test or a generalization guarantee.
+Do not change the policy, tolerances, margins, or metric set.

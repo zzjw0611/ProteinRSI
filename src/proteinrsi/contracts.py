@@ -216,6 +216,46 @@ class GatePolicy(Model):
     confidence: float = Field(default=0.95, gt=0.5, lt=1)
     bootstrap_samples: int = Field(default=2000, ge=100)
     max_qc_failure_fraction: float = Field(default=0.25, ge=0, lt=1)
+    criterion: Literal["mean_bootstrap", "observed_pareto_v1"] = "mean_bootstrap"
+    top_ns: list[int] = Field(default_factory=lambda: [5, 10], min_length=1)
+    absolute_tolerances: dict[str, float] = Field(default_factory=dict)
+    improvement_margins: dict[str, float] = Field(default_factory=dict)
+
+    @field_validator("top_ns", mode="before")
+    @classmethod
+    def strict_top_ns(cls, value):
+        if not isinstance(value, (list, tuple)) or any(type(n) is not int for n in value):
+            raise ValueError("top_ns must be a list of integers")
+        return value
+
+    @model_validator(mode="after")
+    def prespecified_metrics(self):
+        if any(type(n) is not int or n < 1 for n in self.top_ns) or len(set(self.top_ns)) != len(self.top_ns):
+            raise ValueError("top_ns must contain distinct positive integers")
+        names = {"best", "avg", *(f"top{n}mean" for n in self.top_ns)}
+        for field in ("absolute_tolerances", "improvement_margins"):
+            mapping = getattr(self, field)
+            if set(mapping) - names or any(value < 0 for value in mapping.values()):
+                raise ValueError("Metric tolerances/margins must be nonnegative and name configured metrics")
+            if self.criterion == "observed_pareto_v1":
+                object.__setattr__(self, field, {name: mapping.get(name, 0.0) for name in sorted(names)})
+        if self.criterion == "mean_bootstrap" and (self.top_ns != [5, 10] or self.absolute_tolerances or self.improvement_margins):
+            raise ValueError("Multi-metric options require observed_pareto_v1")
+        if self.criterion == "observed_pareto_v1" and self.min_effect != 0:
+            raise ValueError("Use per-metric improvement_margins for observed_pareto_v1, not min_effect")
+        return self
+
+    @property
+    def required_per_arm(self) -> int:
+        return max(self.min_per_arm, *self.top_ns) if self.criterion == "observed_pareto_v1" else self.min_per_arm
+
+    @model_serializer(mode="wrap")
+    def serialize_gate(self, handler):
+        data = handler(self)
+        if self.criterion == "mean_bootstrap":
+            for name in ("criterion", "top_ns", "absolute_tolerances", "improvement_margins"):
+                data.pop(name, None)
+        return data
 
 
 class Observation(Model):
@@ -280,6 +320,14 @@ class GateResult(Model):
     reason: str
     n_baseline: int
     n_challenger: int
+    details: dict[str, Any] | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_result(self, handler):
+        data = handler(self)
+        if self.details is None:
+            data.pop("details", None)
+        return data
 
 
 class TaskView(Model):

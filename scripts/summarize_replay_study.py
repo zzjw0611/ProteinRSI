@@ -10,6 +10,7 @@ import sqlite3
 from pathlib import Path
 
 from proteinrsi.research.prediction import prediction_row
+from proteinrsi.reporting_metrics import arm_metrics, charged_metrics, metric_display_names, sample_metrics
 
 
 class ReadOnlyRecords:
@@ -26,7 +27,7 @@ class ReadOnlyRecords:
             "SELECT key,value FROM kv WHERE namespace=?", (namespace,))}
 
 
-def summarize(campaign: str | Path) -> dict:
+def summarize(campaign: str | Path, *, top_ns=(5, 10), query_bin_size: int = 100) -> dict:
     path = Path(campaign).resolve(strict=True) / "state.sqlite3"
     if not path.is_file():
         raise ValueError("Campaign state does not exist")
@@ -38,6 +39,15 @@ def summarize(campaign: str | Path) -> dict:
         if state is None:
             raise ValueError("No initialized campaign")
         task = state["task"]
+        top_ns = tuple(top_ns)
+        direction, reference = task.get("direction", "maximize"), task.get("reference_sequence", "")
+        all_batches, all_measurements = records.all("batches"), records.all("measurements")
+        initial = records.get("configuration", "provided_initial_evidence", {}).get("observations", [])
+        ledger = [dict(zip(("key", "resource", "amount", "fingerprint", "state"), row))
+                  for row in connection.execute(
+                      "SELECT key,resource,amount,fingerprint,state FROM charges ORDER BY rowid")]
+        accounting = charged_metrics(all_batches, all_measurements, ledger, initial=initial,
+            reference=reference, direction=direction, top_ns=top_ns, query_bin_size=query_bin_size)
         runs = [*records.all("research_runs").values(),
                 *records.all("validation_research_runs").values()]
         tools_by_batch, pending_tools = {}, []
@@ -53,13 +63,15 @@ def summarize(campaign: str | Path) -> dict:
                 pending_tools = []
         rows = []
         for history in state["history"]:
-            batch = records.get("batches", history["batch_id"])
-            measured = records.get("measurements", history["batch_id"], [])
+            batch = all_batches[history["batch_id"]]
+            measured = all_measurements.get(history["batch_id"], [])
             observed = {o["sample_id"]: o for o in measured}
             counts = {"submitted": len(batch["samples"]), "returned": len(measured),
                 "valid": sum(o["qc"] == "valid" for o in measured),
                 "unavailable": sum(o["qc"] == "unavailable" for o in measured),
                 "other_nonvalid": sum(o["qc"] not in {"valid", "unavailable"} for o in measured),
+                "nonvalid": sum(o["qc"] != "valid" for o in measured),
+                "not_returned": len(batch["samples"]) - len(measured),
                 "frozen_numeric_predictions": 0, "verified_prediction_refs": 0,
                 "valid_with_prediction": 0, "valid_without_prediction": 0,
                 "unavailable_with_prediction": 0}
@@ -108,17 +120,34 @@ def summarize(campaign: str | Path) -> dict:
             rows.append({"round": batch["round_index"] + 1, "batch_id": batch["batch_id"],
                 **counts, "frozen_valid_prediction_error_n": len(errors),
                 "frozen_valid_prediction_mae": sum(errors) / len(errors) if errors else None,
+                "round_metrics": sample_metrics(batch["samples"], measured, reference=reference,
+                    direction=direction, top_ns=top_ns),
+                "arm_metrics": arm_metrics(batch["samples"], measured, reference=reference,
+                    direction=direction, top_ns=top_ns),
+                "accumulated_campaign": accounting["batch_endpoints"].get(batch["batch_id"]),
                 "trial": history.get("trial"), "pipelines": pipelines,
                 "tool_executions_since_previous_prepared_batch": tools_by_batch.get(batch["batch_id"], []),
                 "prediction_denominator_note": "MAE uses valid returned non-control samples with a numeric pre-assay prediction. Null and unavailable samples are not zeros; n=0 does not imply a tool was never called."})
         charges = {}
-        for resource, amount, status in connection.execute("SELECT resource,amount,state FROM charges"):
+        for charge in ledger:
+            resource, amount, status = charge["resource"], charge["amount"], charge["state"]
             charges.setdefault(resource, {}).setdefault(status, 0)
             charges[resource][status] += amount
         return {"campaign_id": state["campaign_id"], "status": state["status"],
             "completed_rounds": state["round_index"], "metric": task["metric"], "unit": task["unit"],
+            "direction": direction, "top_ns": list(top_ns),
+            "metric_display_names": metric_display_names(direction, top_ns),
+            "metric_definition": "best is the direction-best (max for maximize, min for minimize); "
+                "topNmean and avg use unique-sequence means of valid observations, in original units. "
+                "TopN requires N unique valid sequences; insufficient values remain null with effective N. "
+                "Parent is excluded from round/arm/window outcomes and included in campaign metrics. "
+                "Campaign denominators count charged queries only; evidence_denominators also include "
+                "uncharged initial evidence. Missing outcomes are never zeros.",
+            "gate_policy_as_recorded": state.get("gate"),
             "charges_by_state": charges, "rounds": rows,
-            "source_note": "Read-only audit of this campaign only; no source landscape or comparator labels read."}
+            **{key: value for key, value in accounting.items() if key != "batch_endpoints"},
+            "source_note": "Read-only descriptive audit of this campaign only; no source landscape "
+                "or comparator labels read, no backfill, and no reevaluation of saved gate decisions."}
     finally:
         connection.close()
 
@@ -127,8 +156,11 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--campaign", required=True)
     parser.add_argument("--out", required=True)
+    parser.add_argument("--top-n", nargs="+", type=int, default=[5, 10],
+                        help="Unique-sequence top-N means to report (default: 5 10)")
+    parser.add_argument("--query-bin-size", type=int, default=100)
     args = parser.parse_args()
-    result = summarize(args.campaign)
+    result = summarize(args.campaign, top_ns=args.top_n, query_bin_size=args.query_bin_size)
     Path(args.out).write_text(json.dumps(result, indent=2, ensure_ascii=False) + "\n")
     print(f"Read-only per-round audit saved to {args.out}")
 

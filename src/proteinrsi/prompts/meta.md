@@ -24,3 +24,9 @@ a sub-panel; it does not mean a single small experiment must occupy an entire ro
 The controller selects feasible equal disjoint arms before seeing outcomes, respects
 the fixed minimum sample size, and labels other plate wells as research, outside
 the comparison. Do not hard-code 192 candidates per arm or mandate any protein tool.
+
+Read research_context.acceptance_policy when present. Under observed_pareto_v1,
+optimize best/max, all configured top-N means, and average together. State expected
+tradeoffs; a scalar mean improvement alone is insufficient. The fixed controller
+requires no metric worse beyond its tolerance and at least one improvement beyond
+its margin. Complete top-N coverage and enough independent units are mandatory.

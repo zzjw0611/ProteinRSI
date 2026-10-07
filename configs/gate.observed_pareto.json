@@ -1,0 +1,21 @@
+{
+  "criterion": "observed_pareto_v1",
+  "min_per_arm": 10,
+  "min_effect": 0.0,
+  "confidence": 0.95,
+  "bootstrap_samples": 2000,
+  "max_qc_failure_fraction": 0.25,
+  "top_ns": [5, 10],
+  "absolute_tolerances": {
+    "best": 0.0,
+    "top5mean": 0.0,
+    "top10mean": 0.0,
+    "avg": 0.0
+  },
+  "improvement_margins": {
+    "best": 0.0,
+    "top5mean": 0.0,
+    "top10mean": 0.0,
+    "avg": 0.0
+  }
+}

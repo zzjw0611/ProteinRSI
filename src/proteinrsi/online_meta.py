@@ -56,7 +56,7 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         if campaign.methods.enabled:
             campaign.methods.defer(state, patch, reason)
         return None
-    if not resuming and per_arm < gate.min_per_arm:
+    if not resuming and per_arm < gate.required_per_arm:
         return defer("Next batch lacks enough equal-arm query slots")
     usage = campaign.store.usage()
     limits = old["equal_compute_limits"] if resuming else {k: campaign.store.remaining(k)//2 for k in usage}
@@ -115,7 +115,7 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
             # evaluation inside this frozen one-step validation.
             child_view.workflow = workflow
             child_view.research_context = {**child_view.research_context, "validation_request": {
-                "maximum_candidates": per_arm, "minimum_candidates": gate.min_per_arm,
+                "maximum_candidates": per_arm, "minimum_candidates": gate.required_per_arm,
                 "instruction": "Generate validation proposals; the controller fills the rest of the plate separately."}}
             decisions[arm] = response.model_dump(mode="json")
             descendants[arm] = workflow.model_dump()
@@ -138,7 +138,7 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         from proteinrsi.contracts import Workflow
         versions = {arm: Workflow.model_validate(descendants[arm]).version for arm in arms}
         from proteinrsi.trial_allocation import allocate_trial
-        chosen, allocation = allocate_trial(arms, versions, slots, gate.min_per_arm,
+        chosen, allocation = allocate_trial(arms, versions, slots, gate.required_per_arm,
                                            excluded, full_task.seed + view.round_index)
         if not chosen:
             campaign.store.put("meta_online_attempts", evaluation_id, {**attempt, "state": "inconclusive", **allocation})

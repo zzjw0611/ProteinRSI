@@ -8,8 +8,10 @@ Never send these baseline observations to a live research agent in another study
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import json
 import random
+import sqlite3
 from pathlib import Path
 
 from proteinrsi.contracts import Batch, Candidate, Sample, TaskSpec, digest
@@ -18,8 +20,66 @@ from proteinrsi.lab import CSVOracle
 from proteinrsi.localtools.artifacts import file_sha256
 from proteinrsi.storage import Store
 from proteinrsi.tasks import validate_candidate
+from proteinrsi.reporting_metrics import charged_metrics, metric_display_names, sample_metrics
 
 ALPHABET = "ACDEFGHIKLMNPQRSTVWY"
+
+
+def metric_report(plan: dict, batches: dict, measurements: dict, charges: list[dict],
+                  parent: float | None, *, top_ns=(5, 10), query_bin_size: int = 100) -> dict:
+    """Only purchased observations and the already disclosed parent enter reports."""
+    task = plan["task"]
+    direction, reference = task.get("direction", "maximize"), task["reference_sequence"]
+    initial = ([] if parent is None else [{"sample_id": "provided-parent", "sequence": reference,
+                                           "value": parent, "qc": "valid"}])
+    accounting = charged_metrics(batches, measurements, charges, initial=initial,
+        reference=reference, direction=direction, top_ns=top_ns, query_bin_size=query_bin_size)
+    rounds = []
+    for bid, batch in sorted(batches.items(), key=lambda item: item[1]["round_index"]):
+        row = {"round": batch["round_index"] + 1, "batch_id": bid,
+               "round_metrics": sample_metrics(batch["samples"], measurements.get(bid, []),
+                   reference=reference, direction=direction, top_ns=top_ns),
+               "accumulated_campaign": accounting["batch_endpoints"].get(bid)}
+        rounds.append(row)
+    return {"direction": direction, "metric": task["metric"], "unit": task["unit"],
+            "metric_display_names": metric_display_names(direction, top_ns),
+            "parent_evidence_status": "recorded" if parent is not None else "not_saved_no_source_lookup",
+            "top_ns": list(top_ns), "round_metrics": rounds,
+            **{key: value for key, value in accounting.items() if key != "batch_endpoints"},
+            "multimetric_note": "Raw-unit best (direction max/min), topNmean and avg use "
+                "unique-sequence valid means. TopN requires full N; null reports insufficient "
+                "data with effective N. Round/window metrics exclude the parent; accumulated "
+                "campaign metrics include the known parent. Missing values are not zeros. "
+                "Descriptive reporting does not alter frozen proposal plans or historical decisions."}
+
+
+def summarize(out: str | Path, *, top_ns=(5, 10), query_bin_size: int = 100) -> dict:
+    """Read-only legacy/new comparator report, without opening the source oracle."""
+    path = Path(out).resolve() / "state.sqlite3"
+    if not path.is_file():
+        raise ValueError("Baseline state does not exist")
+    top_ns = tuple(top_ns)
+    with closing(sqlite3.connect(path.as_uri() + "?mode=ro", uri=True)) as connection:
+        connection.execute("BEGIN")
+        def get(namespace, key, default=None):
+            row = connection.execute("SELECT value FROM kv WHERE namespace=? AND key=?",
+                                     (namespace, key)).fetchone()
+            return json.loads(row[0]) if row else default
+        def all_records(namespace):
+            return {key: json.loads(value) for key, value in connection.execute(
+                "SELECT key,value FROM kv WHERE namespace=?", (namespace,))}
+        plan = get("baseline", "plan")
+        if plan is None:
+            raise ValueError("No frozen baseline plan")
+        original = get("baseline", "report", {})
+        charges = [dict(zip(("key", "resource", "amount", "fingerprint", "state"), row))
+                   for row in connection.execute(
+                       "SELECT key,resource,amount,fingerprint,state FROM charges ORDER BY rowid")]
+        metrics = metric_report(plan, all_records("batches"), all_records("measurements"), charges,
+                                original.get("provided_parent"), top_ns=top_ns,
+                                query_bin_size=query_bin_size)
+        return {**original, **metrics, "source_note": "Read-only saved comparator observations; "
+                "no source landscape opened and no report, plan, measurement or charge backfilled."}
 
 
 def proposals(task: TaskSpec, count: int, seed: int, policy: str) -> list[str]:
@@ -59,9 +119,12 @@ def proposals(task: TaskSpec, count: int, seed: int, policy: str) -> list[str]:
 
 
 def run(data_root: str | Path, landscape: str, out: str | Path, *, rounds: int,
-        batch_size: int, seed: int, policy: str) -> dict:
+        batch_size: int, seed: int, policy: str, top_ns=(5, 10), query_bin_size: int = 100) -> dict:
     if rounds < 1 or not 2 <= batch_size <= 384:
         raise ValueError("Positive rounds and batch size 2–384 required")
+    top_ns = tuple(top_ns)
+    # Reject invalid reporting arguments before creating a plan or buying queries.
+    charged_metrics({}, {}, [], initial=[], top_ns=top_ns, query_bin_size=query_bin_size)
     root, out = Path(data_root), Path(out)
     directory = root / "processed" / landscape
     task = TaskSpec.model_validate_json((directory / "task.json").read_text())
@@ -115,24 +178,50 @@ def run(data_root: str | Path, landscape: str, out: str | Path, *, rounds: int,
         "curve": curve, "repeat_queries": len(observations)-len({o["sequence"] for o in observations}),
         "proposal_sha256": digest(plan), "dataset_sha256": file_sha256(dataset),
         "interpretation": "Separate equal-query nonadaptive comparator. Missing lookups cost a query; no resampling, free membership tests, or LLM calls. A single seed is not a superiority or RSI efficacy test."}
-    store.put("baseline", "report", report)
-    (out / "report.json").write_text(json.dumps(report, indent=2) + "\n")
+    with store.connect() as connection:
+        charges = [dict(row) for row in connection.execute(
+            "SELECT key,resource,amount,fingerprint,state FROM charges ORDER BY rowid")]
+    report.update(metric_report(plan, store.all("batches"), store.all("measurements"), charges,
+                                parent, top_ns=top_ns, query_bin_size=query_bin_size))
+    # Resume/reporting never rewrites a completed historical report or frozen plan.
+    if store.get("baseline", "report") is None:
+        store.put("baseline", "report", report)
+        (out / "report.json").write_text(json.dumps(report, indent=2) + "\n")
     return report
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--data-root", required=True)
-    parser.add_argument("--landscape", required=True)
+    parser.add_argument("--data-root")
+    parser.add_argument("--landscape")
     parser.add_argument("--out", required=True)
     parser.add_argument("--rounds", type=int, default=20)
     parser.add_argument("--batch-size", type=int, default=100)
     parser.add_argument("--seed", type=int, default=17)
-    parser.add_argument("--policy", choices=["uniform", "single-first"], required=True)
+    parser.add_argument("--policy", choices=["uniform", "single-first"])
+    parser.add_argument("--top-n", nargs="+", type=int, default=[5, 10])
+    parser.add_argument("--query-bin-size", type=int, default=100)
+    parser.add_argument("--report-only", action="store_true", help="Read saved observations, never the oracle")
+    parser.add_argument("--report-out", help="Separate destination for a read-only descriptive report")
     args = parser.parse_args()
-    run(args.data_root, args.landscape, args.out, rounds=args.rounds, batch_size=args.batch_size,
-        seed=args.seed, policy=args.policy)
-    print(f"Baseline persisted to {args.out}; withhold report from unfinished live studies")
+    destination = Path(args.report_out).resolve() if args.report_out else None
+    if destination is not None and destination.is_relative_to(Path(args.out).resolve()):
+        parser.error("Use a separate report destination outside the saved baseline directory")
+    if args.report_only:
+        result = summarize(args.out, top_ns=args.top_n, query_bin_size=args.query_bin_size)
+    else:
+        if not all((args.data_root, args.landscape, args.policy)):
+            parser.error("Execution requires --data-root, --landscape and --policy")
+        result = run(args.data_root, args.landscape, args.out, rounds=args.rounds,
+            batch_size=args.batch_size, seed=args.seed, policy=args.policy,
+            top_ns=args.top_n, query_bin_size=args.query_bin_size)
+    if destination is not None:
+        destination.write_text(json.dumps(result, indent=2) + "\n")
+        print(f"Descriptive report saved to {destination}; withhold from unfinished live studies")
+    elif args.report_only:
+        print(json.dumps(result, indent=2))
+    else:
+        print(f"Baseline persisted to {args.out}; withhold report from unfinished live studies")
 
 
 if __name__ == "__main__":

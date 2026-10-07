@@ -37,6 +37,8 @@ class Campaign:
             if store.get("campaign", "state") is not None:
                 raise Conflict("Campaign already exists; use resume/status, not init")
             workflow, meta, gate = workflow or Workflow(), meta or MetaPolicy(), gate or GatePolicy()
+            if gate.criterion == "observed_pareto_v1":
+                store.put("configuration", "acceptance_policy", gate.model_dump(), immutable=True)
             from proteinrsi.prompting import snapshot_prompts
             snapshot_prompts(store)
             resources = task.budget.model_dump()
@@ -95,6 +97,10 @@ class Campaign:
         state = self.store.get("campaign", "state")
         if state is None:
             raise ValueError("No campaign; run init first")
+        frozen_gate = self.store.get("configuration", "acceptance_policy")
+        if frozen_gate is not None or state.get("gate", {}).get("criterion") == "observed_pareto_v1":
+            if frozen_gate != state.get("gate"):
+                raise Conflict("Acceptance policy differs from the frozen study; start a new study")
         return state
 
     def view(self, state: dict | None = None, workflow: Workflow | None = None) -> TaskView:
@@ -118,7 +124,8 @@ class Campaign:
             artifacts=list(self.store.all("artifacts").values()),
             research_context={"workflow_validation_outcomes":
                 list(self.store.all("workflow_validation_outcomes").values()),
-                **({"method_history": self.methods.visible_history()} if self.methods.enabled else {})})
+                **({"method_history": self.methods.visible_history()} if self.methods.enabled else {}),
+                **({"acceptance_policy": state["gate"]} if state["gate"].get("criterion") == "observed_pareto_v1" else {})})
 
     def prepare(self) -> Batch | None:
         # Feedback commits before the improver runs. A stopped controller may have
@@ -357,7 +364,7 @@ class Campaign:
                     trial = self.store.get("trials", batch_id)
                     patch = Patch.model_validate(trial["patch"])
                     result = evaluate_trial(batch, observations, GatePolicy.model_validate(trial["gate"]),
-                                            direction=task.direction)
+                                            direction=task.direction, reference_sequence=task.reference_sequence)
                     self.store.put("trial_results", batch_id, result.model_dump(), immutable=True)
                     self.memory.record(patch, result, campaign_id=state["campaign_id"],
                         observations=len(state["observations"]) - len(normalized), source=task.feedback_source)

@@ -13,7 +13,8 @@ import numpy as np
 from proteinrsi.agents import MetaAgent, Team
 from proteinrsi.contracts import (GatePolicy, MetaPolicy, Model, Observation, Patch,
                                   TaskSpec, TaskView, Workflow, digest)
-from proteinrsi.improvement import apply_patch, compare_scores
+from proteinrsi.improvement import apply_patch, compare_scores, compare_metric_vectors
+from proteinrsi.metrics import metric_names, summarize_metrics
 from proteinrsi.storage import Conflict, Store, SponsoredStore
 
 
@@ -44,7 +45,7 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
                      directory: str, team_factory: Callable[[Store], Team] | None,
                      protein_config: dict | None = None, protein_pin: dict | None = None,
                      research_config: dict | None = None, know_how: list | None = None,
-                     sponsor=None, prefix="", prompt_bundle=None) -> tuple[float, dict]:
+                     sponsor=None, prefix="", prompt_bundle=None, gate_policy: GatePolicy | None = None) -> tuple[float | None, dict]:
     store = SponsoredStore(directory, sponsor, prefix) if sponsor is not None else Store(directory)
     resources = case.task.budget.model_dump()
     if protein_config:
@@ -69,7 +70,9 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
     # Read only observed data in the policy context. No labels, global extrema or paths.
     view = TaskView(task=case.task, round_index=1, observations=case.initial,
                     history=case.history, remaining_wells=store.remaining("experimental_wells"),
-                    workflow=workflow, meta=meta)
+                    workflow=workflow, meta=meta,
+                    research_context={"acceptance_policy": gate_policy.model_dump()}
+                    if gate_policy and gate_policy.criterion == "observed_pareto_v1" else {})
     if getattr(team, "guarded", False):
         from proteinrsi.replay.broker import GuardedMetaAgent
         proposal = GuardedMetaAgent(team).propose(view)
@@ -85,15 +88,72 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
     store.put("campaign", "state", {"task": case.task.model_dump(mode="json")})
     candidates = team.run(view)
     observed = {o.sequence for o in case.initial}
+    multimetric = gate_policy is not None and gate_policy.criterion == "observed_pareto_v1"
+    if multimetric:
+        observed.add(case.task.reference_sequence)
     selected = [c for c in candidates if c.sequence not in observed][:case.query_budget]
-    if len(selected) != case.query_budget or any(c.sequence not in case.labels for c in selected):
+    if len(selected) != case.query_budget or (not multimetric and any(c.sequence not in case.labels for c in selected)):
         raise ValueError("Cannot fairly evaluate this descendant with the stated measurement budget")
     store.reserve("evaluation-query", "experimental_wells", case.query_budget, [c.sequence for c in selected])
     store.settle("evaluation-query")
+    if multimetric:
+        summary = summarize_metrics([
+            {"sequence": c.sequence, "value": case.labels.get(c.sequence),
+             "qc": "valid" if c.sequence in case.labels else "unavailable"} for c in selected],
+            direction=case.task.direction, top_ns=gate_policy.top_ns, submitted=case.query_budget)
+        return summary["signed_metrics"]["avg"], {
+            "case_id": case.case_id, "group_id": case.group_id, "meta": meta.version,
+            "descendant": child.version, "selected": [c.sequence for c in selected],
+            "metric_summary": summary, "parent_excluded": True, "usage": store.usage()}
     sign = 1 if case.task.direction == "maximize" else -1
     score = sign * float(np.mean([case.labels[c.sequence] for c in selected]))
     return score, {"case_id": case.case_id, "meta": meta.version, "descendant": child.version,
                    "selected": [c.sequence for c in selected], "signed_score": score, "usage": store.usage()}
+
+
+def compare_grouped_metrics(traces: list[dict], policy: GatePolicy):
+    """Equal case weights within group, equal group weights in each metric.
+
+    Related seeds remain one independent group. A missing case/metric is never
+    silently dropped, and a max is computed within each case, not across groups.
+    """
+    grouped = defaultdict(list)
+    case_ids = set()
+    missing = False
+    for pair in traces:
+        old, new = pair["baseline"], pair["challenger"]
+        if (old["case_id"] != new["case_id"] or old["group_id"] != new["group_id"]
+                or old["case_id"] in case_ids):
+            raise ValueError("Meta metrics require unique, aligned cases and groups")
+        case_ids.add(old["case_id"])
+        for arm in (old, new):
+            denom = arm["metric_summary"]["denominators"]
+            missing |= bool(denom["unavailable"] or denom["not_returned"])
+            missing |= not denom["submitted"] or denom["other_nonvalid"] / max(1, denom["submitted"]) > policy.max_qc_failure_fraction
+        if old["metric_summary"]["denominators"]["submitted"] != new["metric_summary"]["denominators"]["submitted"]:
+            raise ValueError("Meta cases require equal submitted arm budgets")
+        grouped[old["group_id"]].append(pair)
+    names = metric_names(policy.top_ns)
+    aggregates = {"baseline": {}, "challenger": {}}
+    group_vectors = {}
+    for group, pairs in sorted(grouped.items()):
+        group_vectors[group] = {}
+        for arm in aggregates:
+            vector = {}
+            for name in names:
+                values = [p[arm]["metric_summary"]["signed_metrics"][name] for p in pairs]
+                vector[name] = float(np.mean(values)) if all(v is not None for v in values) else None
+            group_vectors[group][arm] = vector
+    for arm in aggregates:
+        for name in names:
+            values = [vector[arm][name] for vector in group_vectors.values()]
+            aggregates[arm][name] = float(np.mean(values)) if values and all(v is not None for v in values) else None
+    return compare_metric_vectors(aggregates["baseline"], aggregates["challenger"], policy,
+        n_baseline=len(grouped), n_challenger=len(grouped),
+        diagnostics={"aggregation": "equal_case_means_within_group_then_equal_group_means",
+            "group_metric_vectors": group_vectors, "n_cases": len(traces),
+            "unit": "independent_group", "complete_case_metrics_required": True},
+        incomplete_reason="Missing case measurement coverage or excessive case QC failures" if missing else None)
 
 
 def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
@@ -116,6 +176,7 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
     if any(e.get("enabled") for e in local_tools.get("engines", {}).values()):
         raise ValueError("External-engine meta evaluation needs case-scoped artifact provisioning; "
                          "the current numeric evaluator cannot silently reuse another protein's structure")
+    policy = GatePolicy.model_validate(snapshot["gate"])
     base_w = Workflow.model_validate(snapshot["workflow"])
     base_m = MetaPolicy.model_validate(snapshot["meta"])
     patch = Patch.model_validate(snapshot["pending_meta"])
@@ -166,10 +227,10 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
             for i, case in enumerate(cases):
                 old, trace_old = _offspring_score(case, base_w, base_m, f"{directory}/{i}-old", team_factory,
                                               protein_config, protein_pin, research_config, know_how,
-                                              campaign.store, evaluation_id+f"-{i}-old", prompt_bundle)
+                                              campaign.store, evaluation_id+f"-{i}-old", prompt_bundle, policy)
                 new, trace_new = _offspring_score(case, base_w, child_m, f"{directory}/{i}-new", team_factory,
                                               protein_config, protein_pin, research_config, know_how,
-                                              campaign.store, evaluation_id+f"-{i}-new", prompt_bundle)
+                                              campaign.store, evaluation_id+f"-{i}-new", prompt_bundle, policy)
                 grouped[case.group_id].append((old, new))
                 traces.append({"baseline": trace_old, "challenger": trace_new})
     except Exception as exc:
@@ -192,16 +253,20 @@ def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
                 "patch_id": patch.patch_id, "error_type": type(exc).__name__, "blocked": not recoverable})
         raise
     # Seeds/related cases from one protein/group do not count as independent proteins.
-    means = [np.asarray(scores).mean(axis=0) for scores in grouped.values()]
-    gate = compare_scores([float(x[0]) for x in means], [float(x[1]) for x in means],
-                          GatePolicy.model_validate(snapshot["gate"]), paired=True)
+    if policy.criterion == "observed_pareto_v1":
+        gate = compare_grouped_metrics(traces, policy)
+    else:
+        means = [np.asarray(scores).mean(axis=0) for scores in grouped.values()]
+        gate = compare_scores([float(x[0]) for x in means], [float(x[1]) for x in means], policy, paired=True)
     manifest_hash = digest([c.model_dump(mode="json") for c in cases])
     report = {"patch_id": patch.patch_id, "base_meta": base_m.version, "candidate_meta": child_m.version,
               "base_workflow": base_w.version, "case_manifest_sha256": manifest_hash,
               "protein_model": protein_pin, "protein_configuration": protein_config,
               "research_configuration": research_config, "know_how_snapshot_sha256": digest(know_how),
               "gate": gate.model_dump(), "traces": traces, "promoted": False,
-              "protocol": "one-step frozen-improver; paired group means; shared study ledger and equal child limits",
+              "protocol": ("one-step frozen-improver; aligned per-case metric vectors and equal group means; observed Pareto"
+                  if policy.criterion == "observed_pareto_v1" else
+                  "one-step frozen-improver; paired group means; shared study ledger and equal child limits"),
               "budget_scope": "shared_campaign", "required_query_slots": required_queries,
               "budget_before": before_usage, "budget_after": campaign.store.usage(),
               "scope": {"kind": task.kind.value, "metric": task.metric, "unit": task.unit},

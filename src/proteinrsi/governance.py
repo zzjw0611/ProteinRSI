@@ -84,6 +84,9 @@ class MethodGovernance:
             "contracts": {"method": type(definition).model_json_schema(),
                           "task": TaskSpec.model_json_schema(), "gate": GatePolicy.model_json_schema()},
             "limits": "External engines/weights are declared, not copied. Per-run generated code and protocols remain execution artifacts."}
+        acceptance_policy = self.store.get("configuration", "acceptance_policy")
+        if acceptance_policy is not None:
+            snapshot["acceptance_policy"] = acceptance_policy
         ref = "method-" + digest(snapshot)
         self.store.put("method_snapshots", ref, snapshot, immutable=True)
         return ref
@@ -142,7 +145,8 @@ class MethodGovernance:
             "evidence_version": self.campaign.view(state).evidence_version,
             "round": state["round_index"], "campaign_id": state["campaign_id"],
             "validation_plan": {"stages": ["contract_preflight", "bounded_candidate_execution", "experimental_comparison"],
-                "gate": state["gate"], "metric": "mean_signed_outcome",
+                "gate": state["gate"], "metric": ("direction_adjusted_best_topN_avg"
+                    if state["gate"].get("criterion") == "observed_pareto_v1" else "mean_signed_outcome"),
                 "task_metric": state["task"]["metric"], "direction": state["task"]["direction"],
                 "budget_scope": "shared_campaign", "transfer_validated": False}}
         self.store.put("method_candidates", patch.patch_id, record, immutable=True)
@@ -240,6 +244,8 @@ class MethodGovernance:
             raise Conflict("Missing or modified method source bundle")
         if record["source_ref"] != digest(_packaged_source()):
             raise Conflict("Executable/dependencies differ; use the original environment, not silent migration")
+        if record.get("acceptance_policy") != self.store.get("configuration", "acceptance_policy"):
+            raise Conflict("Acceptance policy differs from the frozen method snapshot")
         configuration = {name: self.store.get("configuration", name) for name in CONFIG_KEYS}
         if record["configuration"] != configuration:
             raise Conflict("Method configuration differs from the frozen snapshot")

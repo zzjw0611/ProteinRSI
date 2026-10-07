@@ -7,7 +7,7 @@ from proteinrsi.trial_allocation import allocate_trial
 
 def prepare_workflow_trial(campaign, state, view, patch, workflow, baseline, slots, excluded):
     gate = GatePolicy.model_validate(state["gate"])
-    if slots // 2 < gate.min_per_arm:
+    if slots // 2 < gate.required_per_arm:
         detail = {"reason": "Insufficient equal-arm plate capacity", "round": view.round_index}
         campaign.store.event("workflow_validation_deferred", {"patch_id": patch.patch_id, **detail})
         if campaign.methods.enabled:
@@ -17,7 +17,7 @@ def prepare_workflow_trial(campaign, state, view, patch, workflow, baseline, slo
     challenge_view = campaign.view(state, workflow)
     challenge_view.research_context = {**challenge_view.research_context,
         "validation_request": {"maximum_candidates": slots // 2,
-            "minimum_candidates": gate.min_per_arm,
+            "minimum_candidates": gate.required_per_arm,
             "instruction": "Generate a bounded validation panel; the controller fills the remaining plate separately."}}
     try:
         challenger = campaign.team.run(challenge_view)
@@ -29,7 +29,7 @@ def prepare_workflow_trial(campaign, state, view, patch, workflow, baseline, slo
         chosen, allocation = allocate_trial(
             {"baseline": baseline, "challenger": challenger},
             {"baseline": view.workflow.version, "challenger": workflow.version},
-            slots, gate.min_per_arm, excluded, view.task.seed + view.round_index)
+            slots, gate.required_per_arm, excluded, view.task.seed + view.round_index)
     except Exception as exc:
         if not campaign.methods.failure(state, patch, exc):
             raise

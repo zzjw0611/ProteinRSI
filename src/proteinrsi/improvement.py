@@ -10,6 +10,7 @@ import numpy as np
 from proteinrsi.contracts import (Batch, GatePolicy, GateResult, MetaPolicy, Observation,
                                   Patch, TaskKind, Workflow, digest)
 from proteinrsi.storage import Store
+from proteinrsi.metrics import metric_names, summarize_metrics
 
 
 def apply_patch(current: Workflow | MetaPolicy, patch: Patch) -> Workflow | MetaPolicy:
@@ -48,6 +49,8 @@ def _bootstrap_delta(old: np.ndarray, new: np.ndarray, policy: GatePolicy,
 
 def compare_scores(old: list[float], new: list[float], policy: GatePolicy,
                    *, paired: bool = False, seed: int = 0) -> GateResult:
+    if policy.criterion != "mean_bootstrap":
+        raise ValueError("Multi-metric gates require complete metric vectors, not scalar mean scores")
     n_old, n_new = len(old), len(new)
     if n_old < policy.min_per_arm or n_new < policy.min_per_arm:
         return GateResult(decision="inconclusive", reason="Too few independent experimental units/cases",
@@ -67,33 +70,112 @@ def compare_scores(old: list[float], new: list[float], policy: GatePolicy,
         n_baseline=n_old, n_challenger=n_new)
 
 
+def compare_metric_vectors(baseline: dict, challenger: dict, policy: GatePolicy, *,
+                           n_baseline: int, n_challenger: int,
+                           diagnostics: dict | None = None,
+                           incomplete_reason: str | None = None) -> GateResult:
+    """Frozen observed Pareto rule. No bootstrap, p-value, or max significance claim.
+
+    Input metrics are direction-adjusted. For offline M these are equally weighted
+    group means of case-level metric vectors, never extrema across unrelated cases.
+    """
+    if policy.criterion != "observed_pareto_v1":
+        raise ValueError("Metric-vector comparison requires observed_pareto_v1")
+    names = metric_names(policy.top_ns)
+    if set(baseline) != set(names) or set(challenger) != set(names):
+        raise ValueError("Metric vectors must exactly match the prespecified policy")
+    if any(value is not None and not np.isfinite(value)
+           for values in (baseline, challenger) for value in values.values()):
+        raise ValueError("Non-finite evaluation data")
+    comparisons = {}
+    for name in names:
+        old, new = baseline[name], challenger[name]
+        delta = float(new - old) if old is not None and new is not None else None
+        comparisons[name] = {"baseline": old, "challenger": new, "delta": delta,
+            "absolute_tolerance": policy.absolute_tolerances[name],
+            "improvement_margin": policy.improvement_margins[name],
+            "improved": delta is not None and delta > policy.improvement_margins[name],
+            "worsened": delta is not None and delta < -policy.absolute_tolerances[name]}
+    details = {"criterion": policy.criterion, "policy": policy.model_dump(),
+               "metric_orientation": "direction_adjusted_higher_is_better",
+               "metrics": comparisons, "diagnostics": diagnostics or {},
+               "evidence": "descriptive_observed_panel; no statistical significance or generalization claim"}
+    decision = "inconclusive"
+    if incomplete_reason:
+        outcome, reason = "missing_coverage", incomplete_reason
+    elif n_baseline < policy.min_per_arm or n_challenger < policy.min_per_arm:
+        outcome, reason = "insufficient_units", "Too few independent experimental units/groups"
+    elif any(row["delta"] is None for row in comparisons.values()):
+        outcome, reason = "missing_metrics", "Complete prespecified top-N coverage is required in both arms/cases"
+    else:
+        improved = any(row["improved"] for row in comparisons.values())
+        worsened = any(row["worsened"] for row in comparisons.values())
+        positive = any(row["delta"] > 0 for row in comparisons.values())
+        if improved and not worsened:
+            decision, outcome = "accepted", "dominates"
+            reason = "Observed Pareto improvement: no metric worse beyond tolerance and at least one improves beyond margin"
+        elif worsened and positive:
+            outcome, reason = "tradeoff", "Mixed observed gains and losses; no automatic promotion"
+        elif worsened:
+            decision, outcome = "rejected", "dominated"
+            reason = "No observed metric improves and at least one worsens beyond tolerance"
+        else:
+            outcome, reason = "tie_or_below_margin", "No prespecified improvement beyond margin"
+    details["outcome"] = outcome
+    return GateResult(decision=decision, reason=reason, n_baseline=n_baseline,
+                      n_challenger=n_challenger, details=details)
+
+
 def evaluate_trial(batch: Batch, observations: list[Observation], policy: GatePolicy,
-                   *, direction: str) -> GateResult:
+                   *, direction: str, reference_sequence: str | None = None) -> GateResult:
     by_id = {o.sample_id: o for o in observations}
     if set(by_id) != {s.sample_id for s in batch.samples} or len(by_id) != len(observations):
         raise ValueError("Evaluation requires one final observation per scheduled sample")
+    if any(by_id[s.sample_id].sequence != s.candidate.sequence for s in batch.samples):
+        raise ValueError("Observation sequence differs from scheduled sample")
     groups: dict[str, dict[str, list[float]]] = {"baseline": defaultdict(list), "challenger": defaultdict(list)}
     counts = {"baseline": 0, "challenger": 0}
     failures = {"baseline": 0, "challenger": 0}
+    rows = {"baseline": [], "challenger": []}
+    parent_excluded = {"baseline": 0, "challenger": 0}
     for sample in batch.samples:
         if sample.arm not in {"baseline", "challenger"}:
             continue
+        if policy.criterion == "observed_pareto_v1" and reference_sequence and sample.candidate.sequence == reference_sequence:
+            parent_excluded[sample.arm] += 1
+            continue
         counts[sample.arm] += 1
         o = by_id[sample.sample_id]
+        rows[sample.arm].append(o.model_dump())
         if o.qc == "valid":
             groups[sample.arm][o.sequence].append(float(o.value))
         else:
             failures[sample.arm] += 1
     if counts["baseline"] != counts["challenger"] or not counts["challenger"]:
         raise ValueError("Unequal planned arm budgets")
-    if any(by_id[s.sample_id].qc == "unavailable" for s in batch.samples if s.arm in {"baseline", "challenger"}):
-        return GateResult(decision="inconclusive", reason="Historical coverage missing; no promotion from a selectively observed subset",
-            n_baseline=len(groups["baseline"]), n_challenger=len(groups["challenger"]))
-    if any(failures[a] / counts[a] > policy.max_qc_failure_fraction for a in counts):
-        return GateResult(decision="inconclusive", reason="QC failure limit exceeded; do not impute missing values",
+    if direction not in {"maximize", "minimize"}:
+        raise ValueError("Unknown metric direction")
+    missing = any(row["qc"] == "unavailable" for arm in rows.values() for row in arm)
+    excessive_qc = any(failures[a] / counts[a] > policy.max_qc_failure_fraction for a in counts)
+    reason = ("Historical coverage missing; no promotion from a selectively observed subset" if missing else
+              "QC failure limit exceeded; do not impute missing values" if excessive_qc else None)
+    if policy.criterion == "mean_bootstrap" and reason:
+        return GateResult(decision="inconclusive", reason=reason,
             n_baseline=len(groups["baseline"]), n_challenger=len(groups["challenger"]))
     if groups["baseline"].keys() & groups["challenger"].keys():
         raise ValueError("Overlapping variants are not independent evidence in this comparison")
+    if policy.criterion == "observed_pareto_v1":
+        summaries = {arm: summarize_metrics(values, direction=direction,
+                        top_ns=policy.top_ns, submitted=counts[arm]) for arm, values in rows.items()}
+        return compare_metric_vectors(summaries["baseline"]["signed_metrics"],
+            summaries["challenger"]["signed_metrics"], policy,
+            n_baseline=len(groups["baseline"]), n_challenger=len(groups["challenger"]),
+            diagnostics={"arms": summaries, "parent_excluded": parent_excluded,
+                "controls_and_research_excluded": True, "unit": "unique_sequence",
+                "technical_repeats": "mean_within_sequence"}, incomplete_reason=reason)
+    if reason:
+        return GateResult(decision="inconclusive", reason=reason,
+            n_baseline=len(groups["baseline"]), n_challenger=len(groups["challenger"]))
     sign = 1 if direction == "maximize" else -1
     # Technical replicates are aggregated; they do not inflate the sample size.
     values = {arm: [sign * float(np.mean(v)) for v in seqs.values()] for arm, seqs in groups.items()}
