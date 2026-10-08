@@ -75,7 +75,8 @@ jobs:
       - run: pytest -s -q tests/test_esmc.py -m real_esmc
 
   bwrap-isolation:
-    runs-on: ubuntu-latest
+    # Declared namespace-capable test image; never relax host security settings.
+    runs-on: ubuntu-22.04
     timeout-minutes: 15
     env:
       OPENBLAS_NUM_THREADS: '1'

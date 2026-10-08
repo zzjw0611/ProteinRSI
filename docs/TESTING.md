@@ -179,7 +179,8 @@ conversion test; it does not install the real Protenix engine.
 `PROTEINRSI_SANDBOX_BACKEND=bwrap` explicitly selects the read-only mount-namespace
 backend. Keep it set for the controller and all acceptance commands; default invocation
 continues to test Landlock and its unsupported-host fail-closed path. The dedicated
-`bwrap-isolation` CI job installs official distribution bubblewrap/libseccomp packages
+`bwrap-isolation` CI job explicitly uses the standard `ubuntu-22.04` runner image
+and installs official distribution bubblewrap/libseccomp packages
 and sets `PROTEINRSI_REQUIRE_BWRAP=1` and `PROTEINRSI_REQUIRE_METRIC_SANDBOX=1`, so missing
 primitives fail that job rather than turning enforcement checks into skips. It never
 modifies kernel, AppArmor or network-security settings to make the tests pass.

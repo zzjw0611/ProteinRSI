@@ -77,3 +77,20 @@ mount policy or syscall policy pauses unfinished frozen execution. Replay pins t
 backend identity. Existing Landlock behavior is preserved; actual Landlock enforcement
 still needs a supporting host. Local results do not substitute for the remote CI status
 of the exact published commit, optional engine tests or a live scientific experiment.
+
+## Remote CI prerequisite diagnosis
+
+The initial exact-head bwrap CI job on the floating `ubuntu-latest` image resolved to
+Ubuntu 24.04 and failed closed before worker execution: `bwrap: setting up uid map:
+Permission denied`. [Initial job log](https://github.com/zzjw0611/ProteinRSI/actions/runs/37805051221/job/113407023537).
+No denied operation was retried under relaxed controls.
+
+The dedicated job now declares `ubuntu-22.04`, a standard supported
+[GitHub runner label](https://docs.github.com/en/actions/how-tos/write-workflows/choose-where-workflows-run/choose-the-runner-for-a-job).
+Ubuntu's [security feature matrix](https://documentation.ubuntu.com/security/security-features/security-features-overview/)
+lists AppArmor unprivileged-user-namespace restrictions for 24.04 but not 22.04.
+This motivates testing that supported image; its actual job result, not the label
+alone, establishes whether it can enforce the backend. The mandatory tests are
+unchanged. The workflow does not change sysctls, AppArmor profiles, executable
+privileges or security settings. Production source and local acceptance results
+are unchanged by this CI-image selection.
