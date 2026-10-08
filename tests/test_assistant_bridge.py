@@ -426,3 +426,19 @@ def test_protocol_resume_reuses_completed_upstream_and_pending_bridge(tmp_path):
     executor.execute(protocol, {})
     assert calls == ["upstream", "downstream", "downstream", "downstream"]
     assert llm.store.usage()["llm_calls"]["committed"] == 1
+
+
+def test_evidence_context_bridge_read_and_resume(tmp_path):
+    llm = client(tmp_path)
+    llm.store.put('configuration', 'research', {'context_policy': 'evidence-v1'})
+    args = ('A-plan', 'Inspect evidence', {'rows': [{'id': i, 'sequence': 'A'*56} for i in range(100)]}, SCHEMA)
+    request = pending(llm, args)
+    ref = request['context']['rows']['evidence_ref']
+    respond(llm, request, envelope(request, {'_context_action': {
+        'kind': 'read', 'ref': ref, 'offset': 3, 'limit': 2}}))
+    next_request = pending(llm, args)
+    assert next_request['context']['_context']['last_read']['value'][0]['id'] == 3
+    respond(llm, next_request)
+    assert llm.complete(*args) == RESULT
+    assert llm.store.usage()['llm_calls']['committed'] == 2
+    assert llm.store.usage()['lab_wells']['committed'] == 0

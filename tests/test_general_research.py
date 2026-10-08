@@ -297,6 +297,7 @@ def test_new_goal_runs_typed_ranking_feedback_loop_in_guarded_worker(tmp_path):
         out=tmp_path/'typed-ranking', data_root=tmp_path, llm_factory=factory(rank_intent(), []))
     c = prepared['campaign']
     assert c.store.get('configuration', 'research')['protocol_mode'] == 'typed'
+    assert c.store.get('configuration', 'research')['context_policy'] == 'evidence-v1'
     seen = []
     knowledge_attempts = []
     def respond(request):

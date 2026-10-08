@@ -23,6 +23,9 @@ from urllib.parse import quote
 
 
 TRACE_NAMESPACES = frozenset({
+    "context_evidence", "context_sessions", "context_frames", "context_reads", "research_notes",
+    "validation_context_evidence", "validation_context_sessions", "validation_context_frames",
+    "validation_context_reads", "validation_research_notes",
     "llm_attempts", "validation_llm_attempts", "llm", "tool_jobs", "agent_snapshots",
     "llm_preflights", "validation_llm_preflights",
     "feedback_inputs", "feedback_results", "validation_feedback_inputs", "validation_feedback_results",
@@ -45,6 +48,7 @@ TRACE_NAMESPACES = frozenset({
     "batch_method_bindings", "gepa_attempts", "gepa_results", "gepa_failures",
 })
 DETAIL_FIELDS = (
+    ("context_frame_ref", "context_frames"), ("context_read_ref", "context_reads"),
     ("attempt_key", "llm_attempts"), ("key", "llm"), ("key", "tool_jobs"),
     ("preflight_key", "llm_preflights"),
     ("feedback_input_ref", "feedback_inputs"), ("feedback_ref", "feedback_results"),

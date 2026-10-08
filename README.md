@@ -1,5 +1,7 @@
 # ProteinRSI
 
+新研究已启用[按需证据上下文与版本化研究笔记](docs/CONTEXT_POLICY.md)：大表与历史按引用读取，避免每轮把完整历史重复发给模型；原始记录与实验预算边界仍保留。
+
 ## LLM 决定验收标准与采用结论
 
 新建 CLI `init` 和自然语言 `start` 研究默认使用 `llm_adjudicated_v1`。

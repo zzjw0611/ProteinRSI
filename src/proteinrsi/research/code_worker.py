@@ -33,6 +33,8 @@ def main():
     resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
     from proteinrsi.replay.sandbox import restrict
     restrict(request['read_roots'], request['work'], generated_code=True)
+    if request.get('context_file'):
+        request['context'] = json.loads(Path(request['context_file']).read_text())
     logs = BoundedText()
     def write_artifact(name, content, kind='json'):
         if Path(name).name != name or kind not in {'pdb', 'cif', 'a3m', 'fasta', 'json'}:

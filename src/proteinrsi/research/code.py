@@ -50,6 +50,17 @@ def execute_code(store, view, arguments, *, pure=False):
         request = {'code': arguments['code'], 'inputs': arguments.get('inputs', {}),
             'artifacts': files, 'context': context, 'read_roots': reader_roots(), 'work': work,
             'parent_pid': os.getpid()}
+        # Bulk revealed evidence travels as a local sandbox input, never through
+        # model text or the small worker command pipe. No oracle files are copied.
+        from proteinrsi.research.context import enabled
+        if not pure and enabled(store):
+            encoded_context = canonical(context).encode()
+            if len(encoded_context) > 64 * 1024**2:
+                raise ValueError('Generated-code revealed evidence exceeds 64MB')
+            context_file = root/'revealed-context.json'
+            context_file.write_bytes(encoded_context)
+            request['context'] = {}
+            request['context_file'] = str(context_file)
         payload = canonical(request).encode()+b'\n'
         if len(payload) > 4 * 1024**2:
             raise ValueError('Generated-code context exceeds 4MB')

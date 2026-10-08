@@ -279,7 +279,8 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
         workflow=Workflow(tool_names=list(dict.fromkeys(tool_names)), skill_names=skills, analysis_tool_rounds=3),
         gate=GatePolicy(criterion='llm_adjudicated_v1'),
         protein_config=local.esmc, local_tools=local,
-        research_config=ResearchConfig(resource_selection='llm', enable_generated_code=True, protocol_mode=protocol_mode))
+        research_config=ResearchConfig(resource_selection='llm', enable_generated_code=True, protocol_mode=protocol_mode,
+            context_policy='evidence-v1'))
     if protocol_mode == 'typed':
         from proteinrsi.research.skill_library import freeze_library
         freeze_library(campaign.store)

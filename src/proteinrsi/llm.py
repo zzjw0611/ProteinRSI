@@ -105,6 +105,12 @@ class JSONLLM:
                                                        str(DEFAULT_MAX_REQUEST_BYTES))))
 
     def complete(self, role: str, instructions: str, context: dict[str, Any], schema: dict) -> dict:
+        from proteinrsi.research.context import complete, enabled
+        if enabled(self.store):
+            return complete(self, role, instructions, context, schema)
+        return self._complete(role, instructions, context, schema)
+
+    def _complete(self, role: str, instructions: str, context: dict[str, Any], schema: dict) -> dict:
         # JSON mode is widely supported; independently validate every response at the caller.
         messages = [{"role": "system", "content": instructions +
                      "\nReturn exactly one JSON object matching this schema:\n" + canonical(schema)},

@@ -58,7 +58,7 @@ def print_event(event, stream=None):
         kind = payload["branch"]+" · "+payload["kind"]
         payload = payload["payload"]
     stamp = time.strftime("%H:%M:%S", time.localtime(event["timestamp"]))
-    detail = " ".join(f"{k}={payload[k]}" for k in ("round", "role", "phase", "tool", "wells", "batch_id", "decision", "error_type", "http_status", "attempt", "delay_seconds") if k in payload)
+    detail = " ".join(f"{k}={payload[k]}" for k in ("round", "role", "phase", "tool", "wells", "batch_id", "decision", "error_type", "http_status", "attempt", "delay_seconds", "context_bytes", "source_bytes") if k in payload)
     try:
         print(f"[{stamp}] {kind} {detail}", file=stream, flush=True)
     except OSError:

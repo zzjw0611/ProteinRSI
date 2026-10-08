@@ -226,7 +226,7 @@ class AssistantBridgeLLM(JSONLLM):
                 "round": record["round"], "attempt": 1})
         return key, record
 
-    def complete(self, role: str, instructions: str, context: dict, schema: dict) -> dict:
+    def _complete(self, role: str, instructions: str, context: dict, schema: dict) -> dict:
         request = self._request(role, instructions, context, schema)
         key, record = self._pending(request)
         if record["state"] == "done":
