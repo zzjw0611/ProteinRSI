@@ -298,13 +298,20 @@ def test_new_goal_runs_typed_ranking_feedback_loop_in_guarded_worker(tmp_path):
     c = prepared['campaign']
     assert c.store.get('configuration', 'research')['protocol_mode'] == 'typed'
     seen = []
+    knowledge_attempts = []
     def respond(request):
         payload = json.loads(request.content)
         instructions = payload['messages'][0]['content']
         ctx = json.loads(payload['messages'][1]['content'])
-        if 'Select resources relevant' in instructions:
+        if 'catalogue' in ctx:
+            knowledge_attempts.append(ctx['format_attempt'])
+            assert ctx['catalogue']['templates']
+            result = {'template_ids': [], 'extra_metric_ids': [],
+                      'rationale': 'Ranking-only exploration of supplied candidates'}
+        elif 'Select resources relevant' in instructions:
             result = {}
         elif '# A — resource protocol planner' in instructions:
+            assert ctx['resources']['method_knowledge']['template_ids'] == []
             round_index = ctx['view']['round_index']
             seen.append(round_index)
             if round_index == 1:
@@ -326,6 +333,8 @@ def test_new_goal_runs_typed_ranking_feedback_loop_in_guarded_worker(tmp_path):
         api_key='fake', transport=httpx.MockTransport(respond)))
     report = run_computational(c, guarded=True)
     assert seen == [0, 1] and report['completed_rounds'] == 2
+    # Unchanged task/catalogue reuses the provider response in the second round.
+    assert knowledge_attempts == [0]
     assert report['budget']['experimental_wells']['committed'] == 0
     assert report['budget']['tool_calls']['committed'] == 0
     assert c.state['observations'] == []
