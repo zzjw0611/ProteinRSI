@@ -1,0 +1,43 @@
+name: skill-package
+on:
+  push:
+    paths:
+      - 'src/proteinrsi/**'
+      - 'tests/**'
+      - 'pyproject.toml'
+      - 'MANIFEST.in'
+      - '.github/workflows/skill-package.yml'
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.11'
+      - run: pip install build
+      - run: python -m build
+      - name: Verify packaged skill resources
+        run: |
+          python - <<'PY'
+          import glob, json, zipfile
+          with zipfile.ZipFile(glob.glob('dist/*.whl')[0]) as wheel:
+              root = 'proteinrsi/skills/'
+              cards = json.loads(wheel.read(root + 'protein-metrics/cards.json'))['cards']
+              templates = json.loads(wheel.read(root + 'protein-design-workflows/templates.json'))['templates']
+              ids = {c['id'] for c in cards}
+              assert len(ids) == len(cards) == 9
+              assert all('limitations' not in c for c in cards)
+              assert len({t['category'] for t in templates}) == 6
+              assert all(m['id'] in ids for t in templates for m in t['metrics'])
+              for skill in ('protein-metrics', 'protein-design-workflows'):
+                  assert wheel.read(root + skill + '/SKILL.md')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: proteinrsi-skill-package
+          path: dist/*
+          retention-days: 7

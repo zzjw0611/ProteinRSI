@@ -261,6 +261,11 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
         raise ValueError('Configured protein tool environments are missing: '+json.dumps(missing))
     tool_names = ['research_python', 'research_fit_predict', *names]
     skills = []
+    # New typed studies opt into template-bound knowledge; legacy studies are unchanged.
+    if protocol_mode == 'typed':
+        from proteinrsi.research.skill_library import SKILLS
+        tool_names.append('research_metric_extract')
+        skills.extend(SKILLS)
     if task.candidates:
         tool_names += ['library_check', 'library_sample']
     if local.esmc is not None:
@@ -275,6 +280,9 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
         gate=GatePolicy(criterion='llm_adjudicated_v1'),
         protein_config=local.esmc, local_tools=local,
         research_config=ResearchConfig(resource_selection='llm', enable_generated_code=True, protocol_mode=protocol_mode))
+    if protocol_mode == 'typed':
+        from proteinrsi.research.skill_library import freeze_library
+        freeze_library(campaign.store)
     spent = intake.usage()['llm_calls']['committed']
     if spent:
         campaign.store.reserve('goal-intake', 'llm_calls', spent, {'goal': goal})

@@ -43,3 +43,27 @@ This protocol describes one research iteration. Its outer feedback, total budget
 plate capacity, experiment approval and terminal conditions belong to the existing
 campaign controller. Use only backward dependencies; arbitrary Python loops are not
 part of this protocol syntax. Code is requested through the approved sandbox tool.
+
+## Template-bound method knowledge
+
+When resources.method_knowledge is present, read its selected templates and metric
+cards before planning. These are the current study's frozen knowledge snapshot.
+Use templates as starting points, not mandatory call sequences. State any substantive
+adaptation (changed model, omitted published filter, different metric scope) in the
+Protocol hypothesis and step questions. Reference-only templates disclose missing
+capabilities; never invent an operation or substitute a quantity under the same name.
+
+Use tool:research_metric_extract to read a completed native provider resource:
+bind source_ref to its result with delivery=ref, and supply metric_ids. Bind the
+extractor's /metric_table to the evidence object of agent:rank; a named output view
+can publish it as analysis.metric_table/v1. Join two typed tables with
+adapter:merge_metric_tables (left/right reference bindings) without retyping numbers. Request observed.summary without a
+source_ref and with explicit top_ns. Reuse one prediction for several requested
+metrics. Do not copy scores into candidate predicted_value. Keep all seed/sample
+results distinct and specify any aggregation rather than mixing favorable samples.
+Only a registered matching extractor is executable; PAE and published reference
+methods requiring extra filters remain unavailable until their dependencies exist.
+
+Additional knowledge selection is bounded at startup (at most two templates and
+four extra metric IDs). A-review may revise unexecuted operations using the loaded
+snapshot. This does not change the frozen W/M evaluation plan or authorize tools.

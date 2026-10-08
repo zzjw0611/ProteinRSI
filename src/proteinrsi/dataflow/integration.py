@@ -16,7 +16,7 @@ from proteinrsi.prompting import compose
 from .design import _candidate_payload, proposal_contract
 from .protocol import (Operation, OperationRegistry, Protocol, ProtocolExecutor, ProtocolReview,
                        register_agent_operations, register_tool_operations)
-from .resources import (ResourceStore, SEQUENCES, RANKING, NAMESPACE,
+from .resources import (ResourceStore, SEQUENCES, RANKING, METRICS, NAMESPACE,
                         scope_for, standard_registry)
 from .schema import ContractError
 from .tasks import default_profiles
@@ -27,8 +27,10 @@ def object_schema(properties, required=()):
             "required": list(required), "additionalProperties": False}
 
 
-def build_operations(team, view, resources):
+def build_operations(team, view, resources, knowledge=None):
     from proteinrsi.agents import Plan
+    knowledge_evidence = [{"method_knowledge": knowledge}] if knowledge is not None else []
+    knowledge_version = ":" + digest(knowledge) if knowledge is not None else ""
     from proteinrsi.research.analysis import register_analysis_tools
     gateway = team.tools.fork()
     core = register_analysis_tools(gateway, view)
@@ -38,7 +40,7 @@ def build_operations(team, view, resources):
     ref_schema = {"type": "string", "pattern": r"^resource:[0-9a-f]{64}$"}
 
     def propose(args, key):
-        tool_results = [args["evidence"]] if args.get("evidence") else []
+        tool_results = [*knowledge_evidence, *([args["evidence"]] if args.get("evidence") else [])]
         if args.get("reuse"):
             tool_results.append({"candidates": [c.model_dump(mode="json")
                                                  for c in resources.candidates(args["reuse"])]})
@@ -64,11 +66,11 @@ def build_operations(team, view, resources):
 
     operations.register(Operation("agent:propose", object_schema({
         "question": {"type": "string"}, "reuse": ref_schema, "evidence": {"type": "object"}}, ["question"]),
-        SEQUENCES, propose, "typed-designer-v2", agent_reply_contract=proposal_contract(view)))
+        SEQUENCES, propose, "typed-designer-v2" + knowledge_version, agent_reply_contract=proposal_contract(view)))
 
     def rank(args, key):
         candidates = resources.candidates(args["candidates"])
-        evidence = [args["evidence"]] if args.get("evidence") else []
+        evidence = [*knowledge_evidence, *([args["evidence"]] if args.get("evidence") else [])]
         ranked = team.analyst.rank(view, candidates, evidence)
         annotated = resources.sequences(ranked, producer="agent:C:ranked")
         return {"candidate_set_ref": annotated["resource_id"],
@@ -76,7 +78,7 @@ def build_operations(team, view, resources):
                 "summary": "Analyst ranking; no implicit model execution"}
 
     operations.register(Operation("agent:rank", object_schema({"candidates": ref_schema,
-        "evidence": {"type": "object"}}, ["candidates"]), RANKING, rank, "typed-ranking-v2",
+        "evidence": {"type": "object"}}, ["candidates"]), RANKING, rank, "typed-ranking-v2" + knowledge_version,
         resource_inputs={"candidates": SEQUENCES}))
 
     def select(args, key):
@@ -148,6 +150,16 @@ def build_operations(team, view, resources):
     operations.register(Operation("adapter:sequence_arguments", object_schema({"candidates": ref_schema}, ["candidates"]),
         sequence_args, lambda args, key: {"sequences": [c.sequence for c in resources.candidates(args["candidates"])]},
         "sequence-arguments-v1", resource_inputs={"candidates": SEQUENCES}))
+    if knowledge is not None:
+        # A can join actual metric tables without asking an LLM to retype numbers.
+        def merge_metrics(args, key):
+            left = resources.get(args["left"], schema_ref=METRICS)["data"]
+            right = resources.get(args["right"], schema_ref=METRICS)["data"]
+            return {"rows": [*left["rows"], *right["rows"]]}
+        operations.register(Operation("adapter:merge_metric_tables", object_schema({
+            "left": ref_schema, "right": ref_schema}, ["left", "right"]), METRICS,
+            merge_metrics, "merge-metric-tables-v1",
+            resource_inputs={"left": METRICS, "right": METRICS}))
     return operations
 
 
@@ -163,14 +175,19 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
     if view.task.candidates:
         inputs["supplied_candidates"] = resources.sequences(
             [Candidate(sequence=s) for s in view.task.candidates], producer="supplied-task-input")["resource_id"]
-    operations = build_operations(team, view, resources)
     catalogue = team.tools.catalog(view.task, view.workflow.tool_names)
     selected = ResourceSelector(team.store, config, team.llm).select(view, catalogue)
-    plan_key = "protocol-plan:" + digest({"scope": resources.scope, "contract": asdict(contract),
+    knowledge = selected.get("method_knowledge")
+    operations = build_operations(team, view, resources, knowledge)
+    agent_context = {**context, **({"method_knowledge": knowledge} if knowledge is not None else {})}
+    identity = {"scope": resources.scope, "contract": asdict(contract),
         "operations": operations.catalog(), "config": config.model_dump(mode="json"),
         "prompts": team.store.get("configuration", "prompt_bundle"),
         "model": getattr(team.llm, "model", None), "url": getattr(team.llm, "base_url", None),
-        "client": getattr(team.llm, "cache_settings", {})})
+        "client": getattr(team.llm, "cache_settings", {})}
+    if knowledge is not None:
+        identity["method_knowledge_sha256"] = digest(knowledge)
+    plan_key = "protocol-plan:" + digest(identity)
     plan_record = team.store.get(NAMESPACE, plan_key, {"attempts": 0, "errors": []})
     if protocol is None and plan_record.get("protocol"):
         protocol = Protocol.model_validate(plan_record["protocol"])
@@ -199,8 +216,8 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                 # Use a fresh registry per failed attempt; do not retain invalid definitions.
                 trial_schemas = standard_registry()
                 trial_resources = ResourceStore(team.store, trial_schemas, resources.scope)
-                trial_ops = build_operations(team, view, trial_resources)
-                register_agent_operations(candidate, trial_ops, team.llm, trial_resources, context,
+                trial_ops = build_operations(team, view, trial_resources, knowledge)
+                register_agent_operations(candidate, trial_ops, team.llm, trial_resources, agent_context,
                                           max_repairs=config.max_format_repairs)
                 ProtocolExecutor(trial_resources, trial_ops, max_steps=config.max_plan_steps).preflight(candidate, inputs)
                 for port, schema in contract.required_outputs.items():
@@ -216,7 +233,7 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                 team.store.put(NAMESPACE, plan_key, plan_record)
         if protocol is None:
             raise ContractError("Protocol planning exhausted the format/preflight repair budget")
-    register_agent_operations(protocol, operations, team.llm, resources, context,
+    register_agent_operations(protocol, operations, team.llm, resources, agent_context,
                               max_repairs=config.max_format_repairs)
     for name, schema in contract.required_outputs.items():
         binding = protocol.final_outputs.get(name)
@@ -229,7 +246,7 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
         cloned_resources = ResourceStore(team.store, cloned_schemas, resources.scope)
         cloned_ops = OperationRegistry(cloned_schemas)
         cloned_ops._operations = dict(operations._operations)
-        register_agent_operations(revised, cloned_ops, team.llm, cloned_resources, context,
+        register_agent_operations(revised, cloned_ops, team.llm, cloned_resources, agent_context,
                                   max_repairs=config.max_format_repairs)
         for port, schema in contract.required_outputs.items():
             binding = revised.final_outputs.get(port)
@@ -256,6 +273,7 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                 "cannot change. New operations require new names. Never invent experiment results.",
                 {"view": context, "protocol": current.model_dump(mode="json"), "completed_steps": completed,
                  "actual_resources": {name: resources.describe(ref) for name, ref in refs.items()},
+                 **({"method_knowledge": knowledge} if knowledge is not None else {}),
                  "validation_errors": saved["errors"], "format_attempt": attempt,
                  "execution_error": failure.detail() if failure else None,
                  "operations": operations.catalog(), "schemas": resources.registry.catalog()}, ProtocolReview.model_json_schema())
