@@ -118,3 +118,63 @@ programs return bounded errors for the agent to repair; their tool charge remain
 Source hashes, source files and full gateway requests/results persist for audit.
 This remains defence in depth on a trusted Linux kernel and installed dependencies,
 not a proof against kernel vulnerabilities.
+
+## Explicit bubblewrap alternative (bwrap + seccomp)
+
+Landlock remains the default. On a supported Linux host, an operator may explicitly
+set `PROTEINRSI_SANDBOX_BACKEND=bwrap` for both `sandbox-check` and the entire campaign
+controller command. There is **no automatic fallback** after either backend fails.
+Unknown selections, missing binaries, failed mounts, failed seccomp synchronization,
+or failed enforcement probes abort before generated code or model/tool spending.
+
+The alternative keeps fresh interpreter workers, sanitized environment, closed inherited
+file descriptors, controller-only oracle/DB/provider authority and the same bounded
+capability RPC. Bubblewrap must be an unprivileged executable; the backend neither
+requires setuid nor changes host security settings. Its mandatory user/mount/PID/IPC/UTS
+namespaces expose only the existing runtime read allowlist, the exact interpreter and
+loader aliases, and `/dev/null`. The newly constructed root and all mountpoint parents
+are read-only. There is no `/proc` or host home/project/campaign mount. Replay has one
+writable scratch directory; generated Python has no writable directory. Labels and
+campaign storage must remain outside dependency/source allowlist trees.
+
+Networking is denied by the same syscall controls as Landlock. This backend deliberately
+does **not** request a network namespace or assume that the host supports its setup.
+The shared filter retains every original denial and additionally denies clone/clone3,
+resource-limit changes and prctl for alternate-backend replay workers as well as generated
+workers. Mandatory seccomp thread synchronization prevents an existing thread from
+escaping the filter; scientific imports happen afterwards. No `/proc` mount is added
+merely to count threads. Read-denial errors may be ENOENT; read-only writes may be EROFS,
+instead of Landlock's EACCES/EPERM.
+
+The production probe launches both actual mount policies and applies their actual
+seccomp filter, then checks synthetic private/read-only canaries, network/process
+creation, root writes, truncation and scratch rules. It does not execute experiment
+code. Before running a campaign, also run the mandatory adversarial acceptance suite:
+
+```sh
+export PROTEINRSI_SANDBOX_BACKEND=bwrap
+proteinrsi sandbox-check
+PROTEINRSI_REQUIRE_BWRAP=1 PROTEINRSI_REQUIRE_METRIC_SANDBOX=1 \
+  pytest -q tests/test_bwrap_isolation.py tests/test_custom_metric_execution.py \
+  tests/test_general_research.py tests/test_study_protocol.py
+```
+
+Generated workers retain CPU 10s, wall 20s, address-space 2GB, file-output 1MB and
+64-descriptor hard limits. Their bwrap supervisor and namespace reaper are bound to the
+controller lifetime; the Python worker additionally binds itself to its inner parent
+before the filter denies modifications. Controller interruption/timeout must terminate
+the actual inner worker, not merely a supervisor. As before, guarded replay uses bounded
+RPC messages and a per-response timeout; it does not claim the generated-code CPU/memory
+limits apply to the full research/team workflow.
+
+Audit receipts distinguish `bwrap_seccomp_generated_v1` from
+`landlock_seccomp_generated_v1`. Frozen metric runtimes additionally pin the exact bwrap
+path, binary bytes, version and policy implementation. Historical supported receipts
+remain readable without installing their old backend. Executing unfinished frozen
+metrics requires the exact original runtime; changing a backend/binary/policy pauses
+execution, and never relabels or automatically revalidates a measured trial. Replay
+stores an immutable backend identity too; an existing unpinned legacy replay with
+batches cannot be silently moved to bwrap. Preserve the old campaign and start a new one.
+
+These guarantees assume a trusted kernel, installed runtime dependencies and controller.
+This is defence in depth, not a kernel-exploit sandbox or a claim of scientific validity.

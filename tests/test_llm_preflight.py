@@ -329,6 +329,8 @@ def test_guarded_broker_drains_checkpoint_and_retains_actionable_preflight(
         {"failed": failure_kind, "message": "Worker has no limit details"},
     ])
     monkeypatch.setattr(broker, "probe", lambda: {"available": True})
+    # This test stubs IPC, not OS confinement or backend discovery.
+    monkeypatch.setattr(broker, "worker_command", lambda *a, **k: ["synthetic-ipc-worker"])
     monkeypatch.setattr(broker.subprocess, "Popen", lambda *a, **k: process)
     monkeypatch.setattr(broker, "_readline", lambda *a, **k: next(messages))
     expected_error = ProviderPaused if failure_kind == "ProviderPaused" else broker.WorkerExecutionError

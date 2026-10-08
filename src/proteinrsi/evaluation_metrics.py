@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Frozen task-specific metrics over immutable, capability-free evaluation JSON.
 
-Only the existing disposable Landlock/seccomp worker executes generated code.
+Only an explicitly selected disposable isolation worker executes generated code.
 The controller validates contracts and provenance, never scientific preference.
 """
 from __future__ import annotations
@@ -10,6 +10,7 @@ from copy import deepcopy
 from pathlib import Path
 from importlib.metadata import version, distributions
 import platform
+import re
 import sys
 
 from proteinrsi.contracts import EvaluationMetricProgram, canonical, digest
@@ -20,7 +21,11 @@ from proteinrsi.research.code import execute_code
 from proteinrsi.storage import Conflict
 
 PROTOCOL = "evaluation_inputs/v1"
+# Public legacy receipt constant; active executions use sandbox.generated_profile().
 PROFILE = "landlock_seccomp_generated_v1"
+BWRAP_PROFILE = "bwrap_seccomp_generated_v1"
+_BWRAP_IDENTITY_FIELDS = {
+    "sandbox_backend", "bwrap_path", "bwrap_sha256", "bwrap_version", "bwrap_policy_sha256"}
 RESULT_NS = "evaluation_metric_results"
 INPUT_NS = "evaluation_metric_inputs"
 VALIDATION_NS = "evaluation_metric_validations"
@@ -46,7 +51,8 @@ def runtime_identity() -> dict:
                        if path.is_file() and path.suffix in {".py", ".json", ".md"}}
     dependency_versions = sorted([distribution.metadata["Name"], distribution.version]
                                  for distribution in distributions() if distribution.metadata["Name"])
-    return {"profile": PROFILE, "python": sys.version.split()[0],
+    profile = sandbox.generated_profile()
+    runtime = {"profile": profile, "python": sys.version.split()[0],
             "package_sources_sha256": digest(package_sources),
             "installed_dependency_versions": dependency_versions,
             "python_implementation": platform.python_implementation(),
@@ -63,6 +69,32 @@ def runtime_identity() -> dict:
                        "output_bytes": 512000},
             "network": False, "credentials": False, "artifacts": False,
             "filesystem": "runtime_readonly; no campaign, labels, or user paths"}
+    # Keep historical Landlock identities unchanged apart from source hashes.
+    # Only the explicitly selected alternate backend adds executable/policy pins.
+    if profile == BWRAP_PROFILE:
+        runtime.update(sandbox.backend_identity())
+    return runtime
+
+
+def _recognized_isolation_identity(runtime):
+    """Check historical receipts without accessing today's backend or binaries."""
+    if not isinstance(runtime, dict):
+        return False
+    backend_fields = {key for key in runtime
+                      if key == "sandbox_backend" or key.startswith("bwrap_")}
+    if runtime.get("profile") == PROFILE:
+        return not backend_fields
+    if (runtime.get("profile") != BWRAP_PROFILE
+            or backend_fields != _BWRAP_IDENTITY_FIELDS
+            or runtime.get("sandbox_backend") != "bwrap"):
+        return False
+    path, version_text = runtime.get("bwrap_path"), runtime.get("bwrap_version")
+    return (isinstance(path, str) and "\0" not in path and Path(path).is_absolute()
+            and isinstance(version_text, str) and bool(version_text.strip())
+            and len(version_text) <= 200
+            and all(isinstance(runtime.get(field), str)
+                    and re.fullmatch(r"[0-9a-f]{64}", runtime[field]) is not None
+                    for field in ("bwrap_sha256", "bwrap_policy_sha256")))
 
 
 def _registry(program):
@@ -110,6 +142,8 @@ def normalize_metric_table(program, output) -> dict:
 
 
 def _run(store, program, inputs):
+    from proteinrsi.replay.sandbox import generated_profile
+    profile = generated_profile()
     _bounded(inputs)
     _registry(program).validate("custom.evaluation.input/v1", inputs)
     # No view, artifact refs, broker, arbitrary paths or credentials are forwarded.
@@ -117,7 +151,7 @@ def _run(store, program, inputs):
     if result.get("status") != "ok":
         # Avoid returning observed inputs/output or exception text to a repair LLM.
         raise ContractError("Isolated metric execution failed: " + str(result.get("error_type", "WorkerFailure")))
-    if result.get("execution_backend") != PROFILE or result.get("code_sha256") != digest(program.code):
+    if result.get("execution_backend") != profile or result.get("code_sha256") != digest(program.code):
         raise ContractError("Metric result lacks the required isolated execution provenance")
     output = result.get("output")
     from proteinrsi.llm_evaluation import _check_public
@@ -199,7 +233,7 @@ def _check_validation(record, program):
             or record.get("input_schema_sha256") != digest(program.input_schema)
             or record.get("output_schema_sha256") != digest(program.output_schema)
             or record.get("tests") != expected_tests
-            or record.get("runtime", {}).get("profile") != PROFILE
+            or not _recognized_isolation_identity(record.get("runtime"))
             or record.get("fixture_only") is not True or record.get("status") != "validated"):
         raise Conflict("Frozen metric program validation was altered")
 
@@ -215,8 +249,14 @@ def verify_plan_program(store, plan, *, executing=False):
     _check_validation(validation, program)
     if plan.get("metric_program_sha256") != digest(program):
         raise Conflict("Plan metric program hash differs from its validated source")
-    if executing and validation["runtime"] != runtime_identity():
-        raise MetricExecutionPaused("Frozen metric runtime changed; use its original runtime, never silently upgrade a measured trial")
+    if executing:
+        from proteinrsi.replay.sandbox import SandboxUnavailable
+        try:
+            current_runtime = runtime_identity()
+        except SandboxUnavailable as exc:
+            raise MetricExecutionPaused("Frozen metric runtime is unavailable; restore its original isolation backend, no unsafe fallback") from exc
+        if validation["runtime"] != current_runtime:
+            raise MetricExecutionPaused("Frozen metric runtime changed; use its original runtime, never silently upgrade a measured trial")
     return program, validation
 
 
@@ -329,7 +369,7 @@ def execute_evaluation_metrics(store, plan, envelope):
         # Unsupported isolation is never a request to execute in the controller.
         from proteinrsi.replay.sandbox import probe
         if not probe()["available"]:
-            raise MetricExecutionPaused("Custom evaluation metrics require Landlock and seccomp; no unsafe fallback")
+            raise MetricExecutionPaused("Custom evaluation metrics require the selected isolation backend and seccomp; no unsafe fallback")
         attempt = {**attempt, "state": "running", "runs": attempt["runs"] + 1}
         store.put(ATTEMPT_NS, key, attempt)
         try:

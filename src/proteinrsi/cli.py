@@ -62,7 +62,7 @@ def main(argv: list[str] | None = None) -> None:
     trace.add_argument("--full", action="store_true",
                        help="Use legacy unbounded inline HTML; JSON is always complete and streamed")
     trace.add_argument("--follow", action="store_true")
-    sub.add_parser("sandbox-check", help="Probe Linux Landlock/seccomp prerequisites; no model or API calls")
+    sub.add_parser("sandbox-check", help="Probe explicitly selected Linux sandbox prerequisites; no model or API calls")
     prompts = sub.add_parser("prompts", help="Inspect role prompt templates and snapshot versions")
     prompts.add_argument("--campaign")
     prompts.add_argument("--role", default="all")

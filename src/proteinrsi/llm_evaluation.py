@@ -254,7 +254,7 @@ def ensure_evaluation_plan(store, team, *, evaluation_id: str, target: str,
             try:
                 validation = validate_metric_program(store, response.metric_program)
             except SandboxUnavailable as exc:
-                raise EvaluationPaused("Custom metric validation requires supported Landlock/seccomp isolation; no fallback") from exc
+                raise EvaluationPaused("Custom metric validation requires the explicitly selected filesystem sandbox and seccomp; no fallback") from exc
         plan, completed_ref = _validated_response(store, team, request_ref, request, EvaluationPlan, validate_program)
         plan_data = plan.model_dump(mode="json")
         if plan.metric_program is None:

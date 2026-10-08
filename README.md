@@ -300,7 +300,9 @@ proteinrsi step --campaign runs/protein --agent llm
 
 ## 当前没有完成的能力
 
-当前服务器已通过实际 Landlock/seccomp worker 和双分支验证测试；其他主机仍需先运行 `sandbox-check`。没有新增重型引擎的真实端到端／GPU 验证，没有付费 LLM 端到端运行，没有新湿实验或 RSI 科学收益证明。定量蛋白—蛋白亲和力、完整全原子质量验证、跨蛋白持续经验迁移和单 Agent／多 Agent 科学对照仍需专项工作。历史 ESMC CPU 推理记录不能替代本版新功能验证。除已有确定性分析算子外，新增独立进程中的生成代码工具；其科学有效性仍需按具体任务验证。
+新增显式 `PROTEINRSI_SANDBOX_BACKEND=bwrap` 后端：以只读挂载命名空间配合同等或更严格的 seccomp 限制，默认仍为 Landlock。先运行 `sandbox-check` 和真实对抗验收，再开始新 campaign；任何隔离失败均停止，不自动降级。后端、二进制及策略身份写入审计与冻结指标，续跑不能静默切换。详见 [REPLAY_SECURITY](docs/REPLAY_SECURITY.md)。
+
+此前已在支持 Landlock 的服务器上通过实际 Landlock/seccomp worker 和双分支验证测试；每台主机仍需先运行 `sandbox-check`。没有新增重型引擎的真实端到端／GPU 验证，没有付费 LLM 端到端运行，没有新湿实验或 RSI 科学收益证明。定量蛋白—蛋白亲和力、完整全原子质量验证、跨蛋白持续经验迁移和单 Agent／多 Agent 科学对照仍需专项工作。历史 ESMC CPU 推理记录不能替代本版新功能验证。除已有确定性分析算子外，新增独立进程中的生成代码工具；其科学有效性仍需按具体任务验证。
 
 ## 许可与测试
 

@@ -67,6 +67,10 @@ capability RPC for LLM/tools. Unsupported kernels fail closed. The explicitly se
 `--execution inprocess` path is NOT an isolated benchmark. Landlock ABI 1+ is supported with explicit seccomp protections for truncation, rename/link,
 metadata changes and networking. Unsupported hosts fail closed; enforcement tests skip only
 when the required kernel primitives are unavailable.
+An explicit `PROTEINRSI_SANDBOX_BACKEND=bwrap` alternative uses a read-only mount
+namespace plus the same or stricter seccomp controls. Run `sandbox-check` and the
+mandatory adversarial tests before starting a new campaign; there is no automatic
+fallback. Frozen metrics and replay pin the selected backend.
 See [PROMPTS](docs/PROMPTS.md), [TOOL_CONTRACTS](docs/TOOL_CONTRACTS.md), and
 [REPLAY_SECURITY](docs/REPLAY_SECURITY.md). Start a new campaign for v0.5 semantics.
 

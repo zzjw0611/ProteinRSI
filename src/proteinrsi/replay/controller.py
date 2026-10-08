@@ -5,7 +5,7 @@ from proteinrsi.contracts import Observation, TaskSpec
 from proteinrsi.lab import CSVOracle, UnknownMeasurement
 from proteinrsi.localtools.artifacts import file_sha256
 from .broker import GuardedTeam, GuardedMetaAgent, reader_roots
-from .sandbox import probe, SandboxUnavailable
+from .sandbox import probe, SandboxUnavailable, selected_backend, backend_identity
 
 
 def run_replay(campaign, dataset, *, guarded=True):
@@ -21,6 +21,14 @@ def run_replay(campaign, dataset, *, guarded=True):
         security = probe()
         if not security["available"]:
             raise SandboxUnavailable(security["reason"])
+        backend = selected_backend()
+        from .bwrap_backend import assert_private_paths
+        assert_private_paths([campaign.store.root], reader_roots())
+        saved_security = campaign.store.get("configuration", "replay_security")
+        if saved_security is None and backend != "landlock" and campaign.store.all("batches"):
+            raise ValueError("Legacy replay has no alternate-backend pin; preserve it and start a new campaign")
+        campaign.store.put("configuration", "replay_security", {
+            "backend": backend, "identity": backend_identity()}, immutable=True)
         # Never permit label placement inside the worker's dependency/code allowlist.
         if any(path.is_relative_to(Path(root).resolve()) for root in reader_roots()):
             raise ValueError("Move labels outside the worker dependency/source allowlist")
@@ -40,7 +48,7 @@ def run_replay(campaign, dataset, *, guarded=True):
         "feedback_source": task.feedback_source}, immutable=True)
     campaign.store.event("replay_started", {"execution": "guarded" if guarded else "inprocess_explicit",
         "source": task.feedback_source, "labels_sent_to_worker": False,
-        "security_note": "inprocess is NOT an OS-isolated benchmark" if not guarded else "Landlock + seccomp + capability RPC"})
+        "security_note": "inprocess is NOT an OS-isolated benchmark" if not guarded else selected_backend() + " + seccomp + capability RPC"})
     if guarded:
         old = campaign.team
         campaign.team = GuardedTeam.from_team(old)

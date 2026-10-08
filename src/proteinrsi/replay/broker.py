@@ -13,7 +13,7 @@ import time
 from proteinrsi.agents import Team, MetaAgent, FeedbackAnalysis, MetaResponse
 from proteinrsi.contracts import Candidate, canonical
 from proteinrsi.tools import ToolCall
-from .sandbox import SandboxUnavailable, probe
+from .sandbox import SandboxUnavailable, probe, selected_backend, worker_command
 
 READ_NAMESPACES = {"research_runs", "research_step_outputs", "resource_selections", "research_analysis",
     "team_outputs", "artifacts", "task_predictions", "embedding_artifacts", "batches"}
@@ -68,6 +68,10 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
     state = probe()
     if not state["available"]:
         raise SandboxUnavailable(state["reason"])
+    backend = selected_backend()
+    roots = reader_roots()
+    from .bwrap_backend import assert_private_paths
+    assert_private_paths([team.store.root], roots)
     from proteinrsi.research.analysis import register_analysis_tools
     from proteinrsi.research.prediction import register_prediction_tool
     from proteinrsi.research.library import register_library_tools
@@ -87,14 +91,15 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
             "PYTHONNOUSERSITE": "1", "OPENBLAS_NUM_THREADS": "1", "OMP_NUM_THREADS": "1"}
         if (Path(sys.base_prefix)/"lib").is_dir():
             env["LD_LIBRARY_PATH"] = str(Path(sys.base_prefix)/"lib")
-        start = {"work": work, "read_roots": reader_roots(), "operation": operation,
+        start = {"work": work, "read_roots": roots, "operation": operation,
+            "sandbox_backend": backend,
             "view": view.model_dump(mode="json"), "last_patch_round": last_patch_round,
             "tools": catalogue, "allow_egress": gateway.allow_egress,
             "llm": {"model": llm.model, "base_url": llm.base_url,
                     "cache_settings": getattr(llm,"cache_settings",{})} if llm else None}
         stderr = Path(work)/"stderr.log"
         with stderr.open("wb") as err:
-            proc = subprocess.Popen([sys.executable,"-m","proteinrsi.replay.worker"],
+            proc = subprocess.Popen(worker_command(roots, work, "proteinrsi.replay.worker", backend=backend),
                 cwd=work, env=env, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=err,
                 start_new_session=True, close_fds=True)
             def send(obj):

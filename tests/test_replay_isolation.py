@@ -7,11 +7,11 @@ import sys
 import pytest
 
 from proteinrsi.replay.broker import reader_roots
-from proteinrsi.replay.sandbox import probe
+from proteinrsi.replay.sandbox import probe, selected_backend
 
 
 def test_worker_filesystem_network_and_legacy_abi_protections(tmp_path):
-    if not probe()["available"]:
+    if selected_backend() != "landlock" or not probe()["available"]:
         pytest.skip("Landlock/libseccomp unavailable")
     private = tmp_path/"hidden-labels.csv"
     private.write_text("PRIVATE TEST LABELS")

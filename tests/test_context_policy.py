@@ -173,7 +173,8 @@ from pathlib import Path
 try:
     Path({str(hidden)!r}).read_text()
     blocked = False
-except PermissionError:
+except OSError as exc:
+    assert exc.errno in (1, 2, 13, 30)
     blocked = True
 result = {{'length': len(context['research_context']['large']),
           'blocked': blocked, 'key': os.environ.get('PROTEINRSI_API_KEY')}}

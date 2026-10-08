@@ -22,9 +22,11 @@ def main():
     request = json.loads(sys.stdin.readline(4 * 1024 * 1024))
     # Kernel-enforced lifetime: a killed controller cannot orphan an idle worker.
     # The later generated-code seccomp profile blocks prctl to prevent disabling it.
+    backend = request.get("sandbox_backend", "landlock")
+    expected_parent = 1 if backend == "bwrap" else request.get("parent_pid")
     libc = ctypes.CDLL(None, use_errno=True)
     if (sys.platform != "linux" or libc.prctl(1, signal.SIGKILL, 0, 0, 0) != 0
-            or os.getppid() != request.get("parent_pid")):
+            or os.getppid() != expected_parent):
         raise RuntimeError("Cannot bind generated worker lifetime to its controller")
     resource.setrlimit(resource.RLIMIT_CORE, (0, 0))
     resource.setrlimit(resource.RLIMIT_CPU, (10, 10))
@@ -32,7 +34,7 @@ def main():
     resource.setrlimit(resource.RLIMIT_FSIZE, (1024**2, 1024**2))
     resource.setrlimit(resource.RLIMIT_NOFILE, (64, 64))
     from proteinrsi.replay.sandbox import restrict
-    restrict(request['read_roots'], request['work'], generated_code=True)
+    restrict(request['read_roots'], request['work'], generated_code=True, backend=backend)
     if request.get('context_file'):
         request['context'] = json.loads(Path(request['context_file']).read_text())
     logs = BoundedText()

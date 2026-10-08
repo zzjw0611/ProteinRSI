@@ -50,7 +50,8 @@ def main():
     start = json.loads(sys.stdin.readline(32*1024*1024))
     # Restrict BEFORE importing numpy, tools or agent code; no arbitrary actions before enforcement.
     from proteinrsi.replay.sandbox import restrict
-    security = restrict(start["read_roots"], start["work"])
+    security = restrict(start["read_roots"], start["work"],
+                        backend=start.get("sandbox_backend", "landlock"))
     from proteinrsi.contracts import TaskView
     from proteinrsi.agents import Team, MetaAgent
     from proteinrsi.tools import ToolGateway, ToolSpec

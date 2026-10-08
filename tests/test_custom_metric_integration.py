@@ -9,6 +9,7 @@ import json
 import pytest
 
 from proteinrsi.contracts import digest
+from proteinrsi.replay.sandbox import generated_profile
 from proteinrsi.evaluation import evaluate_llm_trial, evaluate_meta, _offline_metric_envelope
 from proteinrsi.reporting_metrics import evaluation_report_configuration
 from proteinrsi.storage import Conflict
@@ -73,7 +74,7 @@ def synthetic_metric_worker(monkeypatch):
     def worker(store, view, args, *, pure=False):
         assert pure and view is None and args['code'] == CODE
         calls.append(deepcopy(args['inputs']))
-        return {'status': 'ok', 'execution_backend': 'landlock_seccomp_generated_v1',
+        return {'status': 'ok', 'execution_backend': generated_profile(),
                 'code_sha256': digest(CODE), 'output': _synthetic_output(args['inputs'])}
 
     monkeypatch.setattr('proteinrsi.evaluation_metrics.execute_code', worker)

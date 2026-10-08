@@ -135,7 +135,7 @@ def plumbing_executor(monkeypatch):
         output = replies[digest(arguments["inputs"])]
         if callable(output):
             return output(arguments)
-        return {"status": "ok", "execution_backend": metrics.PROFILE,
+        return {"status": "ok", "execution_backend": sandbox.generated_profile(),
                 "code_sha256": digest(arguments["code"]), "output": deepcopy(output)}
 
     def register(program, envelope=None, output=None):
@@ -361,7 +361,7 @@ def test_preoutcome_fixture_validation_rejects_bad_execution(tmp_path, plumbing_
         output = output_fixture(99 if fault == "mismatch" or (
             fault == "nondeterministic" and count == 2) else 2)
         return {"status": "ok", "output": output,
-                "execution_backend": "inprocess" if fault == "wrong_backend" else metrics.PROFILE,
+                "execution_backend": "inprocess" if fault == "wrong_backend" else sandbox.generated_profile(),
                 "code_sha256": "0" * 64 if fault == "wrong_code_hash" else digest(program.code)}
 
     plumbing_executor.replies[digest(program.tests[0].inputs)] = faulty
@@ -514,7 +514,7 @@ def test_execution_failure_pauses_once_without_fallback_or_repair(tmp_path, plum
             return {"status": "failed", "error_type": "Timeout"}
         output = ({"wrong": "shape"} if fault == "schema" else
                   output_fixture(float("nan") if fault == "nonfinite" else count, 10.5))
-        return {"status": "ok", "output": output, "execution_backend": metrics.PROFILE,
+        return {"status": "ok", "output": output, "execution_backend": sandbox.generated_profile(),
                 "code_sha256": digest(arguments["code"])}
 
     plumbing_executor.replies[key] = failure
@@ -601,14 +601,14 @@ def test_changed_runtime_pauses_but_completed_result_replays(tmp_path, plumbing_
 
 
 @pytest.mark.skipif(not SANDBOX_STATE["available"] and not REQUIRE_SANDBOX,
-                    reason="Real custom-metric acceptance needs Linux Landlock and libseccomp")
+                    reason="Real custom-metric acceptance needs the selected Linux filesystem backend and seccomp")
 class TestSupportedMetricSandbox:
     """No execute_code/probe mocks: these are real production-worker acceptance tests."""
 
     @pytest.fixture(autouse=True)
     def require_real_sandbox(self):
         assert sandbox.probe()["available"], (
-            "PROTEINRSI_REQUIRE_METRIC_SANDBOX=1 requires real Landlock/seccomp; "
+            "PROTEINRSI_REQUIRE_METRIC_SANDBOX=1 requires the real selected filesystem backend and seccomp; "
             "the supported-sandbox acceptance job must not silently skip: " + str(sandbox.probe()))
 
     def test_supported_sandbox_program_fixtures_execution_and_replay(self, tmp_path):
@@ -616,7 +616,7 @@ class TestSupportedMetricSandbox:
         envelope = envelope_fixture(plan)
         result = metrics.execute_evaluation_metrics(store, plan, envelope)
         assert result["output"] == output_fixture(6, 10.5)
-        assert result["runtime"]["profile"] == metrics.PROFILE
+        assert result["runtime"]["profile"] == sandbox.generated_profile()
         assert result["deterministic_runs"] == 2
         assert [row["value"] for row in result["metric_table"]["rows"]] == [6, 10.5]
         generated_events = [e for e in store.events() if e["kind"] == "generated_code_completed"]
@@ -643,7 +643,8 @@ assert os.environ.get('PROTEINRSI_API_KEY') is None
 def denied(operation):
     try:
         operation()
-    except PermissionError:
+    except OSError as exc:
+        assert exc.errno in (1, 2, 13, 30)
         return
     raise AssertionError('Forbidden operation was not denied')
 for forbidden in [{str(hidden)!r}, {str(alias)!r}, {str(store_path)!r}, '/etc/passwd', '/proc/self/environ']:
@@ -743,7 +744,7 @@ else:
         output = evaluation_report_configuration(campaign.store, campaign.state)
         assert output["llm_evaluation_metric_results"][result["result_ref"]] == result
         assert result["metric_table_sha256"] == digest(result["metric_table"])
-        assert result["runtime"]["profile"] == metrics.PROFILE
+        assert result["runtime"]["profile"] == sandbox.generated_profile()
         assert len([event for event in campaign.store.events()
                     if event["kind"] == "generated_code_completed"]) == 6
         assert campaign.store.usage()["llm_calls"]["committed"] == 2

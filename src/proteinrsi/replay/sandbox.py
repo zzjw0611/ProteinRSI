@@ -32,7 +32,32 @@ class ArgCompare(ctypes.Structure):
                ("datum_a", ctypes.c_uint64), ("datum_b", ctypes.c_uint64)]
 
 
+def selected_backend():
+    backend = os.environ.get("PROTEINRSI_SANDBOX_BACKEND", "landlock")
+    if backend not in {"landlock", "bwrap"}:
+        raise SandboxUnavailable("Unknown explicit sandbox backend: " + backend)
+    return backend
+
+
+def generated_profile():
+    return selected_backend() + "_seccomp_generated_v1"
+
+
+def backend_identity():
+    if selected_backend() == "bwrap":
+        from .bwrap_backend import identity
+        return identity()
+    return {}
+
+
 def probe():
+    if selected_backend() == "bwrap":
+        from .bwrap_backend import probe_bwrap
+        return probe_bwrap()
+    return _probe_landlock()
+
+
+def _probe_landlock():
     if sys.platform != "linux" or platform.machine() not in ("x86_64", "aarch64"):
         return {"available": False, "reason": "Linux x86_64/aarch64 required"}
     libc = ctypes.CDLL(None, use_errno=True)
@@ -44,8 +69,15 @@ def probe():
             "reason": "Requires Landlock ABI>=1 and libseccomp; missing primitives fail closed"}
 
 
-def restrict(read_roots, work, *, generated_code=False):
-    state = probe()
+def restrict(read_roots, work, *, generated_code=False, backend="landlock"):
+    if backend == "bwrap":
+        from .bwrap_backend import verify_child_boundary
+        verify_child_boundary(work, generated_code=generated_code)
+        _enforce_seccomp(generated_code=True, tsync=True)
+        return {"available": True, "backend": "bwrap", "profile": "bwrap-readonly-root+seccomp-v1"}
+    if backend != "landlock":
+        raise SandboxUnavailable("Unknown worker sandbox backend")
+    state = _probe_landlock()
     if not state["available"]:
         raise SandboxUnavailable(state["reason"])
     # Apply before scientific libraries can spawn threads. Broker sets BLAS thread count=1.
@@ -53,15 +85,6 @@ def restrict(read_roots, work, *, generated_code=False):
         raise SandboxUnavailable("Sandbox must start single-threaded")
     libc = ctypes.CDLL(None, use_errno=True)
     sec = ctypes.CDLL(ctypes.util.find_library("seccomp"), use_errno=True)
-    sec.seccomp_init.argtypes = [ctypes.c_uint32]
-    sec.seccomp_init.restype = ctypes.c_void_p
-    sec.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
-    sec.seccomp_syscall_resolve_name.restype = ctypes.c_int
-    sec.seccomp_rule_add.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint]
-    sec.seccomp_rule_add_array.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int,
-                                         ctypes.c_uint, ctypes.POINTER(ArgCompare)]
-    sec.seccomp_load.argtypes = [ctypes.c_void_p]
-    sec.seccomp_release.argtypes = [ctypes.c_void_p]
     # ABI 1 already restricts reads/writes. Newer REFER/TRUNCATE rights are only
     # requested when supported; those syscalls are denied independently below.
     handled = (1 << 13) - 1
@@ -99,10 +122,30 @@ def restrict(read_roots, work, *, generated_code=False):
             raise SandboxUnavailable("Cannot enforce Landlock")
     finally:
         os.close(fd)
+    _enforce_seccomp(generated_code=generated_code, sec=sec)
+    return state
+
+
+def _enforce_seccomp(*, generated_code=False, tsync=False, sec=None):
+    if sec is None:
+        sec = ctypes.CDLL("libseccomp.so.2", use_errno=True)
+    sec.seccomp_init.argtypes = [ctypes.c_uint32]
+    sec.seccomp_init.restype = ctypes.c_void_p
+    sec.seccomp_syscall_resolve_name.argtypes = [ctypes.c_char_p]
+    sec.seccomp_syscall_resolve_name.restype = ctypes.c_int
+    sec.seccomp_rule_add.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int, ctypes.c_uint]
+    sec.seccomp_rule_add_array.argtypes = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_int,
+                                         ctypes.c_uint, ctypes.POINTER(ArgCompare)]
+    sec.seccomp_load.argtypes = [ctypes.c_void_p]
+    sec.seccomp_release.argtypes = [ctypes.c_void_p]
     ctx = sec.seccomp_init(0x7fff0000)  # allow default; block dangerous side channels explicitly
     if not ctx:
         raise SandboxUnavailable("Cannot initialize seccomp")
     try:
+        if tsync:
+            sec.seccomp_attr_set.argtypes = [ctypes.c_void_p, ctypes.c_uint, ctypes.c_uint]
+            if sec.seccomp_attr_set(ctx, 4, 1) != 0:  # SCMP_FLTATR_CTL_TSYNC
+                raise SandboxUnavailable("Cannot require synchronized seccomp enforcement")
         blocked = ["socket", "socketpair", "connect", "bind", "listen", "accept", "accept4",
             "ptrace", "process_vm_readv", "process_vm_writev", "pidfd_getfd", "pidfd_open",
             "io_uring_setup", "io_uring_enter", "io_uring_register", "bpf", "perf_event_open",
@@ -135,4 +178,13 @@ def restrict(read_roots, work, *, generated_code=False):
             raise SandboxUnavailable("Cannot enforce seccomp")
     finally:
         sec.seccomp_release(ctx)
-    return state
+
+
+def worker_command(read_roots, work, module, *, generated_code=False, backend=None):
+    backend = selected_backend() if backend is None else backend
+    if backend == "bwrap":
+        from .bwrap_backend import command
+        return command(read_roots, work, module, generated_code=generated_code)
+    if backend != "landlock":
+        raise SandboxUnavailable("Unknown explicit worker backend")
+    return [sys.executable, "-m", module]

@@ -18,9 +18,15 @@ CODE_TOOL = 'research_python'
 
 def execute_code(store, view, arguments, *, pure=False):
     from proteinrsi.replay.broker import reader_roots
-    from proteinrsi.replay.sandbox import probe, SandboxUnavailable
-    if not probe()['available']:
-        raise SandboxUnavailable('Generated code requires Landlock and seccomp')
+    from proteinrsi.replay.sandbox import (probe, SandboxUnavailable, selected_backend,
+                                           worker_command)
+    state = probe()
+    if not state['available']:
+        raise SandboxUnavailable(state.get('reason', 'Selected sandbox backend and seccomp are unavailable'))
+    backend = selected_backend()
+    roots = reader_roots()
+    from proteinrsi.replay.bwrap_backend import assert_private_paths
+    assert_private_paths([store.root], roots)
     if pure and set(arguments) - {'code', 'inputs'}:
         raise ValueError('Pure metric execution cannot request artifacts or capabilities')
     source_hash = digest(arguments['code'])
@@ -48,8 +54,8 @@ def execute_code(store, view, arguments, *, pure=False):
             files[ref] = str(destination)
         context = {} if pure else view.model_dump(mode='json')
         request = {'code': arguments['code'], 'inputs': arguments.get('inputs', {}),
-            'artifacts': files, 'context': context, 'read_roots': reader_roots(), 'work': work,
-            'parent_pid': os.getpid()}
+            'artifacts': files, 'context': context, 'read_roots': roots, 'work': work,
+            'parent_pid': os.getpid(), 'sandbox_backend': backend}
         # Bulk revealed evidence travels as a local sandbox input, never through
         # model text or the small worker command pipe. No oracle files are copied.
         from proteinrsi.research.context import enabled
@@ -69,7 +75,8 @@ def execute_code(store, view, arguments, *, pure=False):
             'PYTHONNOUSERSITE': '1', 'PYTHONHASHSEED': '0', 'OPENBLAS_NUM_THREADS': '1', 'OMP_NUM_THREADS': '1',
             'LD_LIBRARY_PATH': str(Path(sys.base_prefix)/'lib')}
         with (root/'stdout').open('wb') as out, (root/'stderr').open('wb') as err:
-            proc = subprocess.Popen([sys.executable, '-m', 'proteinrsi.research.code_worker'],
+            proc = subprocess.Popen(worker_command(roots, work, 'proteinrsi.research.code_worker',
+                generated_code=True, backend=backend),
                 stdin=subprocess.PIPE, stdout=out, stderr=err, env=env, cwd=work,
                 start_new_session=True, close_fds=True)
             try:
@@ -121,10 +128,11 @@ def execute_code(store, view, arguments, *, pure=False):
             result['artifacts'] = registered
             if 'candidates' in output:
                 result['candidates'] = output['candidates']
-        result.update(execution_backend='landlock_seccomp_generated_v1',
+        result.update(execution_backend=backend + "_seccomp_generated_v1",
                       evidence_kind='computed_unvalidated', code_sha256=source_hash,
                       measurement_authority=False, source_file='programs/'+source_path.name)
-        store.event('generated_code_completed', {'code_sha256': source_hash, 'status': result['status']})
+        store.event('generated_code_completed', {'code_sha256': source_hash, 'status': result['status'],
+            'execution_backend': result['execution_backend']})
         return result
 
 
