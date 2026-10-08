@@ -94,4 +94,4 @@ jobs:
       - name: Require actual alternative-backend enforcement (no skips or fallback)
         run: |
           proteinrsi sandbox-check
-          pytest -q tests/test_bwrap_isolation.py tests/test_custom_metric_execution.py tests/test_general_research.py tests/test_study_protocol.py tests/test_final_candidate_selection.py
+          pytest -q tests/test_bwrap_isolation.py tests/test_custom_metric_execution.py tests/test_general_research.py tests/test_study_protocol.py tests/test_final_candidate_selection.py tests/test_source_upgrade.py tests/test_source_upgrade_feedback.py tests/test_reconcile_interrupted_design.py
