@@ -33,7 +33,7 @@ Issues = "https://github.com/zzjw0611/ProteinRSI/issues"
 where = ["src"]
 
 [tool.setuptools.package-data]
-proteinrsi = ["skills/*/SKILL.md", "localtools/descriptions/*.json", "research/know_how/*.md", "prompts/*.md"]
+proteinrsi = ["skills/*/SKILL.md", "skills/*/*.json", "localtools/descriptions/*.json", "research/know_how/*.md", "prompts/*.md"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
