@@ -49,7 +49,11 @@ def skill_text(names: list[str]) -> str:
         path = files("proteinrsi").joinpath("skills", name, "SKILL.md")
         if not path.is_file():
             raise ValueError(f"Unknown skill: {name}")
-        texts.append(path.read_text(encoding="utf-8"))
+        # These two skills are supplied by the frozen, selected knowledge receipt.
+        # Do not re-inject their installed text into B after a package update.
+        from proteinrsi.research.skill_library import SKILLS
+        if name not in SKILLS:
+            texts.append(path.read_text(encoding="utf-8"))
     return "\n\n".join(texts)
 
 
@@ -163,6 +167,8 @@ class Team:
         register_library_tools(self.tools, view)
         from proteinrsi.research.code import register_code_tool
         register_code_tool(self.tools, view)
+        from proteinrsi.research.metric_tools import register_metric_tool
+        register_metric_tool(self.tools, view)
 
     def run(self, view: TaskView) -> list[Candidate]:
         self.bind_tools(view)

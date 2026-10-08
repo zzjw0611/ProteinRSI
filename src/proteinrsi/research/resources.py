@@ -32,6 +32,13 @@ def build_catalog(view: TaskView, tool_catalog: list[dict], store) -> dict:
             raise ValueError("Invalid Skill name")
         path = files("proteinrsi").joinpath("skills", name, "SKILL.md")
         content = path.read_text(encoding="utf-8")
+        from .skill_library import SKILLS
+        if name in SKILLS:
+            # The frozen selector below expands details; never duplicate all cards here.
+            skills.append({"id": "skill:" + name, "name": name,
+                "description": "Template-bound method knowledge and metric provider catalogue",
+                "content": {"skill": name, "loading": "template-first"}, "version": "1"})
+            continue
         skills.append({"id": "skill:" + name, "name": name, "description": "Workflow-authorized Skill " + name,
                        "content": content, "version": digest(content)})
     know_how = []
@@ -67,15 +74,20 @@ class ResourceSelector:
         self.store, self.config, self.llm = store, config, llm
 
     def select(self, view: TaskView, tool_catalog: list[dict], *, query: str | None = None) -> dict:
+        from .skill_library import select_knowledge
+        knowledge = select_knowledge(self.store, view, tool_catalog, self.config, self.llm, query=query)
         resources = build_catalog(view, tool_catalog, self.store)
         query = query or (f"{view.task.objective_description or view.task.name}; {view.task.kind.value}; "
                           f"{view.task.metric}; round {view.round_index}; "
                           f"revealed observations {len(view.observations)}; remaining queries {view.remaining_wells}")
         manifest = {k: [{"id": r["id"], "version": r["version"]} for r in v] for k, v in resources.items()}
-        key = digest({"query": query, "resources": manifest, "evidence": view.evidence_version,
+        identity = {"query": query, "resources": manifest, "evidence": view.evidence_version,
                       "config": self.config.model_dump(mode="json"), "llm_model": getattr(self.llm, "model", None),
                       "llm_url": getattr(self.llm, "base_url", None),
-                      "llm_settings": getattr(self.llm, "cache_settings", {})})
+                      "llm_settings": getattr(self.llm, "cache_settings", {})}
+        if knowledge is not None:
+            identity["method_knowledge_sha256"] = digest(knowledge)
+        key = digest(identity)
         prior = self.store.get("resource_selections", key)
         if prior is not None:
             return prior
@@ -95,8 +107,11 @@ class ResourceSelector:
             for category in selected:
                 if i < len(selected[category]):
                     flat.append({"kind": category, **selected[category][i]})
-        included, omitted, total = [], [], 0
+        included, omitted = [], []
+        total = len(canonical(knowledge)) if knowledge is not None else 0
         for item in flat:
+            if knowledge is not None and item["id"] in {"skill:protein-metrics", "skill:protein-design-workflows"}:
+                continue
             size = len(canonical(item))
             if len(included) >= self.config.max_resources or total + size > self.config.max_context_chars:
                 omitted.append({"id": item["id"], "reason": "resource_context_budget"})
@@ -107,6 +122,8 @@ class ResourceSelector:
                   "resources": included, "omitted": omitted, "context_chars": total,
                   "evidence_version": view.evidence_version,
                   "permission_note": "Retrieval never expands workflow permissions. TaskView constraints are not truncated."}
+        if knowledge is not None:
+            result["method_knowledge"] = knowledge
         self.store.put("resource_selections", key, result, immutable=True)
         self.store.event("resources_selected", {"selection_id": key, "ids": [r["id"] for r in included],
                                                "omitted": omitted, "mode": result["mode"]})
