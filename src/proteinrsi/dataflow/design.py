@@ -55,7 +55,11 @@ materializes protein.sequence_set/v1 and computes sequence IDs; never invent IDs
 Use candidate_refs to adopt candidate sets already produced by a successful tool or code.
 Do not retype those sequences or invent alternative edit encodings. Use only resource IDs
 provided in available_candidate_sets. An existing candidate set can be accepted with
-candidate_refs=[its resource_id] and tool_calls=[]. New substitutions must use a list
+candidate_refs=[its resource_id] and tool_calls=[]. In typed agent:propose, only
+candidates selected in that final no-tool reply are published. Earlier tool
+panels and provisional replies are not automatically adopted: explicitly name
+all desired candidate_refs or return the complete desired final candidates.
+New substitutions must use a list
 of {position: integer, from: amino_acid, to: amino_acid} objects for each variant.
 Tools are optional; no request means no protein model or predictor will run. Do not
 invent fitness values. A validation repair changes your output, not the task constraints.

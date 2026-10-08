@@ -123,3 +123,25 @@ LLM可以在 `custom.*` 命名空间定义有界的中间JSON Schema，并创建
 M的已有W/M提示与策略验收保留，可影响后续协议规划；**尚未开放任意协议拓扑/Schema/代码的持久M补丁验收**。最终任务指标、约束、预算和实验接口不可由本协议重写。不要把本次数据流升级表述为已证明更强的科学RSI。
 
 真实模型、GPU 和湿实验仍需单独验证；本次部署已验证目标机隔离中的人工回放与计算循环。测试结果及来源界限见 [DATAFLOW_VALIDATION](DATAFLOW_VALIDATION.md)。实际复用说明见 [DATAFLOW_REUSE](DATAFLOW_REUSE.md)。
+
+## Final adoption in typed design dialogs
+
+`agent:propose` uses `typed-designer-v3-final-selection`. Its published sequence
+resource consists only of candidates resolved from B's final response with no
+further tool calls. Earlier valid tool outputs and provisional B responses are
+retained as evidence, not automatically appended to the submitted panel. Select
+every desired `candidate_ref` explicitly; multiple refs retain requested order
+and deduplicate identities. An empty final selection is a contract failure, not
+a request to fall back to an earlier panel. Within-request format-repair retention
+remains governed by its existing explicit `repair_state` contract. Legacy
+cumulative-pool runners are outside this typed-operation change.
+
+The implementation version prevents a fresh corrected operation from reusing an
+old proposal-step receipt. It is **not an in-place migration** for existing draft
+plates, pending batches, protocol journals or review decisions. Those stores may
+already contain materialized candidates independently of the operation cache.
+Do not delete caches, refund measured wells, rewrite history, or silently replay
+an affected draft under changed semantics. Use a genuinely fresh planning scope
+or an explicitly reviewed transition at a clean round boundary, preserving old
+source identities, receipts, observations and all budget charges. Frozen metric
+plans retain their exact-runtime checks and must not be migrated implicitly.

@@ -47,7 +47,6 @@ def build_operations(team, view, resources, knowledge=None):
         response = team.designer.propose(view, Plan(rationale=args["question"]), tool_results,
                                         gateway.catalog(view.task, allowed))
         # Explicit tool requests are executed exactly as in the existing design loop.
-        candidates = list(response.candidates)
         for turn in range(view.workflow.design_tool_rounds):
             if not response.tool_calls:
                 break
@@ -56,17 +55,21 @@ def build_operations(team, view, resources, knowledge=None):
             for call in response.tool_calls:
                 result = gateway.call(call, view.task, allowed=allowed, context_key=key)
                 tool_results.append(result)
-                for raw in _candidate_payload(result) or []:
-                    candidates.append(Candidate.model_validate(raw))
             response = team.designer.propose(view, Plan(rationale=args["question"]), tool_results,
                                              gateway.catalog(view.task, allowed))
-            candidates.extend(response.candidates)
-        descriptor = resources.sequences(candidates, producer="agent:B")
+        # Intermediate tool outputs/proposals are evidence, not adoption. The
+        # final no-tool response has already resolved explicit candidate_refs,
+        # edits, and any within-request format repairs through request_design.
+        # In particular, a rejected valid earlier panel must not precede the
+        # adopted panel when the outer full-plate adapter takes its first slots.
+        if not response.candidates:
+            raise ContractError("Final designer decision selected no candidates")
+        descriptor = resources.sequences(response.candidates, producer="agent:B")
         return resources.get(descriptor["resource_id"])["data"]
 
     operations.register(Operation("agent:propose", object_schema({
         "question": {"type": "string"}, "reuse": ref_schema, "evidence": {"type": "object"}}, ["question"]),
-        SEQUENCES, propose, "typed-designer-v2" + knowledge_version, agent_reply_contract=proposal_contract(view)))
+        SEQUENCES, propose, "typed-designer-v3-final-selection" + knowledge_version, agent_reply_contract=proposal_contract(view)))
 
     def rank(args, key):
         candidates = resources.candidates(args["candidates"])
