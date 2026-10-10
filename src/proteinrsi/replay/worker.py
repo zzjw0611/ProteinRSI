@@ -82,7 +82,7 @@ def main():
     elif start["operation"] == "feedback":
         output = team.analyst.feedback(view).model_dump(mode="json")
     elif start["operation"] == "meta":
-        output = MetaAgent(llm, store).propose(view, start["last_patch_round"]).model_dump(mode="json")
+        output = MetaAgent(llm, store, gateway).propose(view, start["last_patch_round"]).model_dump(mode="json")
     else:
         raise ValueError("Unknown worker operation")
     print(json.dumps({"done": output, "sandbox": security}), flush=True)

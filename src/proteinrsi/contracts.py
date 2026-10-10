@@ -173,7 +173,37 @@ class Candidate(Model):
         return value
 
 
-class Workflow(Model):
+class MethodProgram(Model):
+    """Agent-authored, versioned source; executed only by the generated-code sandbox."""
+    name: str = Field(pattern=r"^[a-z][a-z0-9_-]{0,47}$")
+    purpose: str = Field(min_length=1, max_length=2000)
+    code: str = Field(min_length=1, max_length=30000)
+    inputs: dict[str, Any] = Field(default_factory=dict)
+
+    @property
+    def version(self) -> str:
+        return "program-" + digest(self)[:16]
+
+
+class ProgrammedMethod(Model):
+    programs: list[MethodProgram] = Field(default_factory=list, max_length=4)
+
+    @model_validator(mode="after")
+    def distinct_program_names(self):
+        if len({p.name for p in self.programs}) != len(self.programs):
+            raise ValueError("Method program names must be distinct")
+        return self
+
+    @model_serializer(mode="wrap")
+    def serialize_method(self, handler):
+        data = handler(self)
+        # Empty optional programs must not change existing W/M identities.
+        if not self.programs:
+            data.pop("programs", None)
+        return data
+
+
+class Workflow(ProgrammedMethod):
     strategy: Literal["additive", "pairwise", "diverse"] = "additive"
     exploration: float = Field(default=0.2, ge=0, le=1)
     ridge_alpha: float = Field(default=1.0, gt=0, le=100)
@@ -196,13 +226,13 @@ class Workflow(Model):
         return "w-" + digest(data)[:16]
 
 
-class MetaPolicy(Model):
+class MetaPolicy(ProgrammedMethod):
     enabled: bool = True
     mode: Literal["plateau", "diagnostic"] = "plateau"
     min_observations: int = Field(default=6, ge=2, le=5000)
     cooldown_rounds: int = Field(default=1, ge=1, le=20)
     min_remaining_wells: int = Field(default=10, ge=4)
-    prompt: str = Field(default="Diagnose workflow failures; propose one falsifiable bounded change.", min_length=1, max_length=12000)
+    prompt: str = Field(default="Improve the mutation task using revealed evidence and execution records. Choose your own analysis and propose a workflow or self-policy change, or abstain.", min_length=1, max_length=12000)
 
     @property
     def version(self) -> str:

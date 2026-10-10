@@ -116,7 +116,7 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
                 from proteinrsi.replay.broker import GuardedMetaAgent
                 improver = GuardedMetaAgent(team)
             else:
-                improver = MetaAgent(team.llm, store)
+                improver = MetaAgent(team.llm, store, getattr(team, "tools", None))
             response = improver.propose(child_view, last_patch_round)
             workflow = view.workflow
             if response.patch and response.patch.target == "workflow":

@@ -172,6 +172,11 @@ class Team:
 
     def run(self, view: TaskView) -> list[Candidate]:
         self.bind_tools(view)
+        if view.workflow.programs:
+            from proteinrsi.research.methods import run_method_programs
+            outputs = run_method_programs(self.store, self.tools, view, view.workflow, owner="W")
+            view = view.model_copy(update={"research_context": {
+                **view.research_context, "workflow_program_outputs": outputs}})
         config = self.store.get("configuration", "research")
         if config and config.get("enabled"):
             from proteinrsi.research.contracts import ResearchConfig
@@ -255,17 +260,27 @@ class Team:
 
 
 class MetaAgent:
-    def __init__(self, llm: JSONLLM | None = None, store=None):
+    def __init__(self, llm: JSONLLM | None = None, store=None, tools=None):
         self.llm = llm
         self.store = store or getattr(llm, "store", None)
+        self.tools = tools
 
     def propose(self, view: TaskView, last_patch_round: int = -100) -> MetaResponse:
         policy = view.meta
         valid = [o for o in view.observations if o.qc == "valid"]
-        if (not policy.enabled or len(valid) < policy.min_observations
+        config = self.store.get("configuration", "research", {}) if self.store else {}
+        autonomous = self.llm is not None and config.get("meta_autonomous", False)
+        if not policy.enabled:
+            return MetaResponse(reason="Meta disabled by operator")
+        # Historical campaigns and the scripted baseline retain their admission policy.
+        # New autonomous LLM campaigns decide for themselves whether evidence warrants a change.
+        if not autonomous and (len(valid) < policy.min_observations
                 or view.remaining_wells < policy.min_remaining_wells
                 or view.round_index - last_patch_round < policy.cooldown_rounds):
             return MetaResponse(reason="Insufficient evidence, cooldown or remaining experimental budget")
+        if self.llm and (autonomous or policy.programs):
+            from proteinrsi.research.meta import propose
+            return propose(self, view, last_patch_round)
         if self.llm:
             instructions = compose(self.store, "meta", policy.prompt)
             context = {"view": view.model_dump(mode="json"),

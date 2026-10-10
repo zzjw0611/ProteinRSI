@@ -17,7 +17,8 @@ def apply_patch(current: Workflow | MetaPolicy, patch: Patch) -> Workflow | Meta
     expected_target = "workflow" if isinstance(current, Workflow) else "meta"
     if patch.target != expected_target or patch.base_version != current.version:
         raise ValueError("Patch target/base version mismatch")
-    # No arbitrary Python execution, dynamic imports or mutation of the trusted core.
+    # Program source is data here. Execution is exclusively through research_python;
+    # patches cannot mutate the trusted controller or bypass its sandbox.
     allowed = set(type(current).model_fields)
     if isinstance(current, MetaPolicy):
         allowed -= {"enabled"}  # Administrative on/off setting cannot self-enable.

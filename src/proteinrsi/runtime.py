@@ -22,7 +22,7 @@ class Campaign:
     def __init__(self, store: Store, team: Team | None = None, meta_agent: MetaAgent | None = None):
         self.store = store
         self.team = team or Team(store)
-        self.meta_agent = meta_agent or MetaAgent(self.team.llm, store)
+        self.meta_agent = meta_agent or MetaAgent(self.team.llm, store, self.team.tools)
         self.memory = ExperienceMemory(store)
         from proteinrsi.governance import MethodGovernance
         self.methods = MethodGovernance(self)
@@ -122,7 +122,8 @@ class Campaign:
             workflow=workflow or Workflow.model_validate(state["workflow"]),
             meta=MetaPolicy.model_validate(state["meta"]), experience=self.memory.retrieve(task.kind),
             artifacts=list(self.store.all("artifacts").values()),
-            research_context={"workflow_validation_outcomes":
+            research_context={"allowed_patch_targets": (self.methods.policy.allowed_patch_targets
+                if self.methods.enabled else ["workflow", "meta"]), "workflow_validation_outcomes":
                 list(self.store.all("workflow_validation_outcomes").values()),
                 **({"method_history": self.methods.visible_history()} if self.methods.enabled else {}),
                 **({"acceptance_policy": state["gate"]} if state["gate"].get("criterion") in {"observed_pareto_v1", "llm_adjudicated_v1"} else {})})
@@ -529,7 +530,11 @@ class Campaign:
         if patch.task_kind != task.kind:
             raise ValueError("Patch scope does not match task")
         current = Workflow.model_validate(state["workflow"]) if patch.target == "workflow" else MetaPolicy.model_validate(state["meta"])
+        if self.methods.enabled and patch.target not in self.methods.policy.allowed_patch_targets:
+            raise PermissionError("Patch target disabled by the frozen operator study configuration")
         candidate = apply_patch(current, patch)
+        if candidate.programs and not self.store.get("configuration", "research", {}).get("enable_generated_code", False):
+            raise PermissionError("Method programs require operator-enabled generated code")
         if patch.target == "workflow":
             self.team.bind_tools(self.view(state, candidate))
             self.team.tools.catalog(task, candidate.tool_names)
@@ -559,7 +564,8 @@ class Campaign:
         values = [o["value"] for o in state["observations"] if o["qc"] == "valid"]
         best = (max(values) if task.direction == "maximize" else min(values)) if values else None
         from proteinrsi.reporting import study_details
-        return {**study_details(self), "campaign_id": state["campaign_id"], "status": state["status"],
+        from proteinrsi.rsi_evidence import summarize_rsi
+        return {**study_details(self), "rsi_evidence": summarize_rsi(self.store), "campaign_id": state["campaign_id"], "status": state["status"],
                 "completed_rounds": state["round_index"],
                 "research_config": self.store.get("configuration", "research"),
                 "protein_model": self.store.get("configuration", "protein_model"),

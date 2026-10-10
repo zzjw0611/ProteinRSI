@@ -1,12 +1,16 @@
 {
   "enabled": true,
+  "protocol_mode": "typed",
+  "enable_generated_code": true,
   "resource_selection": "llm",
   "max_resources": 24,
   "max_context_chars": 16000,
   "max_plan_steps": 12,
   "max_revisions": 2,
   "max_executed_steps": 20,
+  "max_format_repairs": 2,
   "review_after_step": true,
   "meta_autonomous": true,
-  "meta_tool_rounds": 4
+  "meta_tool_rounds": 4,
+  "context_policy": "evidence-v1"
 }

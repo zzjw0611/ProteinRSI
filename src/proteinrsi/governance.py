@@ -36,6 +36,7 @@ CALL_NAMESPACES = ("llm", "tool_jobs", "validation_llm", "validation_tool_jobs")
 
 class GovernancePolicy(Model):
     """Administrative settings: not part of either evolvable W/M schema."""
+    allowed_patch_targets: list[Target] = Field(default_factory=lambda: ["workflow", "meta"], max_length=2)
     max_consecutive_failures: int = Field(default=3, ge=1, le=100)
     max_changed_fields: int = Field(default=3, ge=1, le=20)
     max_deferred_rounds: int = Field(default=2, ge=1, le=20)
@@ -83,7 +84,7 @@ class MethodGovernance:
             "configuration": configuration,
             "contracts": {"method": type(definition).model_json_schema(),
                           "task": TaskSpec.model_json_schema(), "gate": GatePolicy.model_json_schema()},
-            "limits": "External engines/weights are declared, not copied. Per-run generated code and protocols remain execution artifacts."}
+            "limits": "External engines/weights are declared, not copied. Retained method programs are part of the definition; other generated code remains an execution artifact."}
         acceptance_policy = self.store.get("configuration", "acceptance_policy")
         if acceptance_policy is not None:
             snapshot["acceptance_policy"] = acceptance_policy
@@ -132,6 +133,8 @@ class MethodGovernance:
     def stage(self, state: dict, patch: Patch, candidate) -> None:
         if not self.enabled:
             return
+        if patch.target not in self.policy.allowed_patch_targets:
+            raise PermissionError("Patch target disabled by the frozen operator study configuration")
         if self.paused(state):
             raise Conflict("Method improvement is paused; an operator must resume it")
         if len(patch.changes) > self.policy.max_changed_fields:

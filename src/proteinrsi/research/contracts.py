@@ -14,6 +14,9 @@ class ResearchConfig(Model):
     protocol_mode: Literal["legacy", "typed"] = "legacy"
     max_format_repairs: int = Field(default=2, ge=0, le=3)
     enable_generated_code: bool = False
+    # Operator resource/compatibility settings, not scientific decision heuristics.
+    meta_autonomous: bool = True
+    meta_tool_rounds: int = Field(default=4, ge=0, le=12)
     resource_selection: Literal["rules", "llm", "all"] = "rules"
     max_resources: int = Field(default=24, ge=4, le=64)
     max_context_chars: int = Field(default=16000, ge=2000, le=100000)

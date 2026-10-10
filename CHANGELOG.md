@@ -1,5 +1,14 @@
 # Unreleased — frozen custom evaluation metrics
 
+## Unreleased — autonomous mutation-method RSI
+
+- Let Meta choose its own budgeted analysis/tools or abstain, without fixed diagnostic scripts.
+- Add portable, versioned W/M programs executed through the existing generated-code sandbox.
+- Persist paid analysis steps, source-linked invocations and restart-safe final proposals.
+- Add frozen fixed-W/fixed-M ablation controls and a mechanism-only `rsi_evidence` status report.
+- Keep external evaluation, raw labels, permission boundaries and the shared study ledger unchanged.
+- Add mutation-focused configuration, documentation and mechanism/security regression tests.
+
 - Extend EvaluationPlan with task-specific metric definitions, executable source, JSON I/O schemas, scoped bindings and pre-outcome synthetic fixtures
 - Reuse generated-code isolation and MetricTable, freezing source/contracts/runtime before W/M validation and failing closed on unsupported hosts
 - Make online W/M and offline M verdicts and reports consume one persisted metric result/hash, with no fixed-metric fallback

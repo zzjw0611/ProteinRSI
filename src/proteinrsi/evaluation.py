@@ -88,7 +88,7 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
         from proteinrsi.replay.broker import GuardedMetaAgent
         proposal = GuardedMetaAgent(team).propose(view)
     else:
-        proposal = MetaAgent(team.llm, store).propose(view)
+        proposal = MetaAgent(team.llm, store, getattr(team, "tools", None)).propose(view)
     child = workflow
     if proposal.patch and proposal.patch.target == "workflow":
         if proposal.patch.task_kind != case.task.kind:

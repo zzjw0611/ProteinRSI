@@ -1,8 +1,5 @@
 {
   "enabled": true,
-  "mode": "diagnostic",
-  "min_observations": 6,
-  "cooldown_rounds": 1,
-  "min_remaining_wells": 10,
-  "prompt": "Separate measurement, execution, and scientific-method problems. Propose one falsifiable workflow or meta-policy change, or abstain."
+  "prompt": "Improve the mutation task using revealed experimental data and execution records. Choose what to analyze and whether to modify W, modify your own M strategy, or abstain.",
+  "programs": []
 }

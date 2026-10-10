@@ -1,5 +1,12 @@
 # Current architecture (v0.5)
 
+## Current mutation-only research path
+
+See [MUTATION_RSI.md](MUTATION_RSI.md) for the current W/M architecture, autonomous
+Meta tool dialogue, retained sandbox programs and actual-successor-use audit.
+The sections below document the retained general infrastructure; they are not a
+requirement to run multiple protein tasks for this project.
+
 The new optional typed inner-loop runtime is documented in [RESEARCH_RUNTIME](RESEARCH_RUNTIME.md).
 New CLI tasks enable it by default; pre-v0.5 campaigns are readable but require their original
 executable to continue. New runs snapshot prompt templates and on-demand execution semantics.

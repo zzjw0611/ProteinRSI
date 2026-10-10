@@ -77,7 +77,9 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
     register_library_tools(gateway, view)
     from proteinrsi.research.code import register_code_tool
     register_code_tool(gateway, view)
-    allowed = list(dict.fromkeys([*view.workflow.tool_names, *core]))
+    code_enabled = team.store.get("configuration", "research", {}).get("enable_generated_code", False)
+    method_code = ["research_python"] if code_enabled and (operation == "meta" or view.workflow.programs) else []
+    allowed = list(dict.fromkeys([*view.workflow.tool_names, *core, *method_code]))
     catalogue = [t for t in gateway.catalog(view.task, allowed) if not t["data_egress"] or gateway.allow_egress]
     allowed = [t["name"] for t in catalogue]
     llm = team.llm
@@ -176,7 +178,9 @@ def dispatch(team, gateway, view, allowed, msg):
         # Worker records cannot impersonate experiment/budget/promotion events.
         safe = {"resources_selected","research_plan_created","research_plan_revised","research_step_started",
                 "research_step_completed","research_blocked","team_completed","analyst_decision",
-                "design_tool_result","candidate_validation_feedback","ranking_repair_requested"}
+                "design_tool_result","candidate_validation_feedback","ranking_repair_requested",
+                "meta_analysis_started", "meta_analysis_completed", "meta_analysis_tool_completed",
+                "method_program_executed"}
         if msg["kind"] not in safe:
             raise PermissionError("Unapproved audit event kind")
         return store.event(msg["kind"],msg["payload"])

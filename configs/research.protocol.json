@@ -9,5 +9,7 @@
   "max_revisions": 2,
   "max_executed_steps": 20,
   "max_format_repairs": 2,
-  "review_after_step": true
+  "review_after_step": true,
+  "meta_autonomous": true,
+  "meta_tool_rounds": 4
 }
