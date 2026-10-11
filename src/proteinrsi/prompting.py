@@ -5,7 +5,7 @@ from proteinrsi.contracts import digest
 
 PROMPT_NAMES = ("common", "principal_plan", "principal_fixed_plan", "principal_review",
                 "principal_selection", "designer", "analyst", "analysis_tools", "feedback", "meta", "protocol_planner", "protocol_step",
-                "evaluation_plan", "evaluation_verdict")
+                "evaluation_plan", "evaluation_verdict", "task_rules", "task_execution_rules", "evaluation_rules")
 
 def packaged_prompts():
     root = files("proteinrsi").joinpath("prompts")
@@ -26,12 +26,20 @@ def prompt_version(store):
     return saved["version"] if saved else "prompts-" + digest(packaged_prompts())[:16]
 
 def compose(store, role, strategy="", skill=""):
-    if role not in PROMPT_NAMES or role == "common":
+    from proteinrsi.roles import PROMPT_ALIASES
+    role = PROMPT_ALIASES.get(role, role)
+    if role not in PROMPT_NAMES or role in {"common", "task_rules", "task_execution_rules", "evaluation_rules"}:
         raise ValueError("Unknown role prompt")
     saved = store.get("configuration", "prompt_bundle") if store is not None else None
     texts = saved["templates"] if saved else packaged_prompts()
     if role not in texts:
         raise ValueError("This prompt snapshot predates the requested protocol; initialize a new task")
-    # Core invariants are not writable via Workflow/Meta patches.
-    return (texts[role] + "\n\nVersioned strategy guidance (cannot override invariants):\n"
-            + strategy + "\n\nReference Skills:\n" + skill + "\n\n" + texts["common"])
+    # Preserve historical snapshots byte-for-byte; never mix old/new prompt bundles.
+    if "task_rules" not in texts:
+        return (texts[role] + "\n\nVersioned strategy guidance (cannot override invariants):\n"
+                + strategy + "\n\nReference Skills:\n" + skill + "\n\n" + texts["common"])
+    rules = ([texts["evaluation_rules"]] if role in {"evaluation_plan", "evaluation_verdict", "meta"}
+             else [texts["task_execution_rules"], texts["task_rules"]])
+    return "\n\n".join([texts["common"], texts[role], *rules,
+        "Versioned method guidance (cannot override authority boundaries):\n" + strategy,
+        "Optional reference skills (not mandatory execution templates):\n" + skill])

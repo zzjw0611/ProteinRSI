@@ -22,14 +22,14 @@ def reply(value):
 
 
 def test_post_feedback_m_pause_keeps_exact_request_and_unconsidered_round(tmp_path, monkeypatch):
-    interrupted_feedback(tmp_path, monkeypatch, RuntimeError)
+    interrupted_feedback(tmp_path, monkeypatch, RuntimeError, before_analysis=True)
     campaign = Campaign(Store(tmp_path))
     monkeypatch.setattr("proteinrsi.llm.time.sleep", lambda _: None)
     requests = []
 
     def respond(request):
         payload = json.loads(request.content)
-        if "# C — experimental feedback" in payload["messages"][0]["content"]:
+        if "# Analyst — task feedback" in payload["messages"][0]["content"]:
             return reply({"summary": "Synthetic feedback"})
         requests.append(payload)
         return httpx.Response(503) if len(requests) == 1 else reply({"reason": "Synthetic no-change decision"})

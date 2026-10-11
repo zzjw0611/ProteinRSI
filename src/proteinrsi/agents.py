@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Four logical agents. Deterministic mode is an explicit non-LLM baseline."""
+"""Task roles and an Improver; legacy role identifiers remain stable for audit/recovery."""
 from __future__ import annotations
 
 from importlib.resources import files
@@ -173,6 +173,10 @@ class Team:
         register_metric_tool(self.tools, view)
 
     def run(self, view: TaskView) -> list[Candidate]:
+        self.store.event("task_harness_invoked", {"workflow": view.workflow.version,
+            "meta": view.meta.version, "round": view.round_index,
+            "evidence_version": view.evidence_version, "prompts": prompt_version(self.store),
+            "programs": [p.version for p in view.workflow.programs]})
         self.bind_tools(view)
         if view.workflow.programs:
             from proteinrsi.research.methods import run_method_programs
@@ -318,3 +322,9 @@ class MetaAgent:
                     task_kind=view.task.kind, hypothesis="Diagnose measurement failures before editing methods.",
                     evidence_refs=[view.evidence_version], author_backend="deterministic"))
         return MetaResponse(reason="No supported additional bounded change")
+
+
+# Public logical names; legacy classes/provider IDs remain compatible.
+PlannerAgent = PrincipalAgent
+ExecutorAgent = DesignerAgent
+ImproverAgent = MetaAgent

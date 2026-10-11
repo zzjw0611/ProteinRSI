@@ -47,14 +47,15 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
                      protein_config: dict | None = None, protein_pin: dict | None = None,
                      research_config: dict | None = None, know_how: list | None = None,
                      sponsor=None, prefix="", prompt_bundle=None, gate_policy: GatePolicy | None = None,
-                     selected_top_ns: list[int] | None = None) -> tuple[float | None, dict]:
+                     selected_top_ns: list[int] | None = None, *, improve: bool = True) -> tuple[float | None, dict]:
     store = SponsoredStore(directory, sponsor, prefix) if sponsor is not None else Store(directory)
     llm_evaluation = gate_policy is not None and gate_policy.criterion == "llm_adjudicated_v1"
-    if llm_evaluation:
+    if llm_evaluation or not improve:
         # Trusted evaluator-only state. Guarded research workers cannot read this
         # namespace or the case labels; their public input remains TaskView only.
         store.put("offline_arm_inputs", "input", {"case_digest": digest(case.model_dump(mode="json")),
-            "workflow": workflow.version, "meta": meta.version, "top_ns": selected_top_ns}, immutable=True)
+            "workflow": workflow.version, "meta": meta.version, "top_ns": selected_top_ns,
+            **({"improve": False} if not improve else {})}, immutable=True)
         cached = store.get("offline_arm_results", "result")
         if cached is not None:
             return cached["score"], cached["trace"]
@@ -84,16 +85,17 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
                     workflow=workflow, meta=meta,
                     research_context={"acceptance_policy": gate_policy.model_dump()}
                     if gate_policy and gate_policy.criterion in {"observed_pareto_v1", "llm_adjudicated_v1"} else {})
-    if getattr(team, "guarded", False):
-        from proteinrsi.replay.broker import GuardedMetaAgent
-        proposal = GuardedMetaAgent(team).propose(view)
-    else:
-        proposal = MetaAgent(team.llm, store, getattr(team, "tools", None)).propose(view)
     child = workflow
-    if proposal.patch and proposal.patch.target == "workflow":
-        if proposal.patch.task_kind != case.task.kind:
-            raise ValueError("Meta proposal has incorrect scope")
-        child = apply_patch(workflow, proposal.patch)
+    if improve:
+        if getattr(team, "guarded", False):
+            from proteinrsi.replay.broker import GuardedMetaAgent
+            proposal = GuardedMetaAgent(team).propose(view)
+        else:
+            proposal = MetaAgent(team.llm, store, getattr(team, "tools", None)).propose(view)
+        if proposal.patch and proposal.patch.target == "workflow":
+            if proposal.patch.task_kind != case.task.kind:
+                raise ValueError("Meta proposal has incorrect scope")
+            child = apply_patch(workflow, proposal.patch)
     # Freeze the improver for this one-step diagnostic. Full recursive campaigns use runtime.py.
     view.workflow = child
     store.put("campaign", "state", {"task": case.task.model_dump(mode="json")})
@@ -103,11 +105,17 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
     if multimetric:
         observed.add(case.task.reference_sequence)
     selected = [c for c in candidates if c.sequence not in observed][:case.query_budget]
+    if not improve:
+        from proteinrsi.tasks import validate_candidate
+        for candidate in selected:
+            validate_candidate(case.task, candidate)
+        if len({c.sequence for c in selected}) != len(selected):
+            raise ValueError("Independent harness evaluation requires unique queried candidates")
     if len(selected) != case.query_budget or (not multimetric and any(c.sequence not in case.labels for c in selected)):
         raise ValueError("Cannot fairly evaluate this descendant with the stated measurement budget")
     store.reserve("evaluation-query", "experimental_wells", case.query_budget, [c.sequence for c in selected])
     store.settle("evaluation-query")
-    if multimetric:
+    if multimetric or not improve:
         measured_rows = [
             {"sequence": c.sequence, "value": case.labels.get(c.sequence),
              "qc": "valid" if c.sequence in case.labels else "unavailable"} for c in selected]
@@ -120,7 +128,7 @@ def _offspring_score(case: MetaCase, workflow: Workflow, meta: MetaPolicy,
             "observed_rows": measured_rows, "submitted": case.query_budget,
             "metric_summary_scope": "descriptive_legacy_summaries_not_custom_program_output"}
         score = summary["signed_metrics"]["avg"]
-        if llm_evaluation:
+        if llm_evaluation or not improve:
             store.put("offline_arm_results", "result", {"score": score, "trace": trace}, immutable=True)
         return score, trace
     sign = 1 if case.task.direction == "maximize" else -1

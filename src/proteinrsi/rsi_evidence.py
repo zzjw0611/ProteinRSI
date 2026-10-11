@@ -37,3 +37,21 @@ def summarize_rsi(store):
         "efficacy_claim": "not_established_by_this_audit",
         "note": "Main-line events only; validation-branch calls are not counted as deployed use. "
                 "Adoption/reuse is mechanism evidence, not proof of improved fitness or improvement ability."}
+
+
+def summarize_harness_use(store):
+    """Actual main-line invocation after publication, separate from trial execution."""
+    adopted, uses = {}, []
+    with store.connect() as con:
+        rows = con.execute("SELECT id,kind,payload FROM events WHERE kind IN "
+            "('method_version_switched','task_harness_invoked') ORDER BY id")
+        for event_id, kind, raw in rows:
+            p = json.loads(raw)
+            if kind == "method_version_switched" and p.get("target") == "workflow" and p.get("action") == "adopt":
+                adopted[p["to_version"]] = {"version": p["to_version"], "event_id": event_id,
+                    "evaluation_ref": p.get("evaluation_ref")}
+            elif kind == "task_harness_invoked":
+                uses.append({"event_id": event_id, **p})
+    return {"adopted_workflows": [{**a, "subsequent_invocations": [u for u in uses
+                if u["workflow"] == v and u["event_id"] > a["event_id"]]} for v, a in adopted.items()],
+            "scope": "main_line_only", "efficacy_claim": "not_established_by_use_alone"}

@@ -1,5 +1,10 @@
 # Current architecture (v0.5)
 
+## Task / Harness 双循环入口
+
+当前组合突变方案见 `docs/DUAL_LOOP.md`（本目录内为 `DUAL_LOOP.md`）。Task 反馈分析独立于 Meta，最后一轮也生成报告；新研究的 W 默认走独立案例验收。可执行程序与提示保留版本化，Controller 权限和预算边界不变。
+
+
 The current draft/resource boundaries, durable result recovery and bounded context
 transport are documented in [INTERFACE_CONTRACTS.md](INTERFACE_CONTRACTS.md).
 

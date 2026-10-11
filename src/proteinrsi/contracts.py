@@ -232,7 +232,7 @@ class MetaPolicy(ProgrammedMethod):
     min_observations: int = Field(default=6, ge=2, le=5000)
     cooldown_rounds: int = Field(default=1, ge=1, le=20)
     min_remaining_wells: int = Field(default=10, ge=4)
-    prompt: str = Field(default="Improve the mutation task using revealed evidence and execution records. Choose your own analysis and propose a workflow or self-policy change, or abstain.", min_length=1, max_length=12000)
+    prompt: str = Field(default="Improve the reusable task harness and your own improvement method from execution evidence. Planner owns current task decisions. Propose an evidence-backed method change or abstain.", min_length=1, max_length=12000)
 
     @property
     def version(self) -> str:
@@ -461,6 +461,15 @@ class Batch(Model):
     phase: Literal["research", "initialization"] = "research"
 
 
+class CapabilityClaim(Model):
+    """Auditable claim, not a prescribed scientific diagnosis or proof of efficacy."""
+    problem: str = Field(min_length=1, max_length=4000)
+    expected_behavior: str = Field(min_length=1, max_length=4000)
+    applicability: str = Field(min_length=1, max_length=4000)
+    validation_plan: str = Field(min_length=1, max_length=6000)
+    regression_checks: list[str] = Field(default_factory=list, max_length=20)
+
+
 class Patch(Model):
     target: Literal["workflow", "meta"]
     base_version: str
@@ -469,6 +478,14 @@ class Patch(Model):
     task_kind: TaskKind
     evidence_refs: list[str] = Field(default_factory=list)
     author_backend: str = "unknown"
+    capability: CapabilityClaim | None = None
+
+    @model_serializer(mode="wrap")
+    def serialize_patch(self, handler):
+        data = handler(self)
+        if self.capability is None:
+            data.pop("capability", None)  # Preserve historical patch identities.
+        return data
 
     @property
     def patch_id(self) -> str:

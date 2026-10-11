@@ -91,7 +91,7 @@ def test_open_design_two_rounds_receive_only_queried_feedback(tmp_path, guarded)
         elif 'ranked_candidates' in context or 'candidates' in context:
             candidates = context.get('ranked_candidates', context.get('candidates'))
             result = {'ranking': [c['sequence'] for c in candidates], 'summary': 'Rank generated variants'}
-        elif '# C — experimental feedback' in instructions:
+        elif '# Analyst — task feedback' in instructions:
             result = {'summary': 'V improves the fixture score; G has no record, not low fitness'}
         else:
             raise AssertionError(instructions[:120])

@@ -88,7 +88,11 @@ class EvaluationHTTP:
         llm = JSONLLM(store, model="synthetic-evaluator", base_url="https://example.invalid/v1",
                       api_key="not-a-real-key", max_attempts=1,
                       transport=httpx.MockTransport(self))
-        return Team(store, llm)
+        team = Team(store, llm)
+        # These tests isolate paid E calls; task feedback still runs independently
+        # using the deterministic Analyst. Separate tests cover paid C recovery.
+        team.analyst.llm = None
+        return team
 
 
 def make_campaign(campaign, monkeypatch, *, target="workflow", direction="maximize",

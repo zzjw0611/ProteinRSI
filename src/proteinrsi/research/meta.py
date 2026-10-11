@@ -91,6 +91,8 @@ def propose(agent, view, last_patch_round):
                 patch = parsed.patch
                 if patch is not None:
                     try:
+                        from proteinrsi.capability import validate_capability_claim
+                        validate_capability_claim(patch, config)
                         if patch.task_kind != view.task.kind:
                             raise ValueError("Meta patch task scope differs")
                         if policy is not None:

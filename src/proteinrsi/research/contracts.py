@@ -15,6 +15,8 @@ class ResearchConfig(Model):
     max_format_repairs: int = Field(default=2, ge=0, le=3)
     enable_generated_code: bool = False
     # Operator resource/compatibility settings, not scientific decision heuristics.
+    improvement_contract: Literal["legacy", "capability-v1"] = "legacy"
+    workflow_validation: Literal["online", "independent"] = "online"
     meta_autonomous: bool = True
     meta_tool_rounds: int = Field(default=4, ge=0, le=12)
     resource_selection: Literal["rules", "llm", "all"] = "rules"

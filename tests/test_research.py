@@ -345,7 +345,18 @@ def test_research_cli_defaults_and_report(tmp_path, fixture_data, capsys):
     taskfile.write_text(task.model_dump_json())
     root = tmp_path / 'campaign'
     main(['init', '--task', str(taskfile), '--out', str(root), '--protein-model', 'none'])
-    assert json.loads(capsys.readouterr().out)['research_config']['enabled']
+    config = json.loads(capsys.readouterr().out)['research_config']
+    assert config['enabled'] and config['protocol_mode'] == 'typed'
+    assert config['improvement_contract'] == 'capability-v1'
+    assert config['workflow_validation'] == 'independent'
+    # CLI defaults require an LLM-defined typed protocol. Select the explicit
+    # deterministic research fixture for this offline CLI smoke test.
+    configfile = tmp_path / 'deterministic-research.json'
+    configfile.write_text(json.dumps({'protocol_mode': 'legacy'}))
+    root = tmp_path / 'deterministic-campaign'
+    main(['init', '--task', str(taskfile), '--out', str(root), '--protein-model', 'none',
+          '--research-config', str(configfile)])
+    capsys.readouterr()
     main(['step', '--campaign', str(root)])
     capsys.readouterr()
     main(['research', 'plans', '--campaign', str(root)])

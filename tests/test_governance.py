@@ -291,7 +291,10 @@ def test_cancelled_unsubmitted_trial_can_be_replanned(campaign, oracle):
     assert campaign.store.get("batches", batch.batch_id)
 
 
-def test_only_small_patches_are_staged(campaign):
+def test_explicit_operator_patch_size_limit_is_enforced(campaign):
+    policy = campaign.store.get("configuration", "method_governance")
+    policy["max_changed_fields"] = 3
+    campaign.store.put("configuration", "method_governance", policy)
     with pytest.raises(ValueError, match="too many"):
         stage_workflow(campaign, strategy="pairwise", exploration=0.5, ridge_alpha=2, design_tool_rounds=5)
     assert campaign.state["pending_patch"] is None

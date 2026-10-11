@@ -8,5 +8,7 @@
   "max_executed_steps": 20,
   "review_after_step": true,
   "meta_autonomous": true,
-  "meta_tool_rounds": 4
+  "meta_tool_rounds": 4,
+  "improvement_contract": "capability-v1",
+  "workflow_validation": "independent"
 }

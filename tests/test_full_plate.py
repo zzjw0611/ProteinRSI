@@ -56,7 +56,8 @@ def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded, 
         view = ctx['view']
         assert view['task']['candidates'] == []
         assert 'proposal_pool_size' not in view['task']
-        assert view['capacity']['required_plate_wells'] == 384
+        terminal = view['research_context'].get('task_progress', {}).get('terminal', False)
+        assert view['capacity']['required_plate_wells'] == (0 if terminal else 384)
         if '# A — resource protocol planner' in instructions:
             result = {'hypothesis': 'Generate a new panel for the requested plate', 'steps': [
                 {'step_id': 'design', 'operation': 'agent:propose', 'question': 'Generate new candidates',
@@ -94,8 +95,9 @@ def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded, 
         elif 'ranked_candidates' in ctx or 'candidates' in ctx:
             items = ctx.get('ranked_candidates', ctx.get('candidates'))
             result = {'ranking': [x['candidate_id'] for x in items], 'summary': 'Stable IDs'}
-        elif '# C — experimental feedback' in instructions:
-            result = {'summary': 'One complete plate measured; design the next full plate'}
+        elif '# Analyst — task feedback' in instructions:
+            result = {'summary': 'Both plates measured; final report' if terminal else
+                      'One complete plate measured; design the next full plate'}
         else:
             raise AssertionError(instructions[:100])
         return httpx.Response(200, json={'choices': [{'message': {'content': json.dumps(result)}}]})

@@ -14,11 +14,12 @@ def run_computational(campaign, *, guarded=True):
         old = campaign.team
         campaign.team = GuardedTeam.from_team(old)
         campaign.meta_agent = GuardedMetaAgent(campaign.team)
-    with campaign.store.lock():
-        state = campaign.state
-        if state['pending_batch']:
-            raise ValueError('Cannot compute through a pending experimental batch')
-        while state['round_index'] < task.max_rounds and state['status'] != 'complete':
+    campaign.analyze_feedback()
+    while campaign.state['round_index'] < task.max_rounds and campaign.state['status'] != 'complete':
+        with campaign.store.lock():
+            state = campaign.state
+            if state['pending_batch']:
+                raise ValueError('Cannot compute through a pending experimental batch')
             campaign.methods.assert_plannable(state)
             view = campaign.view(state)
             snapshot(campaign.store, 'computational_iteration_input', view)
@@ -43,5 +44,5 @@ def run_computational(campaign, *, guarded=True):
             campaign.store.put('campaign', 'state', state)
             campaign.store.event('computational_iteration_completed', summary)
             snapshot(campaign.store, 'computational_iteration_committed', campaign.view(state))
-        campaign.store.event('campaign_completed', {'rounds': state['round_index'], 'mode': 'computational'})
+        campaign.analyze_feedback()
     return campaign.report()

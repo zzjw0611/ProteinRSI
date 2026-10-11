@@ -119,10 +119,10 @@ def main(argv: list[str] | None = None) -> None:
     demo.add_argument("--rounds", type=int, default=5)
     demo.add_argument("--seed", type=int, default=17)
     demo.add_argument("--adaptive", action="store_true", help="Exercise the typed research loop with scripted roles, not an LLM")
-    for name in ("step", "status", "approve", "cancel", "import-results", "replay", "patch", "evaluate-meta", "graph"):
+    for name in ("step", "status", "approve", "cancel", "import-results", "replay", "patch", "evaluate-meta", "evaluate-workflow", "graph"):
         cmd = sub.add_parser(name)
         cmd.add_argument("--campaign", required=True)
-        if name in ("step", "import-results", "replay", "graph", "evaluate-meta"):
+        if name in ("step", "import-results", "replay", "graph", "evaluate-meta", "evaluate-workflow"):
             cmd.add_argument("--agent", choices=["deterministic", "llm"], default="deterministic")
             cmd.add_argument("--tools", help="Operator-authored MCP binding JSON")
             cmd.add_argument("--allow-data-egress", action="store_true")
@@ -133,12 +133,15 @@ def main(argv: list[str] | None = None) -> None:
             cmd.add_argument("--file", required=True)
         if name == "replay":
             cmd.add_argument("--dataset", required=True)
+            cmd.add_argument("--validation-cases", help="Controller-only validation manifest for automatic independent W comparisons; otherwise yield at a pending W")
             cmd.add_argument("--execution", choices=["guarded", "inprocess"], default="guarded",
                 help="Guarded research worker is default. inprocess is explicit trusted debugging, not label-isolation validation.")
-        if name == "evaluate-meta":
+        if name in {"evaluate-meta", "evaluate-workflow"}:
             cmd.add_argument("--cases", required=True)
             cmd.add_argument("--promote", action="store_true")
             cmd.add_argument("--execution", choices=["guarded", "inprocess"], default="guarded")
+        if name == "evaluate-workflow":
+            cmd.add_argument("--patch-id", help="Report-only confirmation of an archived workflow patch; requires test cases")
         if name == "graph":
             cmd.add_argument("--resume", help="JSON file with explicit approval/measurement payload")
     args = parser.parse_args(argv)
@@ -250,6 +253,8 @@ def main(argv: list[str] | None = None) -> None:
             from proteinrsi.prompting import packaged_prompts
             data = (Store(args.campaign).get("configuration", "prompt_bundle") if args.campaign else None)
             texts = data["templates"] if data else packaged_prompts()
+            from proteinrsi.roles import PROMPT_ALIASES
+            args.role = PROMPT_ALIASES.get(args.role, args.role)
             if args.role != "all" and args.role not in texts:
                 raise ValueError("Unknown role")
             output = data or {"templates": texts, "origin": "packaged_defaults"}
@@ -329,7 +334,7 @@ def main(argv: list[str] | None = None) -> None:
                     workflow.analysis_tool_rounds = 2
                     workflow.skill_names += ["local-protein-tools"]
             from proteinrsi.research.contracts import ResearchConfig
-            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig()
+            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig(protocol_mode="typed", context_policy="evidence-v1", improvement_contract="capability-v1", workflow_validation="independent")
             if args.research_mode is not None:
                 research_config.enabled = args.research_mode == "adaptive"
             campaign = Campaign.initialize(args.out, TaskSpec.model_validate(load_json(args.task)),
@@ -392,7 +397,9 @@ def main(argv: list[str] | None = None) -> None:
                 campaign.store.event_sink = print_event
                 campaign.store.event("run_started", {"resume": True})
                 try:
-                    run_replay(campaign, args.dataset, guarded=args.execution == "guarded")
+                    from proteinrsi.evaluation import read_cases
+                    cases = read_cases(args.validation_cases) if args.validation_cases else None
+                    run_replay(campaign, args.dataset, guarded=args.execution == "guarded", validation_cases=cases)
                 except Exception as exc:
                     campaign.store.event("run_failed", {"error_type": type(exc).__name__})
                     raise
@@ -400,7 +407,7 @@ def main(argv: list[str] | None = None) -> None:
                     directory = campaign.store.root
                     export_html(directory, directory/"trajectory.html")
                     (directory/"report.json").write_text(json.dumps(campaign.report(), ensure_ascii=False, indent=2)+"\n")
-            elif args.command == "evaluate-meta":
+            elif args.command in {"evaluate-meta", "evaluate-workflow"}:
                 from proteinrsi.evaluation import evaluate_meta, read_cases
                 def factory(store):
                     llm = JSONLLM.from_env(store) if args.agent == "llm" else None
@@ -412,7 +419,12 @@ def main(argv: list[str] | None = None) -> None:
                         from proteinrsi.replay.broker import GuardedTeam
                         return GuardedTeam(store, llm, tools)
                     return Team(store, llm, tools)
-                output = evaluate_meta(campaign, read_cases(args.cases), promote=args.promote, team_factory=factory)
+                if args.command == "evaluate-workflow":
+                    from proteinrsi.harness_evaluation import evaluate_workflow
+                    output = evaluate_workflow(campaign, read_cases(args.cases), promote=args.promote,
+                        patch_id=args.patch_id, team_factory=factory)
+                else:
+                    output = evaluate_meta(campaign, read_cases(args.cases), promote=args.promote, team_factory=factory)
                 print(json.dumps(output, ensure_ascii=False, indent=2))
                 return
             elif args.command == "graph":

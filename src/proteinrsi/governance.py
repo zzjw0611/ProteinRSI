@@ -38,14 +38,14 @@ class GovernancePolicy(Model):
     """Administrative settings: not part of either evolvable W/M schema."""
     allowed_patch_targets: list[Target] = Field(default_factory=lambda: ["workflow", "meta"], max_length=2)
     max_consecutive_failures: int = Field(default=3, ge=1, le=100)
-    max_changed_fields: int = Field(default=3, ge=1, le=20)
+    max_changed_fields: int | None = Field(default=None, ge=1, le=20)
     max_deferred_rounds: int = Field(default=2, ge=1, le=20)
 
     def validate_patch(self, patch: Patch) -> None:
         """Shared static admission contract; staging and adoption remain controller-owned."""
         if patch.target not in self.allowed_patch_targets:
             raise PermissionError("Patch target disabled by the frozen operator study configuration")
-        if len(patch.changes) > self.max_changed_fields:
+        if self.max_changed_fields is not None and len(patch.changes) > self.max_changed_fields:
             raise ValueError(f"Patch changes too many fields ({len(patch.changes)}); frozen maximum is {self.max_changed_fields}")
 
 
@@ -117,20 +117,26 @@ class MethodGovernance:
                 or state["pending_patch"] or state["pending_meta"]):
             raise Conflict("Method changes require an idle round boundary with no pending candidate")
 
-    def assert_plannable(self, state: dict) -> None:
+    def assert_active(self, state: dict) -> None:
         if not self.enabled:
             return
         for target, ref in state.get("method_governance", {}).get("active", {}).items():
             snapshot = self._validated_snapshot(target, ref)
             if TYPES[target].model_validate(state[target]).model_dump(mode="json") != snapshot["definition"]:
                 raise Conflict("Active method differs from its snapshot; use an audited version change")
+
+    def assert_plannable(self, state: dict) -> None:
+        if not self.enabled:
+            return
+        self.assert_active(state)
         for key in PENDING.values():
             if state[key]:
                 patch = Patch.model_validate(state[key])
                 record = self.store.get("method_candidate_states", patch.patch_id, {})
-                offline_running = any(attempt.get("state") in {"started", "paused_provider", "measurements_committed"}
+                offline_running = any(attempt.get("state") in {"started", "paused_provider", "measurements_committed", "blocked"}
                     and attempt.get("patch_id") == patch.patch_id
-                    for attempt in self.store.all("meta_attempts").values())
+                    for namespace in ("meta_attempts", "harness_attempts")
+                    for attempt in self.store.all(namespace).values())
                 if record.get("status") == "blocked" or offline_running:
                     raise Conflict("Candidate completion is uncertain; inspect and explicitly abandon before continuing")
 
@@ -447,7 +453,8 @@ class MethodGovernance:
             transition = self.store.get("method_transitions", state["transition_ref"])
             history.append({"patch_id": patch_id, "target": candidate["patch"]["target"],
                 "round": candidate["round"], "changes": candidate["patch"]["changes"],
-                "hypothesis": candidate["patch"]["hypothesis"], "status": state["status"],
+                "hypothesis": candidate["patch"]["hypothesis"], "capability": candidate["patch"].get("capability"),
+                "status": state["status"],
                 "outcome": transition["detail"], "scope": "current_campaign_only", "transfer_validated": False})
         return history[-limit:]
 

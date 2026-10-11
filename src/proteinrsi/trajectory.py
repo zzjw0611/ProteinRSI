@@ -59,6 +59,10 @@ def print_event(event, stream=None):
     if kind == "validation_event":
         kind = payload["branch"]+" · "+payload["kind"]
         payload = payload["payload"]
+    from proteinrsi.roles import role_name
+    payload = dict(payload)
+    if "role" in payload:
+        payload["role"] = role_name(payload["role"]) + " (" + payload["role"] + ")"
     stamp = time.strftime("%H:%M:%S", time.localtime(event["timestamp"]))
     detail = " ".join(f"{k}={payload[k]}" for k in ("round", "role", "phase", "tool", "wells", "batch_id", "decision", "error_type", "http_status", "attempt", "delay_seconds", "context_bytes", "source_bytes") if k in payload)
     try:

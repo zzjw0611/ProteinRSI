@@ -1,5 +1,5 @@
 {
   "enabled": true,
-  "prompt": "Improve the mutation task using revealed experimental data and execution records. Choose what to analyze and whether to modify W, modify your own M strategy, or abstain.",
+  "prompt": "Improve the reusable task harness and your own improvement method from execution evidence. Planner owns current task decisions. Propose an evidence-backed method change or abstain.",
   "programs": []
 }

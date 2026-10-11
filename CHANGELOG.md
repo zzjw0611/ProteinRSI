@@ -1,5 +1,15 @@
 # Unreleased — frozen custom evaluation metrics
 
+
+## Unreleased — dual task/harness loops
+
+- Separate idempotent Task feedback analysis (including terminal feedback) from optional improvement.
+- Scope role prompts and enforce evidence-backed capability proposals in new capability-v1 studies.
+- Reuse versioned W/M programs and record actual controller-bound harness invocation.
+- Add independent fixed-H evaluation, shared costs, persistent branch recovery, report-only confirmation and audited cancellation.
+- Keep numeric/online legacy modes explicit; no arbitrary Controller code changes, hidden-label access or live biological efficacy claim.
+
+
 ## Unreleased — autonomous mutation-method RSI
 
 - Let Meta choose its own budgeted analysis/tools or abstain, without fixed diagnostic scripts.

@@ -6,12 +6,13 @@ from proteinrsi.storage import Store
 
 def add_parser(subparsers):
     parser = subparsers.add_parser("methods", help="Inspect method history or perform an audited pointer-only rollback")
-    parser.add_argument("action", choices=["status", "snapshot", "rollback", "abandon", "resume"])
+    parser.add_argument("action", choices=["status", "snapshot", "rollback", "abandon", "resume", "abandon-evaluation"])
     parser.add_argument("--campaign", required=True)
     parser.add_argument("--target", choices=["workflow", "meta"])
     parser.add_argument("--version")
     parser.add_argument("--snapshot-ref")
     parser.add_argument("--patch-id")
+    parser.add_argument("--evaluation-id")
     parser.add_argument("--operator")
     parser.add_argument("--reason")
     parser.add_argument("--acknowledge-uncertain", action="store_true",
@@ -43,6 +44,10 @@ def run(args):
                 raise ValueError("abandon requires --patch-id")
             methods.abandon(args.patch_id, operator=args.operator, reason=args.reason,
                             acknowledge_uncertain=args.acknowledge_uncertain)
+        elif args.action == "abandon-evaluation":
+            from proteinrsi.harness_evaluation import abandon_evaluation
+            abandon_evaluation(campaign, args.evaluation_id, operator=args.operator, reason=args.reason,
+                               acknowledge_uncertain=args.acknowledge_uncertain)
         elif args.action == "resume":
             methods.resume(operator=args.operator, reason=args.reason)
     return methods.report()

@@ -7,7 +7,7 @@ import pytest
 
 from proteinrsi.agents import MetaAgent, Team
 from proteinrsi.contracts import Candidate, Observation, digest
-from proteinrsi.llm import JSONLLM, ProviderPaused
+from proteinrsi.llm import JSONLLM, LLMError, ProviderPaused
 from proteinrsi.recovery import authorize_retry
 from proteinrsi.replay.broker import GuardedMetaAgent, GuardedTeam, dispatch
 from proteinrsi.runtime import Campaign
@@ -17,7 +17,7 @@ from test_feedback_improvement_recovery import interrupted_feedback
 
 
 def pending_feedback(tmp_path, monkeypatch, *, paused=False):
-    interrupted_feedback(tmp_path, monkeypatch, RuntimeError)
+    interrupted_feedback(tmp_path, monkeypatch, RuntimeError, before_analysis=True)
     campaign = Campaign(Store(tmp_path))
     if paused:
         state = campaign.state
@@ -32,7 +32,7 @@ def attach_provider(campaign, monkeypatch, requests, *, fail_role=None, error=No
 
     def respond(request):
         payload = json.loads(request.content)
-        role = "C-feedback" if "# C — experimental feedback" in payload["messages"][0]["content"] else "M"
+        role = "C-feedback" if "# Analyst — task feedback" in payload["messages"][0]["content"] else "M"
         requests.append((role, payload))
         if role == fail_role and sum(r == role for r, _ in requests) == 1:
             if error is not None:
@@ -157,13 +157,16 @@ def test_unknown_completion_keeps_exact_request_and_never_charges_it_again(tmp_p
         assert campaign.state["history"][-1]["analyst_feedback"]
     campaign = Campaign(Store(tmp_path))
     attach_provider(campaign, monkeypatch, requests, fail_role=fail_role)
-    campaign.consider_improvement()
-    # Preserve existing LLMError handling: the uncertain receipt is not retried,
-    # no result is fabricated, and the failed decision remains in the audit.
+    if fail_role == "C-feedback":
+        with pytest.raises(LLMError):
+            campaign.consider_improvement()
+    else:
+        campaign.consider_improvement()
+    # Unknown Task completion blocks that stage; it is not a failed M proposal.
     assert campaign.store.usage() == usage
     assert len(requests) == (1 if fail_role == "C-feedback" else 2)
-    assert campaign.state["considered_round"] == 1
-    assert len(campaign.store.all("method_proposal_failures")) == 1
+    assert (campaign.state["considered_round"] == 1) is (fail_role == "M")
+    assert len(campaign.store.all("method_proposal_failures")) == (1 if fail_role == "M" else 0)
     assert bool(campaign.store.all("feedback_results")) is (fail_role == "M")
 
 
@@ -178,13 +181,13 @@ def test_legacy_success_and_decision_markers_are_not_backfilled(tmp_path, monkey
     assert roles(requests) == ["M"]
     assert not campaign.store.all("feedback_inputs")
     assert not campaign.store.all("feedback_results")
-    # A previously considered legacy round without saved C is also left alone.
+    # A method-decision marker no longer substitutes for completed Task analysis.
     state = campaign.state
     del state["history"][-1]["analyst_feedback"]
     campaign.store.put("campaign", "state", state)
     campaign.consider_improvement()
-    assert roles(requests) == ["M"]
-    assert "analyst_feedback" not in campaign.state["history"][-1]
+    assert roles(requests) == ["M", "C-feedback"]
+    assert "analyst_feedback" in campaign.state["history"][-1]
 
 
 def test_successful_provider_cache_recovers_a_missing_controller_checkpoint(tmp_path, monkeypatch):
@@ -226,7 +229,7 @@ def test_checkpoint_commit_failure_recovers_from_same_provider_receipt(tmp_path,
     assert len(campaign.store.all("feedback_results")) == 1
 
 
-def test_terminal_replay_does_not_backfill_feedback(tmp_path, monkeypatch):
+def test_terminal_replay_analyzes_final_feedback_once(tmp_path, monkeypatch):
     campaign = pending_feedback(tmp_path, monkeypatch, paused=True)
     requests = []
     attach_provider(campaign, monkeypatch, requests)
@@ -234,8 +237,9 @@ def test_terminal_replay_does_not_backfill_feedback(tmp_path, monkeypatch):
         batch = campaign.prepare()
         observations = finish_synthetic_batch(campaign, batch)
     assert campaign.state["status"] == "complete"
-    assert roles(requests) == ["C-feedback", "C-feedback", "C-feedback"]
-    assert "analyst_feedback" not in campaign.state["history"][-1]
+    assert roles(requests) == ["C-feedback"] * 4
+    assert "analyst_feedback" in campaign.state["history"][-1]
+    assert len(campaign.store.all("task_reports")) == 1
     usage = campaign.store.usage()
     records = campaign.store.all("feedback_results")
     campaign = Campaign(Store(tmp_path))
@@ -245,7 +249,7 @@ def test_terminal_replay_does_not_backfill_feedback(tmp_path, monkeypatch):
     campaign.consider_improvement()
     assert campaign.store.usage() == usage
     assert campaign.store.all("feedback_results") == records
-    assert len(requests) == 3
+    assert len(requests) == 4
 
 
 def test_frozen_engine_is_checked_before_direct_feedback(tmp_path, monkeypatch):
@@ -394,6 +398,15 @@ def test_definite_provider_failure_preserves_existing_decision_semantics(tmp_pat
     campaign = pending_feedback(tmp_path, monkeypatch)
     requests = []
     attach_provider(campaign, monkeypatch, requests, fail_role=fail_role, error=ValueError)
+    if fail_role == "C-feedback":
+        with pytest.raises(LLMError):
+            campaign.consider_improvement()
+        assert campaign.state["considered_round"] != 1
+        assert not campaign.store.all("method_proposal_failures")
+        with pytest.raises(LLMError):
+            campaign.consider_improvement()
+        assert roles(requests) == ["C-feedback"]
+        return
     campaign.consider_improvement()
     assert campaign.state["considered_round"] == 1
     assert campaign.state["method_governance"]["consecutive_failures"] == 1

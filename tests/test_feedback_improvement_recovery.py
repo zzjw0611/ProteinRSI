@@ -8,7 +8,7 @@ from proteinrsi.runtime import Campaign
 from proteinrsi.storage import Store
 
 
-def interrupted_feedback(tmp_path, monkeypatch, error):
+def interrupted_feedback(tmp_path, monkeypatch, error, *, before_analysis=False):
     task = TaskSpec(
         name="Synthetic post-feedback interruption fixture",
         reference_sequence="ACDE",
@@ -40,7 +40,7 @@ def interrupted_feedback(tmp_path, monkeypatch, error):
     def interrupted_improvement():
         raise error("Synthetic interruption after feedback commit")
 
-    monkeypatch.setattr(campaign, "consider_improvement", interrupted_improvement)
+    monkeypatch.setattr(campaign, "analyze_feedback" if before_analysis else "consider_improvement", interrupted_improvement)
     with pytest.raises(error):
         campaign.ingest(observations)
     return observations

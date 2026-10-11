@@ -120,19 +120,19 @@ class Campaign:
             observations=[Observation.model_validate(o) for o in state["observations"]],
             history=state["history"], remaining_wells=self.store.remaining("experimental_wells"),
             workflow=workflow or Workflow.model_validate(state["workflow"]),
-            meta=MetaPolicy.model_validate(state["meta"]), experience=self.memory.retrieve(task.kind),
+            meta=MetaPolicy.model_validate(state["meta"]), experience=self.memory.retrieve(task.kind, include_unvalidated=True),
             artifacts=list(self.store.all("artifacts").values()),
-            research_context={"allowed_patch_targets": (self.methods.policy.allowed_patch_targets
+            research_context={"task_progress": {"terminal": state["status"] == "complete",
+                "completed_rounds": state["round_index"]}, "allowed_patch_targets": (self.methods.policy.allowed_patch_targets
                 if self.methods.enabled else ["workflow", "meta"]), "workflow_validation_outcomes":
                 list(self.store.all("workflow_validation_outcomes").values()),
                 **({"method_history": self.methods.visible_history()} if self.methods.enabled else {}),
                 **({"acceptance_policy": state["gate"]} if state["gate"].get("criterion") in {"observed_pareto_v1", "llm_adjudicated_v1"} else {})})
 
     def prepare(self) -> Batch | None:
-        # Feedback commits before the improver runs. A stopped controller may have
-        # persisted that feedback without its C/M decision; finish it before planning
-        # the next batch. consider_improvement owns its own lock and rechecks state,
-        # so call it outside this method's planning lock.
+        # Task analysis is independent of whether improvement is enabled/pending.
+        # A crashed final iteration must finish its analysis before reporting done.
+        self.analyze_feedback()
         state = self.state
         if (state.get("execution_semantics") == "on-demand-v1"
                 and state["task"].get("execution_mode", "experimental") == "experimental"
@@ -140,7 +140,7 @@ class Campaign:
                 and not state["pending_batch"] and not state["pending_patch"] and not state["pending_meta"]
                 and state["considered_round"] != state["round_index"]):
             self.methods.assert_plannable(state)
-            self.consider_improvement()
+            self._optional_improvement()
         with self.store.lock():
             state = self.state
             if state.get("execution_semantics") != "on-demand-v1":
@@ -160,7 +160,9 @@ class Campaign:
             n = min(remaining_round, view.remaining_wells)
             if state["round_index"] >= task.max_rounds or n <= task.controls_per_batch:
                 state["status"] = "complete"
+                state["stop_reason"] = "round_or_query_limit"
                 self.store.put("campaign", "state", state)
+                self._record_task_completion(state)
                 return None
             if task.batch_fill_policy == "full_plate" and n != task.batch_size:
                 raise ValueError("Insufficient budget for a whole plate; no partial plate may be submitted")
@@ -209,7 +211,8 @@ class Campaign:
                 if task.kind == TaskKind.AFFINITY or task.repeat_policy == "allow":
                     excluded = set()  # Explicit replicate predictions, never changed sequences.
                 baseline = [c for c in baseline if c.sequence not in excluded]
-                if state["pending_patch"] and task.kind != TaskKind.AFFINITY:
+                independent = self.store.get("configuration", "research", {}).get("workflow_validation") == "independent"
+                if state["pending_patch"] and task.kind != TaskKind.AFFINITY and not independent:
                     patch = Patch.model_validate(state["pending_patch"])
                     challenger_workflow = apply_patch(view.workflow, patch)
                     from proteinrsi.workflow_trial import prepare_workflow_trial
@@ -232,8 +235,10 @@ class Campaign:
                     self.store.event("no_valid_proposal", {"round": state["round_index"]})
                     raise ValueError("No new valid proposal returned; search-space exhaustion has not been established")
                 state["status"] = "complete"
+                state["stop_reason"] = "declared_candidate_space_exhausted"
                 self.store.event("candidate_space_exhausted", {"round": state["round_index"]})
                 self.store.put("campaign", "state", state)
+                self._record_task_completion(state)
                 return None
             for _ in range(task.controls_per_batch):
                 chosen.append((Candidate(sequence=task.reference_sequence, source="control"),
@@ -324,6 +329,13 @@ class Campaign:
     def ingest(self, observations: list[Observation]) -> dict:
         if not observations:
             raise ValueError("No measurements")
+        already = self.store.get("measurements", observations[0].batch_id)
+        normalized_retry = sorted([o.model_dump(mode="json") for o in observations], key=lambda o: o["sample_id"])
+        if already is not None and self.state["pending_batch"] != observations[0].batch_id:
+            if canonical(already) != canonical(normalized_retry):
+                raise Conflict("Previously imported measurements cannot be overwritten")
+            self.analyze_feedback()
+            return self.state
         with self.store.lock():
             state = self.state
             task = TaskSpec.model_validate(state["task"])
@@ -428,14 +440,68 @@ class Campaign:
                 self.store.put("campaign", "state", state)
                 self.store.event("feedback_ingested", summary)
                 snapshot(self.store, "feedback_committed", self.view(state))
-                if state["status"] == "complete":
-                    self.store.event("campaign_completed", {"rounds": state["round_index"]})
-        # Measurements are committed even if subsequent LLM/metacognitive work fails.
-        if state["status"] == "ready":
-            self.consider_improvement()
+        # Feedback and analysis survive a paused or invalid Improver. Final feedback
+        # is analyzed too; completion never depends on proposing a method patch.
+        self.analyze_feedback()
+        if self.state["status"] == "ready":
+            self._optional_improvement()
         return self.state
 
+    def analyze_feedback(self) -> None:
+        """Idempotent Task-loop checkpoint; no method proposal or adoption authority."""
+        with self.store.lock():
+            state = self.state
+            if state["pending_batch"] or state["status"] not in {"ready", "complete"}:
+                return
+            self.methods.assert_active(state)
+            if state["history"]:
+                self._checkpoint_feedback(state, self.view(state))
+            self._record_task_completion(state)
+
+    def _record_task_completion(self, state: dict) -> None:
+        """Called under the campaign lock; never invent an Analyst response."""
+        if state["status"] != "complete":
+            return
+        if state["history"] and not state["history"][-1].get("analyst_feedback"):
+            return
+        key = digest({"campaign": state["campaign_id"], "history": state["history"]})
+        if self.store.get("task_reports", key) is None:
+            view = self.view(state)
+            report = {"campaign_id": state["campaign_id"], "completed_rounds": state["round_index"],
+                "summary": state["history"][-1]["analyst_feedback"] if state["history"] else None,
+                "workflow": view.workflow.version, "meta": view.meta.version,
+                "evidence_version": view.evidence_version, "budget": self.store.usage(),
+                "scope": "current_task_only", "capability_improvement_claim": False,
+                "stop_reason": state.get("stop_reason", "configured_task_boundary")}
+            with self.store.transaction():
+                self.store.put("task_reports", key, report, immutable=True)
+                self.store.event("campaign_completed", {"rounds": state["round_index"], "report_ref": key})
+
+    def _optional_improvement(self) -> None:
+        """New studies may pause M without preventing subsequent task execution.
+
+        Unknown tool completion and integrity failures still fail closed. A known
+        provider pause suspends automatic M work until explicit operator recovery.
+        """
+        try:
+            self.consider_improvement()
+        except Exception as exc:
+            from proteinrsi.recovery import is_provider_paused
+            if not is_provider_paused(exc):
+                raise
+            config = self.store.get("configuration", "research", {})
+            if config.get("improvement_contract") != "capability-v1":
+                raise  # Historical studies keep their original pause semantics.
+            with self.store.lock(), self.store.transaction():
+                state = self.state
+                if self.methods.enabled:
+                    state["method_governance"].update(paused=True, pause_reason="improver_provider_paused")
+                self.store.put("campaign", "state", state)
+                self.store.event("method_improvement_paused", {"reason": "improver_provider_paused",
+                    "round": state["round_index"], "task_analysis_completed": True})
+
     def consider_improvement(self) -> None:
+        self.analyze_feedback()
         with self.store.lock():
             state = self.state
             if (state["status"] != "ready" or state["pending_patch"] or state["pending_meta"]
@@ -447,7 +513,6 @@ class Campaign:
             self.methods.assert_plannable(state)
             view = self.view(state)
             try:
-                self._checkpoint_feedback(state, view)
                 # Governance pauses method improvement, not analysis of fresh
                 # experimental evidence. Leave M unconsidered so an explicit
                 # idle-boundary resume can use the saved C result.
@@ -528,6 +593,8 @@ class Campaign:
 
     def _stage_patch(self, state: dict, patch: Patch) -> None:
         task = TaskSpec.model_validate(state["task"])
+        from proteinrsi.capability import validate_capability_claim
+        validate_capability_claim(patch, self.store.get("configuration", "research", {}))
         if patch.task_kind != task.kind:
             raise ValueError("Patch scope does not match task")
         current = Workflow.model_validate(state["workflow"]) if patch.target == "workflow" else MetaPolicy.model_validate(state["meta"])
@@ -568,8 +635,11 @@ class Campaign:
         with self.store.connect() as connection:
             health = execution_status(connection, state["status"])
         from proteinrsi.reporting import study_details
-        from proteinrsi.rsi_evidence import summarize_rsi
-        return {**study_details(self), "rsi_evidence": summarize_rsi(self.store), "campaign_id": state["campaign_id"], "status": state["status"],
+        from proteinrsi.rsi_evidence import summarize_rsi, summarize_harness_use
+        return {**study_details(self), "task_loop": {
+                    "analysis_pending": bool(state["history"] and not state["history"][-1].get("analyst_feedback")),
+                    "final_reports": self.store.all("task_reports")},
+                "rsi_evidence": summarize_rsi(self.store), "harness_use": summarize_harness_use(self.store), "campaign_id": state["campaign_id"], "status": state["status"],
                 "execution": health, "completed_rounds": state["round_index"],
                 "research_config": self.store.get("configuration", "research"),
                 "protein_model": self.store.get("configuration", "protein_model"),
@@ -581,6 +651,7 @@ class Campaign:
                 "pending_workflow_patch": state["pending_patch"], "pending_meta_patch": state["pending_meta"],
                 "workflow_trials": self.store.all("trial_results"),
                 "meta_evaluations": self.store.all("meta_evaluations"),
+                "harness_evaluations": self.store.all("harness_evaluations"),
                 "method_governance": self.methods.report(),
                 "execution_mode": task.execution_mode,
                 "computational_iterations": self.store.all("computational_iterations"),

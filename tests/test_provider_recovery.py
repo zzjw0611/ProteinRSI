@@ -45,7 +45,7 @@ def test_paused_plate_resumes_same_request_without_extra_wells(tmp_path, guarded
                 return httpx.Response(503)
             residues = 'CDEF' if context['view']['round_index'] == 0 else 'GHIK'
             result = {'edits': [[{'position': 1, 'from': 'A', 'to': aa}] for aa in residues]}
-        elif '# C — experimental feedback' in instructions:
+        elif '# Analyst — task feedback' in instructions:
             result = {'summary': 'Synthetic measurements received'}
         else:
             raise AssertionError(instructions[:100])

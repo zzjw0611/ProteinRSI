@@ -196,7 +196,11 @@ class ExperienceMemory:
                   "scope": {"task_kind": patch.task_kind.value, "campaign_id": campaign_id,
                             "observations_at_trial": observations, "evidence_source": source},
                   "status": "local_support" if result.decision == "accepted" else result.decision,
-                  "transfer_validated": False}
+                  "transfer_validated": False,
+                  "capability": patch.capability.model_dump() if patch.capability else None,
+                  "evidence_status": {"accepted": "locally_supported", "rejected": "not_supported",
+                                      "inconclusive": "unverified"}[result.decision],
+                  "note": "Rejection is not biological falsification; scope is this evaluation only."}
         self.store.put("experience", patch.patch_id, record, immutable=True)
 
     def retrieve(self, kind: TaskKind, *, include_unvalidated: bool = False) -> list[dict[str, Any]]:

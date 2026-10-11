@@ -180,9 +180,14 @@ def dispatch(team, gateway, view, allowed, msg):
                 "research_step_completed","research_blocked","team_completed","analyst_decision",
                 "design_tool_result","candidate_validation_feedback","ranking_repair_requested",
                 "meta_analysis_started", "meta_analysis_completed", "meta_analysis_tool_completed",
-                "method_program_executed"}
+                "method_program_executed", "task_harness_invoked"}
         if msg["kind"] not in safe:
             raise PermissionError("Unapproved audit event kind")
+        if msg["kind"] == "task_harness_invoked":
+            payload = msg["payload"]
+            if (payload.get("workflow") != view.workflow.version or payload.get("meta") != view.meta.version
+                    or payload.get("evidence_version") != view.evidence_version):
+                raise PermissionError("Harness invocation differs from the controller-bound view")
         return store.event(msg["kind"],msg["payload"])
     if op == "remaining":
         return store.remaining(msg["resource"])
