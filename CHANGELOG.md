@@ -1,3 +1,15 @@
+## Unreleased — shared Task Loop and automatic paired validation
+
+- Add a thin resumable Task driver shared by replay and full fixed-H child Campaigns.
+- Freeze evaluation inputs, methods, resource/experience snapshots, metrics and stopping conditions.
+- Atomically reserve paired budgets and E caps, copy authorized initial evidence for free,
+  charge actual calls idempotently, release unused capacity and preserve main-study headroom.
+- Automate same-snapshot replay comparisons and safe publication/continuation; defer before-start
+  shortages without blocking the original Task. Keep selection and confirmation distinct.
+- Audit child rounds, feedback, allocations, actual method reuse and rollback without refunds.
+- Opt new studies into task-loop-v1; preserve historical snapshot enforcement and decision-v1 routing.
+- Defer permanent shared memory, new skill publication and Meta-improver efficacy experiments.
+
 # Unreleased — frozen custom evaluation metrics
 
 

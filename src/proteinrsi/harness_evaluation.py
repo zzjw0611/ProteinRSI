@@ -81,7 +81,7 @@ def _validate_cases(campaign, cases, *, confirmation):
     return task
 
 
-def evaluate_workflow(campaign, cases, *, promote=False, patch_id=None, team_factory=None):
+def _evaluate_workflow_legacy(campaign, cases, *, promote=False, patch_id=None, team_factory=None):
     """Validate a pending W; --patch-id confirms a frozen archived W, never publishes it."""
     from proteinrsi.llm_evaluation import ensure_evaluation_plan, adjudicate_evaluation
     store = campaign.store
@@ -289,3 +289,16 @@ def abandon_evaluation(campaign, evaluation_id, *, operator, reason, acknowledge
             "operator": operator, "reason": reason})
         campaign.store.event("harness_evaluation_abandoned", {"evaluation_id": evaluation_id,
             "operator": operator, "reason": reason, "refunded_queries": 0})
+        if attempt.get("protocol") == "task-loop-v1":
+            campaign.store.release_allocations(evaluation_id)
+
+
+def evaluate_workflow(campaign, cases, *, promote=False, patch_id=None, team_factory=None):
+    """Dispatch by the frozen study protocol; old snapshots are never migrated."""
+    config = campaign.store.get("configuration", "research", {})
+    if config.get("evaluation_protocol") == "task-loop-v1":
+        from proteinrsi.loop_evaluation import evaluate_workflow_loop
+        return evaluate_workflow_loop(campaign, cases, promote=promote, patch_id=patch_id,
+                                      team_factory=team_factory)
+    return _evaluate_workflow_legacy(campaign, cases, promote=promote, patch_id=patch_id,
+                                    team_factory=team_factory)

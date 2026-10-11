@@ -30,9 +30,9 @@ class Campaign:
     @classmethod
     def initialize(cls, directory: str, task: TaskSpec, *, workflow: Workflow | None = None,
                    meta: MetaPolicy | None = None, gate: GatePolicy | None = None,
-                   protein_config=None, local_tools=None, research_config=None, auto_meta_evaluation=True, governance_config=None) -> Campaign:
+                   protein_config=None, local_tools=None, research_config=None, auto_meta_evaluation=True, governance_config=None, _store: Store | None = None) -> Campaign:
         validate_task(task)
-        store = Store(directory)
+        store = _store if _store is not None else Store(directory)
         with store.lock(), store.transaction():
             if store.get("campaign", "state") is not None:
                 raise Conflict("Campaign already exists; use resume/status, not init")
@@ -483,6 +483,8 @@ class Campaign:
         Unknown tool completion and integrity failures still fail closed. A known
         provider pause suspends automatic M work until explicit operator recovery.
         """
+        if self.store.get("configuration", "evaluation_branch") is not None:
+            return
         try:
             self.consider_improvement()
         except Exception as exc:
@@ -501,6 +503,8 @@ class Campaign:
                     "round": state["round_index"], "task_analysis_completed": True})
 
     def consider_improvement(self) -> None:
+        if self.store.get("configuration", "evaluation_branch") is not None:
+            return
         self.analyze_feedback()
         with self.store.lock():
             state = self.state
@@ -592,6 +596,8 @@ class Campaign:
                 "feedback_input_ref": key, "feedback_ref": key})
 
     def _stage_patch(self, state: dict, patch: Patch) -> None:
+        if self.store.get("configuration", "evaluation_branch") is not None:
+            raise PermissionError("Fixed-H validation cannot propose or publish methods")
         task = TaskSpec.model_validate(state["task"])
         from proteinrsi.capability import validate_capability_claim
         validate_capability_claim(patch, self.store.get("configuration", "research", {}))
@@ -637,6 +643,7 @@ class Campaign:
         from proteinrsi.reporting import study_details
         from proteinrsi.rsi_evidence import summarize_rsi, summarize_harness_use
         return {**study_details(self), "task_loop": {
+                    "last_stop": self.store.get("task_loop_status", "latest"),
                     "analysis_pending": bool(state["history"] and not state["history"][-1].get("analyst_feedback")),
                     "final_reports": self.store.all("task_reports")},
                 "rsi_evidence": summarize_rsi(self.store), "harness_use": summarize_harness_use(self.store), "campaign_id": state["campaign_id"], "status": state["status"],
@@ -657,3 +664,7 @@ class Campaign:
                 "computational_iterations": self.store.all("computational_iterations"),
                 "final_computational_candidates": (state["history"][-1].get("candidates", [])
                     if task.execution_mode == "computational" and state["history"] else [])}
+
+
+# Public driver; scientific transitions remain methods of Campaign.
+from proteinrsi.task_loop import run_task_loop as run_task_loop  # noqa: E402

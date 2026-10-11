@@ -61,8 +61,8 @@ def main(argv: list[str] | None = None) -> None:
     start.add_argument("--out", help="New campaign directory; defaults to a timestamped runs directory")
     start.add_argument("--data-root", default=str(Path.home()/"data"/"ssmula"))
     start.add_argument("--local-tools", help="Installed tool configuration; local project config is auto-detected")
-    start.add_argument("--llm-calls", type=compute_call_limit, default=200, help="Total LLM calls, or unlimited")
-    start.add_argument("--tool-calls", type=compute_call_limit, default=100, help="Total tool calls, or unlimited")
+    start.add_argument("--llm-calls", type=compute_call_limit, default=None, help="Total LLM calls, or unlimited")
+    start.add_argument("--tool-calls", type=compute_call_limit, default=None, help="Total tool calls, or unlimited")
     start.add_argument("--prepare-only", action="store_true", help="Parse and save the task, without experimental queries")
     start.add_argument("--full-plate", action="store_true", help="Require exactly batch_size wells before each experimental submission")
     start.add_argument("--protocol-mode", choices=["typed", "legacy"],
@@ -133,7 +133,7 @@ def main(argv: list[str] | None = None) -> None:
             cmd.add_argument("--file", required=True)
         if name == "replay":
             cmd.add_argument("--dataset", required=True)
-            cmd.add_argument("--validation-cases", help="Controller-only validation manifest for automatic independent W comparisons; otherwise yield at a pending W")
+            cmd.add_argument("--validation-cases", help="Controller-only validation manifest for automatic independent W comparisons; otherwise new task-loop studies construct a frozen same-snapshot comparison")
             cmd.add_argument("--execution", choices=["guarded", "inprocess"], default="guarded",
                 help="Guarded research worker is default. inprocess is explicit trusted debugging, not label-isolation validation.")
         if name in {"evaluate-meta", "evaluate-workflow"}:
@@ -334,7 +334,7 @@ def main(argv: list[str] | None = None) -> None:
                     workflow.analysis_tool_rounds = 2
                     workflow.skill_names += ["local-protein-tools"]
             from proteinrsi.research.contracts import ResearchConfig
-            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig(protocol_mode="typed", context_policy="evidence-v1", improvement_contract="capability-v1", workflow_validation="independent")
+            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig(protocol_mode="typed", context_policy="evidence-v1", improvement_contract="capability-v1", workflow_validation="independent", evaluation_protocol="task-loop-v1", auto_evaluation={})
             if args.research_mode is not None:
                 research_config.enabled = args.research_mode == "adaptive"
             campaign = Campaign.initialize(args.out, TaskSpec.model_validate(load_json(args.task)),

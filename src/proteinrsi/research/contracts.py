@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Literal
 from pydantic import Field, model_validator
-from proteinrsi.contracts import DecisionNotes, Model
+from proteinrsi.contracts import DecisionNotes, Model, EvaluationPolicy
 from proteinrsi.tools import ToolCall
 
 
@@ -17,6 +17,8 @@ class ResearchConfig(Model):
     # Operator resource/compatibility settings, not scientific decision heuristics.
     improvement_contract: Literal["legacy", "capability-v1"] = "legacy"
     workflow_validation: Literal["online", "independent"] = "online"
+    evaluation_protocol: Literal["decision-v1", "task-loop-v1"] = "decision-v1"
+    auto_evaluation: EvaluationPolicy | None = None
     meta_autonomous: bool = True
     meta_tool_rounds: int = Field(default=4, ge=0, le=12)
     resource_selection: Literal["rules", "llm", "all"] = "rules"

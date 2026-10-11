@@ -128,8 +128,8 @@ def input_catalog(store, paths):
     return entries
 
 
-def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), llm_calls=200,
-                          tool_calls=100, llm_factory=None, event_sink=None, continue_from=False, full_plate=False, protocol_mode=None):
+def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), llm_calls=None,
+                          tool_calls=None, llm_factory=None, event_sink=None, continue_from=False, full_plate=False, protocol_mode=None):
     if not goal.strip() or len(goal) > 12000 or (llm_calls is not None and llm_calls < 1) or (tool_calls is not None and tool_calls < 0):
         raise ValueError('Provide a nonempty goal and valid compute limits')
     out = Path(out).resolve()
@@ -280,7 +280,7 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
         gate=GatePolicy(criterion='llm_adjudicated_v1'),
         protein_config=local.esmc, local_tools=local,
         research_config=ResearchConfig(resource_selection='llm', enable_generated_code=True, protocol_mode=protocol_mode,
-            context_policy='evidence-v1', improvement_contract='capability-v1', workflow_validation='independent'))
+            context_policy='evidence-v1', improvement_contract='capability-v1', workflow_validation='independent', evaluation_protocol='task-loop-v1', auto_evaluation={}))
     if protocol_mode == 'typed':
         from proteinrsi.research.skill_library import freeze_library
         freeze_library(campaign.store)

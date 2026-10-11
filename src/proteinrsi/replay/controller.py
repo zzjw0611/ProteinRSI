@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MIT
 """Budgeted historical replay. Labels live in the controller, research runs in a fresh worker."""
 from pathlib import Path
-from proteinrsi.contracts import Observation, Patch, TaskSpec
+from proteinrsi.contracts import Patch, TaskSpec
 from proteinrsi.lab import CSVOracle, UnknownMeasurement
 from proteinrsi.localtools.artifacts import file_sha256
 from .broker import GuardedTeam, GuardedMetaAgent, reader_roots
@@ -45,40 +45,47 @@ def run_replay(campaign, dataset, *, guarded=True, validation_cases=None):
         old = campaign.team
         campaign.team = GuardedTeam.from_team(old)
         campaign.meta_agent = GuardedMetaAgent(campaign.team)
-    while True:
-        # Finish Task feedback before any optional method work. Independent-mode
-        # replay yields at a proposal boundary rather than spending the remaining
-        # study budget while an unvalidated method silently waits forever.
-        campaign.analyze_feedback()
-        independent = campaign.store.get("configuration", "research", {}).get("workflow_validation") == "independent"
-        if independent:
-            campaign._optional_improvement()
-            state = campaign.state
-            if state["pending_patch"] and not state["pending_batch"] and state["status"] == "ready":
-                if validation_cases is None:
-                    campaign.store.event("harness_validation_required", {
-                        "patch_id": Patch.model_validate(state["pending_patch"]).patch_id,
-                        "round": state["round_index"], "task_analysis_completed": True,
-                        "reason": "Supply controller-only validation cases or explicitly continue with step"})
-                    break
-                from proteinrsi.harness_evaluation import evaluate_workflow
-                evaluate_workflow(campaign, validation_cases, promote=True)
-        batch = campaign.prepare()
-        if batch is None:
-            break
-        # Explicit closed libraries must be fully covered. Open design receives missing-record feedback.
-        if task.candidate_access != "open" and any(s.candidate.sequence not in oracle._labels for s in batch.samples):
-            raise UnknownMeasurement("Batch contains an unavailable sequence; not approved, no phenotype returned")
-        campaign.approve(batch.batch_id, operator="explicit-guarded-replay" if guarded else "explicit-inprocess-replay")
-        saved = campaign.store.get("measurements", batch.batch_id)
-        # E may pause after paid observations are durable but before adoption.
-        # Resume that exact evidence rather than querying the oracle again.
-        observations = ([Observation.model_validate(row) for row in saved]
-                        if saved is not None else oracle.measure(batch))
-        missing = [o.sample_id for o in observations if o.qc == "unavailable"]
-        if missing and saved is None:
-            campaign.store.event("replay_unavailable", {"batch_id": batch.batch_id,
-                "sample_ids": missing, "charged_queries": len(missing),
-                "reason": "No historical measurement; not a failed assay or low fitness"})
-        campaign.ingest(observations)
-    return campaign.report()
+    from proteinrsi.task_loop import run_task_loop
+
+    class ReplayFeedback:
+        def validate(self, batch):
+            if task.candidate_access != "open" and any(s.candidate.sequence not in oracle._labels for s in batch.samples):
+                raise UnknownMeasurement("Batch contains an unavailable sequence; no phenotype returned")
+
+        def measure(self, batch):
+            observations = oracle.measure(batch)
+            missing = [o.sample_id for o in observations if o.qc == "unavailable"]
+            if missing:
+                campaign.store.event("replay_unavailable", {"batch_id": batch.batch_id,
+                    "sample_ids": missing, "charged_queries": len(missing),
+                    "reason": "No historical measurement; not a failed assay or low fitness"})
+            return observations
+
+    def checkpoint(current):
+        config = current.store.get("configuration", "research", {})
+        if config.get("workflow_validation") != "independent":
+            return None
+        current._optional_improvement()
+        state = current.state
+        if not state["pending_patch"] or state["status"] != "ready":
+            return None
+        if config.get("evaluation_protocol") == "task-loop-v1":
+            from proteinrsi.evaluation_scheduler import schedule_evaluation
+            schedule_evaluation(current, oracle, cases=validation_cases)
+            return None
+        # Historical decision-case protocol remains explicit and unchanged.
+        if validation_cases is None:
+            current.store.event("harness_validation_required", {
+                "patch_id": Patch.model_validate(state["pending_patch"]).patch_id,
+                "round": state["round_index"], "task_analysis_completed": True,
+                "reason": "Supply controller-only validation cases or explicitly continue with step"})
+            return "validation_cases_required"
+        from proteinrsi.harness_evaluation import evaluate_workflow
+        evaluate_workflow(current, validation_cases, promote=True)
+        return None
+
+    result = run_task_loop(campaign, ReplayFeedback(),
+        operator="explicit-guarded-replay" if guarded else "explicit-inprocess-replay",
+        on_checkpoint=checkpoint,
+        raise_on_pause=campaign.store.get("configuration", "research", {}).get("evaluation_protocol") != "task-loop-v1")
+    return {**campaign.report(), "loop_result": result.model_dump(mode="json")}

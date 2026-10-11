@@ -1,3 +1,6 @@
+> 下文保留 `decision-v1` 的实现边界。新的 `task-loop-v1` 已使用完整多轮子 Campaign；
+> 预算、自动组织验证与恢复说明见 [MULTIROUND_EVALUATION.md](MULTIROUND_EVALUATION.md)。
+
 # Task Loop 与 Harness 改进循环（第一阶段）
 
 ## 范围与角色

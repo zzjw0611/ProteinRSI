@@ -45,6 +45,9 @@ TRACE_NAMESPACES = frozenset({
     "validation_code_programs", "plate_plans", "workflow_validation_outcomes",
     "method_candidates", "method_candidate_states", "method_transitions", "method_switches",
     "method_snapshots", "method_activations", "method_deferrals", "method_proposal_failures",
+    "evaluation_specs", "evaluation_drafts", "evaluation_starts", "evaluation_resources", "evaluation_memory",
+    "evaluation_deferrals", "evaluation_auto_inputs", "budget_allocation_groups", "task_loop_results", "task_loop_status",
+    "validation_batches", "validation_measurements", "validation_task_reports", "validation_task_loop_results",
     "experience", "task_reports", "harness_attempts", "harness_evaluations", "harness_protocols", "harness_case_bindings",
     "batch_method_bindings", "gepa_attempts", "gepa_results", "gepa_failures",
 })

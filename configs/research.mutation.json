@@ -14,5 +14,7 @@
   "meta_tool_rounds": 4,
   "context_policy": "evidence-v1",
   "improvement_contract": "capability-v1",
-  "workflow_validation": "independent"
+  "workflow_validation": "independent",
+  "evaluation_protocol": "task-loop-v1",
+  "auto_evaluation": {}
 }

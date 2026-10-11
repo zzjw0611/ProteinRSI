@@ -542,3 +542,59 @@ class TaskView(Model):
     @property
     def evidence_version(self) -> str:
         return digest([o.model_dump(mode="json") for o in self.observations])
+
+
+class EvaluationPolicy(Model):
+    """Operator-authorized scheduling limits, never an evolvable method field."""
+    enabled: bool = True
+    rounds: int = Field(default=2, ge=1, le=100)
+    query_budget_per_arm: int | None = Field(default=None, ge=1)
+    llm_calls_per_arm: int = Field(default=64, ge=0)
+    tool_calls_per_arm: int = Field(default=128, ge=0)
+    evaluator_llm_calls: int = Field(default=6, ge=0)
+    evaluator_tool_calls: int = Field(default=16, ge=0)
+    main_reserve_wells: int | None = Field(default=None, ge=0)
+
+
+class EvaluationCaseSpec(Model):
+    case_id: str
+    group_id: str
+    start_ref: str
+    rounds: int = Field(ge=1)
+    resource_limits: dict[str, int]
+
+    @field_validator("resource_limits")
+    @classmethod
+    def finite_limits(cls, value):
+        if not {"experimental_wells", "llm_calls", "tool_calls"} <= value.keys():
+            raise ValueError("A comparison requires explicit experimental and compute caps")
+        if any(type(n) is not int or n < 0 for n in value.values()):
+            raise ValueError("Comparison resource caps must be finite nonnegative integers")
+        return value
+
+
+class EvaluationSpec(Model):
+    """Label-free, content-addressed protocol frozen before branch execution."""
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+    protocol: Literal["task-loop-v1"] = "task-loop-v1"
+    purpose: Literal["selection", "confirmation"]
+    scope: Literal["same_snapshot", "declared_cases"]
+    patch_id: str
+    baseline_version: str
+    candidate_version: str
+    manifest_hash: str
+    resource_snapshot_ref: str
+    memory_snapshot_ref: str
+    cases: list[EvaluationCaseSpec] = Field(min_length=1)
+    gate: dict[str, Any]
+    metric_plan_ref: str | None = None
+    evaluator_limits: dict[str, int]
+    main_reserve_wells: int = Field(ge=0)
+    stopping_conditions: list[str] = Field(default_factory=lambda: [
+        "round_limit", "query_budget", "compute_budget", "declared_space_exhausted",
+        "provider_pause", "external_feedback_pending"])
+    promotion_requested: bool = False
+
+    @property
+    def spec_ref(self) -> str:
+        return "evaluation-spec-" + digest(self)
