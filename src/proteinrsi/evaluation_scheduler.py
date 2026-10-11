@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Checkpoint scheduling for the first-stage fixed-H replay protocol.
+"""Checkpoint scheduling for frozen W/M replay comparisons.
 
 The controller constructs same-snapshot comparisons from already disclosed
 inputs. These are not mislabeled as independent proteins or confirmation data.
@@ -10,14 +10,20 @@ from proteinrsi.storage import BudgetExceeded
 
 
 def schedule_evaluation(campaign, oracle=None, *, cases=None, team_factory=None):
+    from proteinrsi.memory import sync_shared_memory
+    sync_shared_memory(campaign)
     state, store = campaign.state, campaign.store
-    if state["pending_batch"] or state["status"] != "ready" or not state["pending_patch"]:
+    if state["pending_batch"] or state["status"] != "ready" or not (state["pending_patch"] or state["pending_meta"]):
         return None
     config = store.get("configuration", "research", {})
     settings = EvaluationPolicy.model_validate(config.get("auto_evaluation") or {})
     if not settings.enabled:
         return None
-    patch = Patch.model_validate(state["pending_patch"])
+    patch = Patch.model_validate(state["pending_patch"] or state["pending_meta"])
+    if patch.target not in campaign.methods.allowed_targets:
+        return None
+    if patch.target == "meta" and config.get("evaluation_protocol") != "method-loop-v1":
+        return None
 
     def defer(reason):
         key = digest({"patch": patch.patch_id, "round": state["round_index"], "reason": reason})
@@ -29,9 +35,9 @@ def schedule_evaluation(campaign, oracle=None, *, cases=None, team_factory=None)
         return None
 
     if cases is not None:
-        from proteinrsi.harness_evaluation import evaluate_workflow
+        from proteinrsi.loop_evaluation import evaluate_method
         try:
-            return evaluate_workflow(campaign, cases, promote=True, team_factory=team_factory)
+            return evaluate_method(campaign, cases, target=patch.target, promote=True, team_factory=team_factory)
         except BudgetExceeded:
             if any(a.get("patch_id") == patch.patch_id and a.get("state") in {"started", "paused_provider", "blocked"}
                    for a in store.all("harness_attempts").values()):
@@ -43,10 +49,15 @@ def schedule_evaluation(campaign, oracle=None, *, cases=None, team_factory=None)
     if frozen is None:
         task = TaskSpec.model_validate(state["task"])
         data = task.model_dump(mode="json")
-        q = settings.query_budget_per_arm or task.batch_size * settings.rounds
-        data.update(max_rounds=settings.rounds,
-                    budget={"experimental_wells": q, "llm_calls": settings.llm_calls_per_arm,
-                            "tool_calls": settings.tool_calls_per_arm})
+        rounds = settings.meta_rounds if patch.target == "meta" else settings.rounds
+        if patch.target == "meta":
+            q = settings.meta_query_budget_per_arm or task.batch_size * (rounds + 2 * settings.rounds)
+        else:
+            q = settings.query_budget_per_arm or task.batch_size * rounds
+        data.update(max_rounds=rounds,
+                    budget={"experimental_wells": q,
+                        "llm_calls": settings.meta_llm_calls_per_arm if patch.target == "meta" else settings.llm_calls_per_arm,
+                        "tool_calls": settings.meta_tool_calls_per_arm if patch.target == "meta" else settings.tool_calls_per_arm})
         # Validation is a continuation of a frozen observed snapshot, never a new warm-start purchase.
         data.update(initial_observation_policy="none", initial_parent_measurement=None)
         TaskSpec.model_validate(data)
@@ -59,9 +70,9 @@ def schedule_evaluation(campaign, oracle=None, *, cases=None, team_factory=None)
     labels = {seq: value for seq, (value, qc) in oracle._labels.items() if qc == "valid"}
     case = MetaCase(case_id=frozen["case_id"], group_id=frozen["group_id"], split="validation",
         task=frozen["task"], initial=frozen["initial"], labels=labels, query_budget=frozen["query_budget"])
-    from proteinrsi.loop_evaluation import evaluate_workflow_loop
+    from proteinrsi.loop_evaluation import evaluate_method
     try:
-        return evaluate_workflow_loop(campaign, [case], promote=True, team_factory=team_factory,
+        return evaluate_method(campaign, [case], target=patch.target, promote=True, team_factory=team_factory,
             scope="same_snapshot", start_overrides={case.case_id: {
                 "history": frozen["history"], "round_index": frozen["round_index"],
                 "first_round_spent": frozen["first_round_spent"], "initialization_done": True}})

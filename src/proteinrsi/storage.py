@@ -354,16 +354,29 @@ class SponsoredStore(Store):
         self.allocation_id = allocation_id
 
     def reserve(self, key, resource, amount, payload):
-        sponsor_key = "meta-" + self.prefix + "-" + key
-        # No cross-database transaction is claimed: sponsor-first side effects use
-        # stable IDs, so a crash before local commit replays the same reservation.
+        # Stable keys reconcile sponsor commits if this local transaction crashes.
         with self.transaction():
             super().reserve(key, resource, amount, payload)
-            request = {"evaluation_arm": self.prefix, "request": payload}
-            if self.allocation_id is None:
-                self.sponsor.reserve(sponsor_key, resource, amount, request)
-            else:
-                self.sponsor.reserve_allocated(self.allocation_id, sponsor_key, resource, amount, request)
+            self._reserve_sponsor(key, resource, amount, payload)
+
+    def _reserve_sponsor(self, key, resource, amount, payload):
+        sponsor_key = "meta-" + self.prefix + "-" + key
+        request = {"evaluation_arm": self.prefix, "request": payload}
+        if self.allocation_id is None:
+            self.sponsor.reserve(sponsor_key, resource, amount, request)
+        else:
+            self.sponsor.reserve_allocated(self.allocation_id, sponsor_key, resource, amount, request)
+
+    def reserve_allocated(self, allocation_id, key, resource, amount, payload):
+        """Nested W/E reservations consume the enclosing M arm exactly once.
+
+        Local savepoints roll back if an ancestor refuses capacity. Stable keys
+        reconcile sponsor-first side effects after a crash; settlement walks the
+        same sponsor chain. No new budget is minted by a nested evaluation.
+        """
+        with self.transaction():
+            super().reserve_allocated(allocation_id, key, resource, amount, payload)
+            self._reserve_sponsor(key, resource, amount, payload)
 
     def settle(self, key, *, release=False):
         self.sponsor.settle("meta-" + self.prefix + "-" + key, release=release)
@@ -380,6 +393,12 @@ class SponsoredStore(Store):
         self.sponsor.event("validation_event", {"branch": self.prefix, "kind": kind, "payload": payload})
 
     def put(self, namespace, key, value, *, immutable=False):
+        if namespace.startswith("validation_"):
+            # Operator-only recursively sponsored artifacts keep their lineage.
+            super().put(namespace, key, value, immutable=immutable)
+            self.sponsor.put(namespace, self.prefix + "/" + key,
+                {"branch": self.prefix, "value": value}, immutable=immutable)
+            return
         if namespace == "task_predictions":
             # Frozen main-campaign samples may reference a descendant's predictions.
             # Publish the exact artifact, not an audit wrapper or new prediction.
@@ -392,7 +411,7 @@ class SponsoredStore(Store):
             return
         super().put(namespace, key, value, immutable=immutable)
         # These namespaces are operator-only; the worker RPC cannot read them.
-        if namespace in {"context_evidence", "context_sessions", "context_frames", "context_reads", "research_notes", "llm", "llm_attempts", "llm_preflights", "tool_jobs", "agent_snapshots", "research_runs", "research_step_outputs", "code_programs", "feedback_inputs", "feedback_results", "batches", "measurements", "task_reports", "task_loop_results"}:
+        if namespace in {"context_evidence", "context_sessions", "context_frames", "context_reads", "research_notes", "llm", "llm_attempts", "llm_preflights", "tool_jobs", "agent_snapshots", "research_runs", "research_step_outputs", "code_programs", "feedback_inputs", "feedback_results", "batches", "measurements", "task_reports", "task_loop_results", "harness_evaluations", "method_switches", "evaluation_specs"}:
             self.sponsor.put("validation_"+namespace, self.prefix+"/"+key,
                              {"branch": self.prefix, **(value if isinstance(value, dict) else {"value": value})}, immutable=immutable)
 

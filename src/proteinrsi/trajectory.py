@@ -19,17 +19,12 @@ def read_trace(directory):
             ",".join("?" for _ in names) + ") OR (namespace='campaign' AND key='state')", names).fetchall()
         events = [{"id": i, "timestamp": t, "kind": k, "payload": json.loads(p)}
                   for i, t, k, p in con.execute("SELECT * FROM events ORDER BY id")]
-        limits = dict(con.execute("SELECT resource,amount FROM limits"))
-        charges = con.execute("SELECT resource,amount,state FROM charges").fetchall()
         from proteinrsi.trace_export import summary
-        health = summary(con, path)["execution"]
+        metadata = summary(con, path)
     records = {}
     allowed = TRACE_NAMESPACES
-    state = {}
     for ns, key, value in rows:
-        if ns == "campaign" and key == "state":
-            state = json.loads(value)
-        elif ns in allowed:
+        if ns in allowed:
             records.setdefault(ns, {})[key] = json.loads(value)
     for event in events:
         payload = event["payload"]
@@ -44,12 +39,7 @@ def read_trace(directory):
             record = records.get(prefix+namespace, {}).get(branch+ref)
             if record is not None:
                 event.setdefault("details", {})[namespace] = record
-    spent = {k: sum(n for r, n, s in charges if r == k and s == "committed") for k in limits}
-    return {"campaign": str(path.parent), "status": state.get("status"), "execution": health,
-        "rounds": state.get("round_index"), "source": ("computational" if state.get("task", {}).get("execution_mode") == "computational"
-                   else state.get("task", {}).get("feedback_source")),
-        "limits": limits, "spent": spent, "events": events, "records": records,
-        "note": "Model-returned text and decision summaries only; unavailable hidden reasoning is not reconstructed."}
+    return {**metadata, "events": events, "records": records}
 
 
 def print_event(event, stream=None):

@@ -15,6 +15,6 @@
   "context_policy": "evidence-v1",
   "improvement_contract": "capability-v1",
   "workflow_validation": "independent",
-  "evaluation_protocol": "task-loop-v1",
+  "evaluation_protocol": "method-loop-v1",
   "auto_evaluation": {}
 }

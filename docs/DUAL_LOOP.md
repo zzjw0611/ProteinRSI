@@ -1,3 +1,5 @@
+> 本文记录前一阶段协议；新建研究的 W/M 对照与经验复用见 [METHOD_EVALUATION.md](METHOD_EVALUATION.md)。
+
 > 下文保留 `decision-v1` 的实现边界。新的 `task-loop-v1` 已使用完整多轮子 Campaign；
 > 预算、自动组织验证与恢复说明见 [MULTIROUND_EVALUATION.md](MULTIROUND_EVALUATION.md)。
 

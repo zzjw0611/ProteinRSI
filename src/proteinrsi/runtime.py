@@ -11,7 +11,8 @@ from proteinrsi.agents import FeedbackAnalysis, MetaAgent, Team, skill_text
 from proteinrsi.audit import redact, snapshot
 from proteinrsi.contracts import (Batch, Candidate, GatePolicy, MetaPolicy, Observation, Patch,
     Sample, TaskKind, TaskSpec, TaskView, Workflow, canonical, digest)
-from proteinrsi.improvement import ExperienceMemory, apply_patch, evaluate_trial
+from proteinrsi.improvement import apply_patch, evaluate_trial
+from proteinrsi.memory import ExperienceMemory
 from proteinrsi.lab import export_batch
 from proteinrsi.llm import LLMError, ProviderPaused
 from proteinrsi.storage import BudgetExceeded, Conflict, Store
@@ -30,7 +31,7 @@ class Campaign:
     @classmethod
     def initialize(cls, directory: str, task: TaskSpec, *, workflow: Workflow | None = None,
                    meta: MetaPolicy | None = None, gate: GatePolicy | None = None,
-                   protein_config=None, local_tools=None, research_config=None, auto_meta_evaluation=True, governance_config=None, _store: Store | None = None) -> Campaign:
+                   protein_config=None, local_tools=None, research_config=None, auto_meta_evaluation=True, governance_config=None, memory_library=None, _store: Store | None = None) -> Campaign:
         validate_task(task)
         store = _store if _store is not None else Store(directory)
         with store.lock(), store.transaction():
@@ -85,6 +86,9 @@ class Campaign:
             store.put("campaign", "state", state)
             store.put("workflow_versions", workflow.version, workflow.model_dump(), immutable=True)
             store.put("meta_versions", meta.version, meta.model_dump(), immutable=True)
+            if memory_library is not None:
+                from proteinrsi.memory import attach_library
+                attach_library(store, memory_library, task)
             campaign = cls(store)
             campaign.methods.bootstrap(state)
             store.event("campaign_initialized", {"campaign_id": state["campaign_id"],
@@ -123,8 +127,7 @@ class Campaign:
             meta=MetaPolicy.model_validate(state["meta"]), experience=self.memory.retrieve(task.kind, include_unvalidated=True),
             artifacts=list(self.store.all("artifacts").values()),
             research_context={"task_progress": {"terminal": state["status"] == "complete",
-                "completed_rounds": state["round_index"]}, "allowed_patch_targets": (self.methods.policy.allowed_patch_targets
-                if self.methods.enabled else ["workflow", "meta"]), "workflow_validation_outcomes":
+                "completed_rounds": state["round_index"]}, "allowed_patch_targets": list(self.methods.allowed_targets), "workflow_validation_outcomes":
                 list(self.store.all("workflow_validation_outcomes").values()),
                 **({"method_history": self.methods.visible_history()} if self.methods.enabled else {}),
                 **({"acceptance_policy": state["gate"]} if state["gate"].get("criterion") in {"observed_pareto_v1", "llm_adjudicated_v1"} else {})})
@@ -191,7 +194,8 @@ class Campaign:
             meta_trial = None
             excluded = {o.sequence for o in view.observations} | {task.reference_sequence}
             if (state["pending_meta"] and task.kind != TaskKind.AFFINITY
-                    and self.store.get("configuration", "auto_meta_evaluation", {}).get("enabled")):
+                    and self.store.get("configuration", "auto_meta_evaluation", {}).get("enabled")
+                    and self.store.get("configuration", "research", {}).get("evaluation_protocol") != "method-loop-v1"):
                 from proteinrsi.online_meta import prepare_meta_trial
                 planned = prepare_meta_trial(self, state, view, slots)
                 if planned:
@@ -483,13 +487,13 @@ class Campaign:
         Unknown tool completion and integrity failures still fail closed. A known
         provider pause suspends automatic M work until explicit operator recovery.
         """
-        if self.store.get("configuration", "evaluation_branch") is not None:
+        if not self.methods.can_improve:
             return
         try:
             self.consider_improvement()
         except Exception as exc:
             from proteinrsi.recovery import is_provider_paused
-            if not is_provider_paused(exc):
+            if not is_provider_paused(exc) or self.methods.is_evaluation:
                 raise
             config = self.store.get("configuration", "research", {})
             if config.get("improvement_contract") != "capability-v1":
@@ -503,7 +507,7 @@ class Campaign:
                     "round": state["round_index"], "task_analysis_completed": True})
 
     def consider_improvement(self) -> None:
-        if self.store.get("configuration", "evaluation_branch") is not None:
+        if not self.methods.can_improve:
             return
         self.analyze_feedback()
         with self.store.lock():
@@ -596,16 +600,13 @@ class Campaign:
                 "feedback_input_ref": key, "feedback_ref": key})
 
     def _stage_patch(self, state: dict, patch: Patch) -> None:
-        if self.store.get("configuration", "evaluation_branch") is not None:
-            raise PermissionError("Fixed-H validation cannot propose or publish methods")
+        self.methods.require_target(patch.target)
         task = TaskSpec.model_validate(state["task"])
         from proteinrsi.capability import validate_capability_claim
         validate_capability_claim(patch, self.store.get("configuration", "research", {}))
         if patch.task_kind != task.kind:
             raise ValueError("Patch scope does not match task")
         current = Workflow.model_validate(state["workflow"]) if patch.target == "workflow" else MetaPolicy.model_validate(state["meta"])
-        if self.methods.enabled and patch.target not in self.methods.policy.allowed_patch_targets:
-            raise PermissionError("Patch target disabled by the frozen operator study configuration")
         candidate = apply_patch(current, patch)
         if candidate.programs and not self.store.get("configuration", "research", {}).get("enable_generated_code", False):
             raise PermissionError("Method programs require operator-enabled generated code")

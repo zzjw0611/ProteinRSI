@@ -3,6 +3,7 @@
 from copy import deepcopy
 
 from proteinrsi.contracts import GatePolicy, MetaPolicy, TaskSpec, Workflow, digest
+from proteinrsi.governance import GovernancePolicy
 from proteinrsi.runtime import Campaign
 from proteinrsi.storage import Conflict, SponsoredStore
 
@@ -25,10 +26,12 @@ def freeze_resources(campaign):
         "provider": provider_identity(campaign.team),
         "allow_egress": campaign.team.tools.allow_egress,
         "guarded": bool(getattr(campaign.team, "guarded", False))}
+    if (resources["configuration"]["research"] or {}).get("evaluation_protocol") == "method-loop-v1":
+        resources["governance"] = campaign.methods.policy.model_dump(mode="json")
     # Persist only provider identity, not keys or headers.
     from proteinrsi.audit import redact
     resources = redact(resources, (getattr(llm, "api_key", ""),))
-    memory = campaign.store.all("experience")
+    memory = campaign.memory.freeze_records()
     refs = []
     for namespace, value in (("evaluation_resources", resources), ("evaluation_memory", memory)):
         ref = digest(value)
@@ -68,10 +71,14 @@ def fork_for_evaluation(campaign, spec, case_spec, workflow, meta, *, arm, team_
     for value, ref in ((start, case_spec.start_ref), (resources, spec.resource_snapshot_ref), (memory, spec.memory_snapshot_ref)):
         if value is None or digest(value) != ref:
             raise Conflict("Frozen validation inputs changed")
+    policy = GovernancePolicy.model_validate(resources.get("governance") or {})
+    allowed = ["workflow"] if spec.target == "meta" and "workflow" in policy.allowed_patch_targets else []
+    governance = policy.model_copy(update={"allowed_patch_targets": allowed}).model_dump(mode="json")
     binding = {"spec_ref": spec.spec_ref, "case_id": case_spec.case_id, "arm": arm,
         "workflow": workflow.version, "meta": meta.version, "start_ref": case_spec.start_ref,
         "resource_ref": spec.resource_snapshot_ref, "memory_ref": spec.memory_snapshot_ref,
-        "method_changes_allowed": False, "free_initial_observations": len(start["observations"])}
+        "target": spec.target, "protocol": spec.protocol,
+        "method_changes_allowed": bool(allowed), "free_initial_observations": len(start["observations"])}
     child_store.put("configuration", "evaluation_branch", binding, immutable=True)
     current = child_store.get("campaign", "state")
     if current is None:
@@ -94,7 +101,7 @@ def fork_for_evaluation(campaign, spec, case_spec, workflow, meta, *, arm, team_
                 gate=GatePolicy.model_validate(spec.gate),
                 protein_config=configuration.get("protein_model"),
                 local_tools=configuration.get("local_tools"), research_config=None,
-                auto_meta_evaluation=False, governance_config={"allowed_patch_targets": []}, _store=child_store)
+                auto_meta_evaluation=False, governance_config=governance, _store=child_store)
             with child_store.transaction():
                 state = child.state
                 state.update(observations=deepcopy(start["observations"]), history=deepcopy(start["history"]),
@@ -116,9 +123,15 @@ def fork_for_evaluation(campaign, spec, case_spec, workflow, meta, *, arm, team_
     if resources["guarded"] and not getattr(child.team, "guarded", False):
         raise Conflict("Cannot downgrade the frozen validation isolation")
     # Authority is enforced on each resume, not merely promised in a prompt.
-    if (Workflow.model_validate(child.state["workflow"]).version != workflow.version or
-            MetaPolicy.model_validate(child.state["meta"]).version != meta.version or
-            child.methods.policy.allowed_patch_targets or child.state["pending_patch"] or child.state["pending_meta"]):
+    if (MetaPolicy.model_validate(child.state["meta"]).version != meta.version
+            or child.methods.policy.model_dump(mode="json") != governance
+            or child.methods.allowed_targets != tuple(allowed) or child.state["pending_meta"]
+            or (spec.target == "workflow" and
+                (Workflow.model_validate(child.state["workflow"]).version != workflow.version
+                 or child.state["pending_patch"]))):
         raise Conflict("Validation branch method or authority changed")
+    if getattr(child.team, "guarded", False):
+        from proteinrsi.replay.broker import GuardedMetaAgent
+        child.meta_agent = GuardedMetaAgent(child.team)
     child.methods.assert_active(child.state)
     return child

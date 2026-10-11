@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Multi-round fixed-H comparison through the public Task Loop.
+"""Paired W/M comparisons through the public Task Loop.
 
 Frozen input manifests contain no future labels. Cases/feedback providers are
 trusted controller inputs; child Campaigns never receive a full measurement map.
@@ -25,6 +25,7 @@ class CaseFeedback:
     """Trusted fixture/replay lookup. It is never passed to an Agent or tool."""
     def __init__(self, case):
         self.case = case
+        self._labels = {s: (v, "valid") for s, v in case.labels.items()}
 
     def validate(self, batch):
         # Missing historical measurements produce unavailable, never invented fitness.
@@ -81,7 +82,7 @@ def _validate(campaign, cases, confirmation, scope):
         if confirmation:
             # A renamed starting case cannot make selection measurements unseen.
             for report in campaign.store.all("harness_evaluations").values():
-                if report.get("phase") != "validation" or report.get("protocol") != "task-loop-v1":
+                if report.get("phase") != "validation" or report.get("protocol") not in {"task-loop-v1", "method-loop-v1"}:
                     continue
                 prior_spec = campaign.store.get("evaluation_specs", report["spec_ref"])
                 starts = {c["case_id"]: campaign.store.get("evaluation_starts", c["start_ref"])
@@ -91,6 +92,7 @@ def _validate(campaign, cases, confirmation, scope):
                         prior_task = starts[trace["case_id"]]["task"]
                         if (prior_task["reference_sequence"], prior_task["assay_protocol"]) == (t.reference_sequence, t.assay_protocol):
                             seen.update(row["sequence"] for row in trace["observed_rows"])
+                            seen.update(trace.get("validation_observed_sequences", []))
         initial = {o.sequence for o in case.initial}
         if scope == "declared_cases" and t.reference_sequence == task.reference_sequence and (set(case.labels) & seen) - initial:
             raise ValueError("Already revealed measurements must be declared as initial evidence")
@@ -103,6 +105,16 @@ def _validate(campaign, cases, confirmation, scope):
         if prior and prior["phase"] != phase:
             raise ValueError("Selection cases cannot be reused for confirmation")
     return task
+
+
+def _revealed_sequences(value):
+    """Read only operator-mirrored measurement receipts, including nested wrappers."""
+    if isinstance(value, list):
+        for row in value:
+            if isinstance(row, dict) and "sample_id" in row and "qc" in row:
+                yield row["sequence"]
+    elif isinstance(value, dict) and "value" in value:
+        yield from _revealed_sequences(value["value"])
 
 
 def _trace(child, case, result, workflow, meta, top_ns, start_round):
@@ -126,13 +138,22 @@ def _trace(child, case, result, workflow, meta, top_ns, start_round):
     summary = summarize_metrics(rows, direction=case.task.direction, top_ns=top_ns,
                                 submitted=len(rows))
     return {"case_id": case.case_id, "group_id": case.group_id, "meta": meta.version,
-        "descendant": workflow.version, "selected": selected, "observed_rows": rows,
+        "descendant": Workflow.model_validate(child.state["workflow"]).version, "selected": selected, "observed_rows": rows,
         "submitted": len(rows), "total_submitted_wells": submitted,
         "query_cap": case.query_budget, "metric_summary": summary, "parent_excluded": True,
         "usage": child.store.usage(), "loop_result": result.model_dump(mode="json"),
         "completed_new_rounds": child.state["round_index"] - start_round,
         "history": child.state["history"][start_round:], "branch": binding,
-        "task_reports": child.store.all("task_reports")}
+        "task_reports": child.store.all("task_reports"),
+        "validation_observed_sequences": sorted({seq for record in
+            child.store.all("validation_measurements").values() for seq in _revealed_sequences(record)}),
+        "method_switches": list(child.store.all("method_switches").values()),
+        "meta_decisions": [e["payload"] for e in child.store.events() if e["kind"] == "meta_decision"],
+        "nested_evaluations": [{k: r.get(k) for k in
+            ("evaluation_id", "target", "gate", "promoted", "spec_ref")}
+            for r in child.store.all("harness_evaluations").values()],
+        "replay_experiment_cost": {"amount": 0, "basis": "historical_replay_no_new_wetlab"}
+            if case.task.feedback_source == "measured_replay" else None}
 
 
 def _envelope(plan, task, cases, traces):
@@ -144,7 +165,7 @@ def _envelope(plan, task, cases, traces):
             **{a: _measurement_denominators(rows, len(rows)) for a, rows in arms.items()}})
         groups.add(case.group_id)
     return {"protocol": "evaluation_inputs/v1", "evaluation_id": plan["evaluation_id"],
-        "target": "workflow", "task": task.model_dump(mode="json"), "top_ns": plan["plan"]["top_ns"],
+        "target": plan["target"], "task": task.model_dump(mode="json"), "top_ns": plan["plan"]["top_ns"],
         "subject_refs": ["baseline", "challenger"], "arms": {"baseline": [], "challenger": []},
         "cases": aligned, "denominators": {"n_cases": len(cases), "n_groups": len(groups),
             "unit": "independent_group", "cases": counts, "parent_excluded": True}}
@@ -174,44 +195,55 @@ def _numeric_result(traces, policy):
     return compare_scores([float(x[0]) for x in means], [float(x[1]) for x in means], policy, paired=True)
 
 
-def evaluate_workflow_loop(campaign, cases, *, promote=False, patch_id=None, team_factory=None,
-                           scope="declared_cases", start_overrides=None):
+def _evaluate_method(campaign, cases, *, target="workflow", promote=False, patch_id=None, team_factory=None,
+                     scope="declared_cases", start_overrides=None):
     """Resume a frozen comparison; final confirmation never selects or publishes."""
     from proteinrsi.harness_evaluation import _episode_identity, _saved_report
     from proteinrsi.llm_evaluation import ensure_evaluation_plan, adjudicate_evaluation
     store = campaign.store
+    if target not in {"workflow", "meta"}:
+        raise ValueError("Unknown evaluation target")
+    protocol = store.get("configuration", "research", {}).get("evaluation_protocol", "task-loop-v1")
+    if target == "meta" and protocol != "method-loop-v1":
+        raise ValueError("Multi-round Meta evaluation requires a new method-loop-v1 study")
+    if protocol not in {"task-loop-v1", "method-loop-v1"}:
+        raise ValueError("Task-loop evaluator cannot silently migrate the study protocol")
+    cls = Workflow if target == "workflow" else MetaPolicy
+    pending_key = "pending_patch" if target == "workflow" else "pending_meta"
     confirmation = patch_id is not None
+    campaign.methods.require_evaluation(target, confirmation=confirmation)
     if confirmation and promote:
         raise ValueError("Confirmation cannot publish")
     with store.lock():
         state = campaign.state
         task = TaskSpec.model_validate(state["task"])
         manifest = digest([c.model_dump(mode="json") for c in cases])
-        raw = store.get("patches", patch_id) if confirmation else state["pending_patch"]
+        raw = store.get("patches", patch_id) if confirmation else state[pending_key]
         if raw is None and not confirmation:
             matches = [(k, a) for k, a in store.all("harness_attempts").items()
-                       if a.get("protocol") == "task-loop-v1" and a["manifest"] == manifest
+                       if a.get("protocol") == protocol and a.get("target", "workflow") == target and a["manifest"] == manifest
                        and a["state"] == "completed" and a["promote_requested"] == promote and not a["confirmation"]]
             if matches:
                 return _saved_report(store, *matches[-1])
         if raw is None or state["pending_batch"] or state["status"] not in {"ready", "complete"}:
             raise Conflict("Comparison requires a recorded candidate at a safe boundary")
         patch = Patch.model_validate(raw)
-        if patch.target != "workflow":
-            raise ValueError("This protocol compares Task Harness, not Meta")
+        if patch.target != target:
+            raise ValueError("Patch target differs from the requested comparison")
         record = store.get("method_candidates", patch.patch_id)
         if record is None:
             raise Conflict("Executable candidate snapshots required")
         if confirmation and store.get("method_candidate_states", patch.patch_id, {}).get("status") != "accepted":
             raise Conflict("Confirm only an already accepted version")
-        base = Workflow.model_validate(campaign.methods._validated_snapshot("workflow", record["base_snapshot_ref"])["definition"])
-        child = Workflow.model_validate(campaign.methods._validated_snapshot("workflow", record["candidate_snapshot_ref"])["definition"])
+        base = cls.model_validate(campaign.methods._validated_snapshot(target, record["base_snapshot_ref"])["definition"])
+        child = cls.model_validate(campaign.methods._validated_snapshot(target, record["candidate_snapshot_ref"])["definition"])
         if child.version != apply_patch(base, patch).version:
             raise Conflict("Candidate differs from patch")
-        if not confirmation and Workflow.model_validate(state["workflow"]).version != base.version:
+        if not confirmation and cls.model_validate(state[target]).version != base.version:
             raise Conflict("Active parent changed")
         eid = "harness-loop-" + digest({"patch": patch.patch_id, "manifest": manifest,
-            "confirmation": confirmation, "scope": scope})
+            "confirmation": confirmation, "scope": scope,
+            **({"target": target, "protocol": protocol} if protocol == "method-loop-v1" else {})})
         prior = store.get("harness_attempts", eid)
         if prior and prior["promote_requested"] != promote:
             raise Conflict("Cannot change frozen publication intent")
@@ -230,6 +262,7 @@ def evaluate_workflow_loop(campaign, cases, *, promote=False, patch_id=None, tea
         draft = store.get("evaluation_drafts", eid)
         if draft is None:
             if not confirmation:
+                campaign.methods.require_target(target)
                 campaign.methods.assert_plannable(state)
             resources, _memory, refs = freeze_resources(campaign)
             # No live-task structural artifacts silently reused for another protein.
@@ -253,23 +286,32 @@ def evaluate_workflow_loop(campaign, cases, *, promote=False, patch_id=None, tea
             floor = settings.main_reserve_wells
             if floor is None:
                 floor = task.batch_size if state["status"] != "complete" and state["round_index"] < task.max_rounds else 0
-            draft_spec = EvaluationSpec(purpose="confirmation" if confirmation else "selection", scope=scope,
+            draft_spec = EvaluationSpec(protocol=protocol, target=target,
+                initial_workflow_ref=state["method_governance"]["active"]["workflow"] if target == "meta" else None, purpose="confirmation" if confirmation else "selection", scope=scope,
                 patch_id=patch.patch_id, baseline_version=base.version, candidate_version=child.version,
                 manifest_hash=manifest, resource_snapshot_ref=refs[0], memory_snapshot_ref=refs[1],
                 cases=starts, gate=policy.model_dump(), evaluator_limits=evaluator_limits,
                 main_reserve_wells=floor, promotion_requested=promote)
-            draft = {"spec": draft_spec.model_dump(mode="json"), "meta": state["meta"], "evaluation_id": eid}
+            draft = {"spec": draft_spec.model_dump(mode="json"), "meta": state["meta"],
+                     "workflow": state["workflow"], "evaluation_id": eid}
             # Immutable input draft, including E's authorized maximum resources, precedes calls.
             store.put("evaluation_drafts", eid, draft, immutable=True)
         provisional = EvaluationSpec.model_validate(draft["spec"])
         meta = MetaPolicy.model_validate(draft["meta"])
+        initial_workflow = Workflow.model_validate(draft.get("workflow", state["workflow"]))
+        if provisional.gate != state["gate"]:
+            raise Conflict("Acceptance policy changed after the evaluation was frozen")
+        if provisional.initial_workflow_ref:
+            initial_snapshot = campaign.methods._validated_snapshot("workflow", provisional.initial_workflow_ref)
+            if initial_snapshot["definition"] != initial_workflow.model_dump(mode="json"):
+                raise Conflict("Initial Task Harness differs from the frozen M comparison")
         allocations = {eid + "/" + c.case_id + "/" + a: c.resource_limits
                        for c in provisional.cases for a in ("baseline", "challenger")}
         allocations[eid + "/evaluator"] = provisional.evaluator_limits
         if prior is None:
             with store.transaction():
                 store.reserve_allocations(eid, allocations, keep_free={"experimental_wells": provisional.main_reserve_wells})
-                prior = {"protocol": "task-loop-v1", "state": "started", "patch_id": patch.patch_id,
+                prior = {"protocol": protocol, "target": target, "state": "started", "patch_id": patch.patch_id,
                     "manifest": manifest, "confirmation": confirmation, "promote_requested": promote,
                     "budget_before": store.usage()}
                 if not confirmation:
@@ -281,16 +323,18 @@ def evaluate_workflow_loop(campaign, cases, *, promote=False, patch_id=None, tea
         eval_store = AllocatedBudgetView(store, eid + "/evaluator")
         eval_team = make_validation_team(campaign, eval_store)
         context = {"patch": patch.model_dump(mode="json"), "task": task.model_dump(mode="json"),
-            "baseline_workflow": base.model_dump(), "candidate_workflow": child.model_dump(),
+            "baseline_" + target: base.model_dump(), "candidate_" + target: child.model_dump(),
+            "initial_workflow": initial_workflow.model_dump(),
             "evaluation_spec": provisional.model_dump(mode="json"),
             "cases": [{"case_id": c.case_id, "group_id": c.group_id, "query_budget": c.query_budget,
                        "initial": [o.model_dump(mode="json") for o in c.initial]} for c in cases],
-            "protocol": "multi-round fixed-H paired Task Loop; original gate frozen; no Improver",
+            "protocol": ("fixed-H Task Loop; no Improver" if target == "workflow" else
+                         "fixed-M Task Loop; validated branch-local W updates; nested costs included"),
             "scope": scope, "primary_metric_requirement": "Prespecify a primary metric, costs, failures, early-stop and missing-result handling. Repeated rounds are not independent cases."}
-        store.put("evaluation_trial_inputs", eid, {"target": "workflow", "context": context,
+        store.put("evaluation_trial_inputs", eid, {"target": target, "context": context,
                   "max_top_n": max(c.query_budget for c in cases)}, immutable=True)
         try:
-            plan = ensure_evaluation_plan(eval_store, eval_team, evaluation_id=eid, target="workflow",
+            plan = ensure_evaluation_plan(eval_store, eval_team, evaluation_id=eid, target=target,
                 context=context, max_top_n=max(c.query_budget for c in cases)) if policy.criterion == "llm_adjudicated_v1" else None
             spec = provisional.model_copy(update={"metric_plan_ref": plan["plan_ref"] if plan else None})
             store.put("evaluation_specs", spec.spec_ref, spec.model_dump(mode="json"), immutable=True)
@@ -302,17 +346,28 @@ def evaluate_workflow_loop(campaign, cases, *, promote=False, patch_id=None, tea
             traces = []
             for case, case_spec in zip(cases, spec.cases):
                 pair = {}
-                for arm, workflow in (("baseline", base), ("challenger", child)):
-                    branch = fork_for_evaluation(campaign, spec, case_spec, workflow, meta, arm=arm,
+                for arm, method in (("baseline", base), ("challenger", child)):
+                    workflow = method if target == "workflow" else initial_workflow
+                    arm_meta = meta if target == "workflow" else method
+                    branch = fork_for_evaluation(campaign, spec, case_spec, workflow, arm_meta, arm=arm,
                         team_factory=team_factory or (lambda s: make_validation_team(campaign, s)))
                     cached = branch.store.get("loop_arm_results", "result")
                     if cached is None:
-                        result = run_task_loop(branch, CaseFeedback(case), operator="authorized-fixed-H-evaluation")
+                        feedback = CaseFeedback(case)
+                        def checkpoint(current):
+                            from proteinrsi.evaluation_scheduler import schedule_evaluation
+                            current._optional_improvement()
+                            schedule_evaluation(current, feedback, team_factory=team_factory)
+                        result = run_task_loop(branch, feedback, operator="authorized-method-evaluation",
+                            on_checkpoint=checkpoint if target == "meta" else None)
                         if result.status in {"paused", "waiting_feedback", "waiting_approval"}:
                             from proteinrsi.llm import ProviderPaused
                             raise ProviderPaused("Validation branch paused; resume the same attempt")
+                        if any(a.get("state") in {"started", "paused_provider", "blocked"}
+                               for a in branch.store.all("harness_attempts").values()):
+                            raise Conflict("Nested evaluation is unfinished; reconcile before closing the M arm")
                         start = store.get("evaluation_starts", case_spec.start_ref)
-                        cached = _trace(branch, case, result, workflow, meta,
+                        cached = _trace(branch, case, result, workflow, arm_meta,
                             plan["plan"]["top_ns"] if plan else policy.top_ns, start["round_index"])
                         branch.store.put("loop_arm_results", "result", cached, immutable=True)
                     pair[arm] = cached
@@ -328,16 +383,20 @@ def evaluate_workflow_loop(campaign, cases, *, promote=False, patch_id=None, tea
                 validate_saved_metric_evidence(store, result.model_dump(), plan)
             else:
                 result = _numeric_result(traces, policy)
-            report = {"evaluation_id": eid, "spec_ref": spec.spec_ref, "protocol": "task-loop-v1",
-                "patch_id": patch.patch_id, "target": "workflow", "baseline": base.version,
+            report = {"evaluation_id": eid, "spec_ref": spec.spec_ref, "protocol": protocol,
+                "patch_id": patch.patch_id, "target": target, "baseline": base.version,
                 "challenger": child.version, "manifest_hash": manifest, "phase": "confirmation" if confirmation else "validation",
                 "gate": result.model_dump(mode="json"), "traces": traces, "scope": scope,
                 "budget_scope": "shared_campaign", "copied_evidence_charged": False,
-                "budget_before": prior["budget_before"], "promoted": False, "rsi_efficacy": "not_evaluated"}
+                "budget_before": prior["budget_before"], "promoted": False, "rsi_efficacy": "not_established_by_adoption",
+                "evaluation_scope": "fixed_M_with_branch_local_W_updates" if target == "meta" else "fixed_W",
+                "initial_workflow": initial_workflow.version,
+                "replay_experiment_cost": {"amount": 0, "basis": "historical_replay_no_new_wetlab"}
+                    if task.feedback_source == "measured_replay" else None}
             with store.transaction():
                 current = campaign.state
                 if not confirmation:
-                    if current["pending_patch"] != raw or Workflow.model_validate(current["workflow"]).version != base.version:
+                    if current[pending_key] != raw or cls.model_validate(current[target]).version != base.version:
                         raise Conflict("Parent changed before publication")
                     if promote:
                         campaign.memory.record(patch, result, campaign_id=state["campaign_id"],
@@ -354,9 +413,22 @@ def evaluate_workflow_loop(campaign, cases, *, promote=False, patch_id=None, tea
                 store.put("harness_evaluations", eid, report, immutable=True)
                 store.put("harness_attempts", eid, {**prior, "state": "completed", "report_digest": digest(report)})
                 store.event("harness_evaluated", {"evaluation_id": eid, "spec_ref": spec.spec_ref,
-                    "decision": result.decision, "promoted": report["promoted"], "confirmation": confirmation})
+                    "target": target, "decision": result.decision, "promoted": report["promoted"], "confirmation": confirmation})
             return report
         except Exception as exc:
             store.put("harness_attempts", eid, {**prior, "state": "paused_provider" if is_provider_paused(exc) else "blocked",
                                                "error_type": type(exc).__name__})
             raise
+
+
+def evaluate_method(campaign, cases, **kwargs):
+    """One publication path; persistent memory sync never re-runs paid evaluation."""
+    report = _evaluate_method(campaign, cases, **kwargs)
+    from proteinrsi.memory import sync_shared_memory
+    sync_shared_memory(campaign)
+    return report
+
+
+def evaluate_workflow_loop(campaign, cases, **kwargs):
+    """Compatibility entry point for the fixed-Workflow comparison."""
+    return evaluate_method(campaign, cases, target="workflow", **kwargs)

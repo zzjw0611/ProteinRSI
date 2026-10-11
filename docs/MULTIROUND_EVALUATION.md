@@ -1,3 +1,5 @@
+> 本文记录前一阶段协议；新建研究的 W/M 对照与经验复用见 [METHOD_EVALUATION.md](METHOD_EVALUATION.md)。
+
 # 共用 Task Loop 与自动 H₀/H₁ 验证（前两批）
 
 ## 范围

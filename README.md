@@ -1,3 +1,6 @@
+> 最新 W/M 对照、嵌套记账、可选能力库及方法导出见 [METHOD_EVALUATION.md](docs/METHOD_EVALUATION.md)。
+> 新研究使用 `method-loop-v1`；旧研究仍绑定原代码与协议快照。
+
 > 新的多轮 H₀/H₁ 验证与自动续跑见 [MULTIROUND_EVALUATION.md](docs/MULTIROUND_EVALUATION.md)。
 > 前两批复用一个 Task Loop，成对预留验证预算；永久能力库和新 skill 系统后置。
 

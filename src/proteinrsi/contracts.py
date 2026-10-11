@@ -548,6 +548,10 @@ class EvaluationPolicy(Model):
     """Operator-authorized scheduling limits, never an evolvable method field."""
     enabled: bool = True
     rounds: int = Field(default=2, ge=1, le=100)
+    meta_rounds: int = Field(default=4, ge=2, le=100)
+    meta_query_budget_per_arm: int | None = Field(default=None, ge=1)
+    meta_llm_calls_per_arm: int = Field(default=256, ge=0)
+    meta_tool_calls_per_arm: int = Field(default=512, ge=0)
     query_budget_per_arm: int | None = Field(default=None, ge=1)
     llm_calls_per_arm: int = Field(default=64, ge=0)
     tool_calls_per_arm: int = Field(default=128, ge=0)
@@ -576,7 +580,9 @@ class EvaluationCaseSpec(Model):
 class EvaluationSpec(Model):
     """Label-free, content-addressed protocol frozen before branch execution."""
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
-    protocol: Literal["task-loop-v1"] = "task-loop-v1"
+    protocol: Literal["task-loop-v1", "method-loop-v1"] = "task-loop-v1"
+    target: Literal["workflow", "meta"] = "workflow"
+    initial_workflow_ref: str | None = None
     purpose: Literal["selection", "confirmation"]
     scope: Literal["same_snapshot", "declared_cases"]
     patch_id: str
@@ -594,6 +600,20 @@ class EvaluationSpec(Model):
         "round_limit", "query_budget", "compute_budget", "declared_space_exhausted",
         "provider_pause", "external_feedback_pending"])
     promotion_requested: bool = False
+
+    @model_validator(mode="after")
+    def validate_target(self):
+        if self.target == "meta" and (self.protocol != "method-loop-v1" or not self.initial_workflow_ref):
+            raise ValueError("Meta comparison requires the method-loop protocol and a frozen initial W")
+        return self
+
+    @model_serializer(mode="wrap")
+    def preserve_legacy_identity(self, handler):
+        data = handler(self)
+        if self.protocol == "task-loop-v1":
+            data.pop("target", None)
+            data.pop("initial_workflow_ref", None)
+        return data
 
     @property
     def spec_ref(self) -> str:

@@ -17,7 +17,7 @@ class ResearchConfig(Model):
     # Operator resource/compatibility settings, not scientific decision heuristics.
     improvement_contract: Literal["legacy", "capability-v1"] = "legacy"
     workflow_validation: Literal["online", "independent"] = "online"
-    evaluation_protocol: Literal["decision-v1", "task-loop-v1"] = "decision-v1"
+    evaluation_protocol: Literal["decision-v1", "task-loop-v1", "method-loop-v1"] = "decision-v1"
     auto_evaluation: EvaluationPolicy | None = None
     meta_autonomous: bool = True
     meta_tool_rounds: int = Field(default=4, ge=0, le=12)
@@ -28,6 +28,12 @@ class ResearchConfig(Model):
     max_revisions: int = Field(default=2, ge=0, le=6)
     max_executed_steps: int = Field(default=20, ge=4, le=48)
     review_after_step: bool = True
+
+    @model_validator(mode="after")
+    def method_loop_requires_independent_validation(self):
+        if self.evaluation_protocol == "method-loop-v1" and self.workflow_validation != "independent":
+            raise ValueError("method-loop-v1 requires independent W validation")
+        return self
 
 
 class ResearchStep(Model):

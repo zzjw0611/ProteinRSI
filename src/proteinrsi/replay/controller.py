@@ -67,9 +67,9 @@ def run_replay(campaign, dataset, *, guarded=True, validation_cases=None):
             return None
         current._optional_improvement()
         state = current.state
-        if not state["pending_patch"] or state["status"] != "ready":
+        if not (state["pending_patch"] or state["pending_meta"]) or state["status"] != "ready":
             return None
-        if config.get("evaluation_protocol") == "task-loop-v1":
+        if config.get("evaluation_protocol") in {"task-loop-v1", "method-loop-v1"}:
             from proteinrsi.evaluation_scheduler import schedule_evaluation
             schedule_evaluation(current, oracle, cases=validation_cases)
             return None

@@ -3,13 +3,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from typing import Any
 
 import numpy as np
 
+# Public compatibility alias; storage/retrieval has a single implementation.
+from proteinrsi.memory import ExperienceMemory as ExperienceMemory
 from proteinrsi.contracts import (Batch, GatePolicy, GateResult, MetaPolicy, Observation,
-                                  Patch, TaskKind, Workflow, digest)
-from proteinrsi.storage import Store
+                                  Patch, Workflow, digest)
 from proteinrsi.metrics import metric_names, summarize_metrics
 
 
@@ -184,26 +184,3 @@ def evaluate_trial(batch: Batch, observations: list[Observation], policy: GatePo
     values = {arm: [sign * float(np.mean(v)) for v in seqs.values()] for arm, seqs in groups.items()}
     return compare_scores(values["baseline"], values["challenger"], policy,
                           seed=int(digest(batch.batch_id)[:8], 16))
-
-
-class ExperienceMemory:
-    def __init__(self, store: Store):
-        self.store = store
-
-    def record(self, patch: Patch, result: GateResult, *, campaign_id: str,
-               observations: int, source: str) -> None:
-        record = {"patch": patch.model_dump(mode="json"), "result": result.model_dump(),
-                  "scope": {"task_kind": patch.task_kind.value, "campaign_id": campaign_id,
-                            "observations_at_trial": observations, "evidence_source": source},
-                  "status": "local_support" if result.decision == "accepted" else result.decision,
-                  "transfer_validated": False,
-                  "capability": patch.capability.model_dump() if patch.capability else None,
-                  "evidence_status": {"accepted": "locally_supported", "rejected": "not_supported",
-                                      "inconclusive": "unverified"}[result.decision],
-                  "note": "Rejection is not biological falsification; scope is this evaluation only."}
-        self.store.put("experience", patch.patch_id, record, immutable=True)
-
-    def retrieve(self, kind: TaskKind, *, include_unvalidated: bool = False) -> list[dict[str, Any]]:
-        return [record for record in self.store.all("experience").values()
-                if record["scope"]["task_kind"] == kind.value
-                and (record["status"] == "local_support" or include_unvalidated)]

@@ -1,3 +1,18 @@
+## Unreleased — controller-governed W/M evaluation and scoped memory
+
+- Centralize publication and evaluation permissions by run context; fixed-M arms can
+  validate and adopt W locally, while fixed-W arms cannot recursively improve.
+- Reuse the complete Task Loop for paired M comparisons; freeze common W, inputs,
+  resources, memory and acceptance standards, and publish only the evaluated target.
+- Propagate nested allocated reservations through sponsor ancestry with stable keys;
+  report zero historical-replay wetlab fees without zeroing query/call counts.
+- Add an opt-in capability Store with controller-verified records and immutable imports;
+  prevent sibling-memory sharing and exclude final confirmation outcomes.
+- Derive method history, init-compatible exports/provenance and post-publication use
+  summaries from existing snapshots, transitions and execution records.
+- Use method-loop-v1 for new CLI studies; preserve old protocol identity and source checks.
+  No new services, skill publisher, arbitrary Controller edits or biological efficacy claim.
+
 ## Unreleased — shared Task Loop and automatic paired validation
 
 - Add a thin resumable Task driver shared by replay and full fixed-H child Campaigns.

@@ -81,11 +81,44 @@ class MethodGovernance:
     def policy(self) -> GovernancePolicy:
         return GovernancePolicy.model_validate(self.store.get("configuration", "method_governance"))
 
+    @property
+    def allowed_targets(self) -> tuple[Target, ...]:
+        """Controller authority: a method trial may evolve W, never its fixed M.
+
+        The branch binding is controller-only and frozen. Old fixed-H branches
+        lack a target field and remain fully read-only.
+        """
+        configured = self.policy.allowed_patch_targets if self.enabled else ["workflow", "meta"]
+        binding = self.store.get("configuration", "evaluation_branch")
+        permitted = ("workflow",) if binding and binding.get("target") == "meta" else ()
+        return tuple(t for t in configured if binding is None or t in permitted)
+
+    @property
+    def can_improve(self) -> bool:
+        return bool(self.allowed_targets)
+
+    @property
+    def is_evaluation(self) -> bool:
+        return self.store.get("configuration", "evaluation_branch") is not None
+
+    def require_target(self, target: Target) -> None:
+        if target not in self.allowed_targets:
+            raise PermissionError("Method target disabled by the frozen execution authority")
+
+    def require_evaluation(self, target: Target, *, confirmation: bool) -> None:
+        # Final report-only confirmation may inspect an old root version, but
+        # cannot enlarge a validation branch's authority or nesting depth.
+        if self.is_evaluation or not confirmation:
+            self.require_target(target)
+
     def _snapshot(self, target: Target, definition) -> str:
         source = _packaged_source()
         source_ref = digest(source)
         self.store.put("method_assets", source_ref, source, immutable=True)
         configuration = {name: self.store.get("configuration", name) for name in CONFIG_KEYS}
+        imported = self.store.get("configuration", "capability_memory_snapshot")
+        if imported is not None:
+            configuration["capability_memory_snapshot"] = imported
         snapshot = {"schema_version": 1, "target": target, "version": definition.version,
             "definition": definition.model_dump(mode="json"), "source_ref": source_ref,
             "configuration": configuration,
@@ -120,6 +153,12 @@ class MethodGovernance:
     def assert_active(self, state: dict) -> None:
         if not self.enabled:
             return
+        binding = self.store.get("configuration", "evaluation_branch")
+        if binding:
+            fixed = ("meta",) if binding.get("target") == "meta" else ("workflow", "meta")
+            for target in fixed:
+                if TYPES[target].model_validate(state[target]).version != binding[target]:
+                    raise Conflict("Fixed evaluation method changed")
         for target, ref in state.get("method_governance", {}).get("active", {}).items():
             snapshot = self._validated_snapshot(target, ref)
             if TYPES[target].model_validate(state[target]).model_dump(mode="json") != snapshot["definition"]:
@@ -146,6 +185,7 @@ class MethodGovernance:
     def stage(self, state: dict, patch: Patch, candidate) -> None:
         if not self.enabled:
             return
+        self.require_target(patch.target)
         self.policy.validate_patch(patch)
         if self.paused(state):
             raise Conflict("Method improvement is paused; an operator must resume it")
@@ -231,6 +271,7 @@ class MethodGovernance:
 
     def complete(self, state: dict, patch: Patch, result, candidate, *, evaluation_ref: str) -> None:
         """Trusted gate entrypoint, called only with a freshly computed gate result."""
+        self.require_target(patch.target)
         if state["gate"].get("criterion") == "llm_adjudicated_v1":
             # Structural provenance only: no numeric acceptance rule is applied.
             # Even an internal caller must present the actual durable E verdict.
@@ -278,12 +319,16 @@ class MethodGovernance:
         if record.get("acceptance_policy") != self.store.get("configuration", "acceptance_policy"):
             raise Conflict("Acceptance policy differs from the frozen method snapshot")
         configuration = {name: self.store.get("configuration", name) for name in CONFIG_KEYS}
+        imported = self.store.get("configuration", "capability_memory_snapshot")
+        if imported is not None:
+            configuration["capability_memory_snapshot"] = imported
         if record["configuration"] != configuration:
             raise Conflict("Method configuration differs from the frozen snapshot")
         return record
 
     def _switch(self, state: dict, target: Target, ref: str, *, reason: str, operator: str,
                 action: str, evaluation_ref: str | None = None) -> None:
+        self.require_target(target)
         record = self._validated_snapshot(target, ref)
         definition = TYPES[target].model_validate(record["definition"])
         previous = TYPES[target].model_validate(state[target]).version
@@ -467,6 +512,68 @@ class MethodGovernance:
             "evaluation_verdicts": self.store.all("evaluation_verdicts"),
             "candidate_states": self.store.all("method_candidate_states"),
             "switches": sorted(self.store.all("method_switches").values(), key=lambda x: x["sequence"])}
+
+    def history(self) -> dict:
+        """Operator view derived from existing facts; no invented capability score."""
+        state = self.campaign.state
+        invocations = {"workflow": {}, "meta": {}}
+        adoptions = {}
+        for event in self.store.events():
+            payload = event["payload"]
+            if event["kind"] == "method_version_switched" and payload.get("action") == "adopt":
+                adoptions[(payload["target"], payload["to_version"], payload.get("evaluation_ref"))] = event["id"]
+            target = ("workflow" if event["kind"] == "task_harness_invoked" else
+                      "meta" if event["kind"] in {"meta_decision", "meta_analysis_started"} else None)
+            if target and payload.get(target):
+                key = payload[target]
+                invocations[target].setdefault(key, []).append(event["id"])
+        rows = []
+        for patch_id, candidate in self.store.all("method_candidates").items():
+            patch = candidate["patch"]
+            status = self.store.get("method_candidate_states", patch_id, {})
+            child = self.store.get("method_snapshots", candidate["candidate_snapshot_ref"], {})
+            transition = self.store.get("method_transitions", status.get("transition_ref", ""), {})
+            version = child.get("version")
+            target = patch["target"]
+            adoption = adoptions.get((target, version, transition.get("detail", {}).get("evaluation_ref")))
+            used = [i for i in invocations[target].get(version, []) if adoption is not None and i > adoption]
+            rows.append({"patch_id": patch_id, "target": target, "parent": candidate["parent_version"],
+                "version": version, "why": patch["hypothesis"], "changes": sorted(patch["changes"]),
+                "capability": patch.get("capability"), "status": status.get("status", "unknown"),
+                "evaluation": transition.get("detail", {}),
+                "active": TYPES[target].model_validate(state[target]).version == version,
+                "used_after_publication": bool(used), "post_publication_usage_events": len(used)})
+        return {"active": {t: TYPES[t].model_validate(state[t]).version for t in TYPES},
+            "versions": rows, "switches": sorted(self.store.all("method_switches").values(), key=lambda x: x["sequence"]),
+            "scope": "this_campaign_only; invocations exclude descendant validation events"}
+
+    def export(self, target: Target, version: str | None = None) -> dict:
+        """Export a previously activated definition, not code or a new acceptance claim.
+
+        Integrity can be checked without loading the old executable. Reuse starts
+        a new study with new source snapshots and does not migrate old studies.
+        """
+        if target not in TYPES:
+            raise ValueError("Export requires a workflow or meta target")
+        version = version or TYPES[target].model_validate(self.campaign.state[target]).version
+        activation = self.store.get("method_activations", target + "/" + version)
+        if not activation:
+            raise Conflict("Only an initial or previously published method may be exported")
+        ref = activation["snapshot_ref"]
+        snapshot = self.store.get("method_snapshots", ref)
+        if not snapshot or "method-" + digest(snapshot) != ref or snapshot["target"] != target:
+            raise Conflict("Missing or modified method snapshot")
+        assets = self.store.get("method_assets", snapshot["source_ref"])
+        if assets is None or digest(assets) != snapshot["source_ref"]:
+            raise Conflict("Missing or modified method source provenance")
+        definition = TYPES[target].model_validate(snapshot["definition"])
+        if definition.version != version:
+            raise Conflict("Export version does not match its definition")
+        return {"definition": definition.model_dump(mode="json"), "provenance": {
+            "campaign_id": self.campaign.state["campaign_id"], "target": target, "version": version,
+            "snapshot_ref": ref, "source_ref": snapshot["source_ref"], "activation": activation,
+            "configuration_refs": {k: digest(v) for k, v in snapshot["configuration"].items()},
+            "reuse": "definition only; initialize a new study; no transfer efficacy established"}}
 
     def _require_enabled(self) -> None:
         if not self.enabled:

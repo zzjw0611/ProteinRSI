@@ -185,6 +185,9 @@ def compare_grouped_metrics(traces: list[dict], policy: GatePolicy):
 def evaluate_meta(campaign, cases: list[MetaCase], *, promote: bool = False,
                   team_factory: Callable[[Store], Team] | None = None) -> dict:
     """Trusted entrypoint. There is deliberately no 'promote arbitrary report.json' API."""
+    if campaign.store.get("configuration", "research", {}).get("evaluation_protocol") == "method-loop-v1":
+        from proteinrsi.loop_evaluation import evaluate_method
+        return evaluate_method(campaign, cases, target="meta", promote=promote, team_factory=team_factory)
     snapshot = campaign.state
     if snapshot["gate"].get("criterion") == "llm_adjudicated_v1":
         return _evaluate_meta_llm(campaign, cases, promote=promote, team_factory=team_factory)

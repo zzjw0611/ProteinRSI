@@ -48,6 +48,8 @@ TRACE_NAMESPACES = frozenset({
     "evaluation_specs", "evaluation_drafts", "evaluation_starts", "evaluation_resources", "evaluation_memory",
     "evaluation_deferrals", "evaluation_auto_inputs", "budget_allocation_groups", "task_loop_results", "task_loop_status",
     "validation_batches", "validation_measurements", "validation_task_reports", "validation_task_loop_results",
+    "capability_memory_snapshots", "capability_exports", "capability_export_errors",
+    "validation_harness_evaluations", "validation_method_switches", "validation_evaluation_specs",
     "experience", "task_reports", "harness_attempts", "harness_evaluations", "harness_protocols", "harness_case_bindings",
     "batch_method_bindings", "gepa_attempts", "gepa_results", "gepa_failures",
 })
@@ -96,10 +98,44 @@ def summary(con, path):
     limits = dict(con.execute("SELECT resource,amount FROM limits"))
     totals = dict(con.execute("SELECT resource,SUM(amount) FROM charges "
                               "WHERE state='committed' GROUP BY resource"))
+    improvement_count = con.execute("SELECT COUNT(*) FROM kv WHERE namespace='method_candidates'").fetchone()[0]
     return {"campaign": str(path.parent), "status": status, "execution": execution_status(con, status), "rounds": rounds,
             "source": "computational" if mode == "computational" else source,
             "limits": limits, "spent": {key: totals.get(key, 0) for key in limits},
-            "note": TRACE_NOTE}
+            "replay_experiment_cost": {"amount": 0, "basis": "historical_replay_no_new_wetlab"}
+                if source == "measured_replay" else None,
+            "improvements": improvement_summary(con), "improvement_count": improvement_count,
+            "improvements_truncated": improvement_count > 100, "note": TRACE_NOTE}
+
+
+def improvement_summary(con):
+    """Small operator summaries from existing facts, never a second record system."""
+    rows = con.execute("""SELECT c.key, json_extract(c.value,'$.patch.target'),
+        json_extract(c.value,'$.patch.hypothesis'), json_extract(c.value,'$.patch.changes'),
+        json_extract(s.value,'$.status'), json_extract(t.value,'$.detail'),
+        json_extract(m.value,'$.version')
+        FROM kv c LEFT JOIN kv s ON s.namespace='method_candidate_states' AND s.key=c.key
+        LEFT JOIN kv t ON t.namespace='method_transitions' AND t.key=json_extract(s.value,'$.transition_ref')
+        LEFT JOIN kv m ON m.namespace='method_snapshots' AND m.key=json_extract(c.value,'$.candidate_snapshot_ref')
+        WHERE c.namespace='method_candidates' ORDER BY c.rowid DESC LIMIT 100""")
+    output = []
+    for key, target, why, changes, status, detail, version in rows:
+        verification = json.loads(detail or "{}")
+        switched = con.execute("""SELECT MAX(id) FROM events WHERE kind='method_version_switched'
+            AND json_extract(payload,'$.action')='adopt' AND json_extract(payload,'$.target')=?
+            AND json_extract(payload,'$.to_version')=? AND json_extract(payload,'$.evaluation_ref')=?""",
+            (target, version, verification.get("evaluation_ref"))).fetchone()[0]
+        used = con.execute("""SELECT 1 FROM events WHERE id > ? AND
+            ((kind='task_harness_invoked' AND ?='workflow' AND json_extract(payload,'$.workflow')=?) OR
+             (kind IN ('meta_decision','meta_analysis_started') AND ?='meta' AND json_extract(payload,'$.meta')=?)) LIMIT 1""",
+            (switched, target, version, target, version)).fetchone()
+        output.append({"patch_id": key, "target": target, "why": (why or "")[:500],
+            "changed_fields": sorted(json.loads(changes or "{}")), "status": status,
+            "verification": {"evaluation_ref": verification.get("evaluation_ref"),
+                "decision": (verification.get("result") or {}).get("decision"),
+                "reason": str((verification.get("result") or {}).get("reason", ""))[:500]},
+            "used_after_publication": bool(used)})
+    return output
 
 
 def _records(con):
@@ -441,6 +477,9 @@ def export_compact_html(directory, destination, *, page_size=DEFAULT_PAGE_SIZE,
                 _link(prefix + "records-1.html", "Browse records") + '</nav><p>' +
                 _link(prefix + "manifest.jsonl", "Complete evidence index (JSONL)", download=True) +
                 ' · ' + _link(prefix + "metadata.json", "Snapshot metadata", download=True) + '</p>'
+                '<details><summary>Method improvement summary (at most 100 latest candidates)</summary><pre>' +
+                _escape(json.dumps(metadata["improvements"], ensure_ascii=False, indent=2)) +
+                '</pre><p>Full method and evaluation records remain in the indexed evidence.</p></details>'
                 '<p>Keep this HTML and its adjacent assets folder together. The viewer is offline '
                 'and uses no external scripts. Page filters search previews on that page only, '
                 'not omitted full evidence. Decompress .json.gz files to inspect full records.</p>'

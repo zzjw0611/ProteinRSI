@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: MIT
-"""Thin, resumable Task driver shared by research and fixed-H validation.
+"""Thin, resumable Task driver shared by research and method validation.
 
 It owns no scientific strategy and cannot publish a method. A feedback adapter
 is controller-only; only revealed observations enter the campaign's TaskView.
@@ -31,7 +31,8 @@ def run_task_loop(campaign, feedback: FeedbackAdapter | None = None, *,
 
     No adapter means prepare-only (a real laboratory can import results later).
     An optional main-study scheduler may validate a method at a safe boundary.
-    Validation children omit it and cannot invoke Improver or publish versions.
+    Fixed-W children omit it; fixed-M children use it for branch-local W trials.
+    Governance, not this driver, determines method-change authority.
     Known provider pauses are resumable; unknown side effects/integrity errors
     deliberately propagate rather than being treated as an ordinary stop.
     """

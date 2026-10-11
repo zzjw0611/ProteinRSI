@@ -60,6 +60,7 @@ def main(argv: list[str] | None = None) -> None:
     start.add_argument("--continue-from", help="Answer a saved intake clarification using the new goal text")
     start.add_argument("--out", help="New campaign directory; defaults to a timestamped runs directory")
     start.add_argument("--data-root", default=str(Path.home()/"data"/"ssmula"))
+    start.add_argument("--memory-library", help="Optional shared capability Store; freezes imports for this new study")
     start.add_argument("--local-tools", help="Installed tool configuration; local project config is auto-detected")
     start.add_argument("--llm-calls", type=compute_call_limit, default=None, help="Total LLM calls, or unlimited")
     start.add_argument("--tool-calls", type=compute_call_limit, default=None, help="Total tool calls, or unlimited")
@@ -83,6 +84,7 @@ def main(argv: list[str] | None = None) -> None:
     init.add_argument("--task", required=True)
     init.add_argument("--out", required=True)
     init.add_argument("--workflow")
+    init.add_argument("--memory-library", help="Optional shared capability Store; no live reads during a campaign")
     init.add_argument("--meta")
     init.add_argument("--gate", help="Evaluation-mode configuration; new CLI studies default to LLM-defined criteria and verdicts")
     init.add_argument("--method-governance", help="Operator-authored candidate failure/deferral limits")
@@ -140,8 +142,8 @@ def main(argv: list[str] | None = None) -> None:
             cmd.add_argument("--cases", required=True)
             cmd.add_argument("--promote", action="store_true")
             cmd.add_argument("--execution", choices=["guarded", "inprocess"], default="guarded")
-        if name == "evaluate-workflow":
-            cmd.add_argument("--patch-id", help="Report-only confirmation of an archived workflow patch; requires test cases")
+        if name in {"evaluate-meta", "evaluate-workflow"}:
+            cmd.add_argument("--patch-id", help="Report-only confirmation of an archived accepted method; requires test cases")
         if name == "graph":
             cmd.add_argument("--resume", help="JSON file with explicit approval/measurement payload")
     args = parser.parse_args(argv)
@@ -178,7 +180,7 @@ def main(argv: list[str] | None = None) -> None:
             prepared = prepare_research_goal(args.goal, out=out, data_root=Path(args.data_root),
                 local_tools=local, llm_calls=args.llm_calls, tool_calls=args.tool_calls,
                 event_sink=None if args.quiet else print_event, inputs=args.input,
-                continue_from=bool(args.continue_from), full_plate=args.full_plate, protocol_mode=args.protocol_mode)
+                continue_from=bool(args.continue_from), full_plate=args.full_plate, protocol_mode=args.protocol_mode, memory_library=args.memory_library)
             if prepared['questions']:
                 print(json.dumps({'status': 'needs_clarification', **prepared,
                     'continue': f'proteinrsi start "补充说明" --continue-from {out}'}, ensure_ascii=False, indent=2))
@@ -334,11 +336,12 @@ def main(argv: list[str] | None = None) -> None:
                     workflow.analysis_tool_rounds = 2
                     workflow.skill_names += ["local-protein-tools"]
             from proteinrsi.research.contracts import ResearchConfig
-            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig(protocol_mode="typed", context_policy="evidence-v1", improvement_contract="capability-v1", workflow_validation="independent", evaluation_protocol="task-loop-v1", auto_evaluation={})
+            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig(protocol_mode="typed", context_policy="evidence-v1", improvement_contract="capability-v1", workflow_validation="independent", evaluation_protocol="method-loop-v1", auto_evaluation={})
             if args.research_mode is not None:
                 research_config.enabled = args.research_mode == "adaptive"
             campaign = Campaign.initialize(args.out, TaskSpec.model_validate(load_json(args.task)),
                 workflow=workflow, protein_config=protein_config, local_tools=local_config, research_config=research_config,
+                memory_library=args.memory_library,
                 meta=MetaPolicy.model_validate(load_json(args.meta)) if args.meta else None,
                 gate=GatePolicy.model_validate(load_json(args.gate)) if args.gate else GatePolicy(criterion="llm_adjudicated_v1"),
                 governance_config=load_json(args.method_governance) if args.method_governance else None)
@@ -424,7 +427,14 @@ def main(argv: list[str] | None = None) -> None:
                     output = evaluate_workflow(campaign, read_cases(args.cases), promote=args.promote,
                         patch_id=args.patch_id, team_factory=factory)
                 else:
-                    output = evaluate_meta(campaign, read_cases(args.cases), promote=args.promote, team_factory=factory)
+                    if campaign.store.get("configuration", "research", {}).get("evaluation_protocol") == "method-loop-v1":
+                        from proteinrsi.loop_evaluation import evaluate_method
+                        output = evaluate_method(campaign, read_cases(args.cases), target="meta",
+                            promote=args.promote, patch_id=args.patch_id, team_factory=factory)
+                    else:
+                        if args.patch_id:
+                            raise ValueError("Meta confirmation requires a new method-loop-v1 study")
+                        output = evaluate_meta(campaign, read_cases(args.cases), promote=args.promote, team_factory=factory)
                 print(json.dumps(output, ensure_ascii=False, indent=2))
                 return
             elif args.command == "graph":
