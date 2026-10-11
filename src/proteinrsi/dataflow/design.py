@@ -29,14 +29,12 @@ class MutationEdit(Model):
         return self
 
 
-class Design(Model):
+class SequenceProposal(Model):
     decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     candidates: list[Candidate] = Field(default_factory=list, max_length=384)
     edits: list[list[MutationEdit]] = Field(default_factory=list, max_length=384)
     candidate_refs: list[Annotated[str, Field(pattern=RESOURCE_ID_PATTERN)]] = Field(
         default_factory=list, max_length=32)
-    tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
-    replan_reason: str | None = Field(default=None, max_length=2000)
 
     @model_validator(mode="after")
     def unique_edits(self):
@@ -46,6 +44,11 @@ class Design(Model):
         if len(self.candidate_refs) != len(set(self.candidate_refs)):
             raise ValueError("Duplicate candidate-set reference")
         return self
+
+
+class Design(SequenceProposal):
+    tool_calls: list[ToolCall] = Field(default_factory=list, max_length=4)
+    replan_reason: str | None = Field(default=None, max_length=2000)
 
 
 DESIGN_HANDOFF = """
@@ -140,6 +143,37 @@ def resolve_design(design: Design, resources: ResourceStore, allowed_refs: set[s
     return design.model_copy(update={"candidates": list(unique.values()), "edits": []})
 
 
+def materialize_sequence_proposal(raw, resources, context, arguments, key):
+    """Adapt model-authored scientific content to a system-owned sequence resource."""
+    from proteinrsi.contracts import TaskView
+    from .resources import SEQUENCES
+
+    proposal = SequenceProposal.model_validate(raw)
+    view = TaskView.model_validate({k: v for k, v in context.items() if k in TaskView.model_fields})
+    allowed = set()
+
+    def references(value):
+        if isinstance(value, str) and value.startswith("resource:"):
+            record = resources.get(value)
+            if record["schema_ref"] == SEQUENCES:
+                allowed.add(value)
+        elif isinstance(value, dict):
+            for child in value.values():
+                references(child)
+        elif isinstance(value, list):
+            for child in value:
+                references(child)
+
+    references(arguments)
+    try:
+        resolved = resolve_design(Design.model_validate(proposal.model_dump(by_alias=True)),
+                                  resources, allowed, view)
+    except ValueError as exc:
+        raise ContractError(str(exc), code="proposal_invalid") from exc
+    descriptor = resources.sequences(resolved.candidates, producer="agent-draft:" + key)
+    return resources.get(descriptor["resource_id"])["data"]
+
+
 def _issues(exc) -> list[dict]:
     if isinstance(exc, ValidationError):
         return [{"path": "/" + "/".join(map(str, e["loc"])),
@@ -150,13 +184,26 @@ def _issues(exc) -> list[dict]:
     return [{"path": "", "code": "scientific_constraint", "message": str(exc)[:1200]}]
 
 
-def request_design(llm, store, instructions, view, plan, tool_results, catalog) -> Design:
+def request_design(llm, store, instructions, view, plan, tool_results, catalog, *,
+                   tool_rounds_remaining: int | None = None) -> Design:
     resources = ResourceStore(store, standard_registry(), scope_for(view))
     presented_view, evidence = prepare_evidence(view.model_dump(mode="json"), tool_results)
     compact, allowed = prepare_handoff(resources, evidence)
     context = {"view": presented_view, "plan": plan.model_dump(mode="json"),
                "tool_results": compact, "available_tools": catalog,
                "available_candidate_sets": list(allowed.values()), "proposal_contract": proposal_contract(view)}
+    schema = Design.model_json_schema()
+    if tool_rounds_remaining is not None:
+        context["design_dialogue"] = {"tool_rounds_remaining": tool_rounds_remaining,
+            "phase": "finalize" if tool_rounds_remaining == 0 else "explore",
+            "scope": "this design step; not the campaign's total call budget"}
+        instructions += ("\nInspect the existing tool_results before requesting another tool. Reuse successful work. "
+            "design_dialogue reports the remaining tool turns in this step. At zero, finish from available "
+            "evidence with tool_calls=[] or return replan_reason if this plan needs further work; "
+            "never claim that a failed check succeeded. The planner owns further steps.")
+        if tool_rounds_remaining == 0:
+            context["available_tools"] = []
+            schema["properties"]["tool_calls"]["maxItems"] = 0
     instructions = instructions + "\n" + DESIGN_HANDOFF + "\n" + CONTEXT_FORMAT
     settings = store.get("configuration", "research", {}) or {}
     repairs = min(3, max(0, int(settings.get("max_format_repairs", 2))))
@@ -181,11 +228,14 @@ def request_design(llm, store, instructions, view, plan, tool_results, catalog) 
                 "retained_count": len(record.get("retained", [])),
                 "invalid_count": len(record["errors"]), "panel_status": "requires_combined_validation"}}
         # A provider failure keeps the exact same request and repair index on resume.
-        raw = llm.complete("B", instructions, request, Design.model_json_schema())
+        raw = llm.complete("B", instructions, request, schema)
         record["attempts"] += 1
         from .repair import inspect_reply, merge_retained
         try:
             header, valid, errors = inspect_reply(raw, resources, offered, view)
+            if tool_rounds_remaining == 0 and header.tool_calls:
+                raise ContractError("This design step is in finalize phase: return tool_calls=[] or replan_reason",
+                                    code="design_finalize", path="/tool_calls")
             retained = merge_retained(record, valid)
             if retained:
                 record["retained_ref"] = resources.sequences(retained, producer="design-repair:" + key)["resource_id"]

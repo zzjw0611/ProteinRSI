@@ -4,7 +4,10 @@ Translate this task into a bounded ordered dependency graph. Select operations, 
 fixed protein workflow. A task may return a candidate set, an ID ordering, structures,
 metrics or a fixed-input estimate. Follow the supplied task contract's final ports.
 
-Read each operation's actual input schema and immutable output schema. Bind whole
+Read each operation's compact execution contract. Read its full_spec only when field
+mapping or a custom output view requires the detailed schema. Whole-port bindings
+need only source: the executor infers their immutable schema. Put the scientific
+question once in Step.question; registered adapters receive it automatically. Bind whole
 resources, registered artifact references or explicit JSON-pointer fields to downstream
 inputs. Never invent a native tool signature. For a typed reference input use
 `delivery: ref`; its value is resolved by the executor. Native tool outputs are always
@@ -17,7 +20,7 @@ Rank supplied candidates without first designing new ones. For design, agent:pro
 may directly propose edits/sequences or explicitly request optional scientific tools.
 No protein model, scoring function or fitting step is compulsory.
 
-For agent:propose, read agent_reply_contract: its final sequence resource is built
+For agent:propose, read reply_guidance (or the full agent_reply_contract): its final sequence resource is built
 by an adapter from the designer's reply. Specify scientific questions, allocation,
 pairing and acceptance criteria in question; do not instruct B to emit the final
 resource schema, calculate sequence IDs, or copy full sequences when edits/references
@@ -32,6 +35,13 @@ resource. Bind the executed check tool's result using delivery=ref. The checker
 must identify all evaluated sequences with candidate_ids and return named boolean
 checks matching required_checks. Design these checks from this task's requirements;
 do not substitute an LLM assertion or checking a different candidate set.
+
+Custom agent operations targeting protein.sequence_set/v1 use the same sequence
+proposal boundary: the runtime requests edits/candidates/candidate_refs, validates
+task constraints and creates IDs. Do not instruct these agents to fill resource
+items/candidate_id. Give existing candidate resources through explicit reference
+bindings when reusing them. Tool calls belong in separate protocol steps for custom
+agents. Other custom output schemas retain their declared scientific payloads.
 
 You may define protocol-local custom.* schemas and agent:* operations if the installed
 contracts cannot express the required intermediate analysis. Such definitions grant

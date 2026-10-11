@@ -1,5 +1,8 @@
 # Current architecture (v0.5)
 
+The current draft/resource boundaries, durable result recovery and bounded context
+transport are documented in [INTERFACE_CONTRACTS.md](INTERFACE_CONTRACTS.md).
+
 ## Current mutation-only research path
 
 See [MUTATION_RSI.md](MUTATION_RSI.md) for the current W/M architecture, autonomous
@@ -89,3 +92,5 @@ and model-input limits. Start new campaigns to use v0.5 semantics; initializatio
 See [PROMPTS](PROMPTS.md), [TOOL_CONTRACTS](TOOL_CONTRACTS.md) and
 [REPLAY_SECURITY](REPLAY_SECURITY.md). The user-supplied SVG in README is an
 architecture/intent overview, not a claim of wet-lab or cross-protein RSI validation.
+
+接口职责整理与真实回放验证：[INTERFACE_REFINEMENT_VALIDATION.md](INTERFACE_REFINEMENT_VALIDATION.md)。

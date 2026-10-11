@@ -262,20 +262,15 @@ class JSONLLM:
             if self.api_protocol == "responses":
                 if body.get("status") != "completed" or body.get("error"):
                     raise ValueError("Responses API did not complete successfully")
-                parts = []
+                # Preserve message boundaries/phase: commentary is not decision JSON.
+                audit["provider_messages"] = [item for item in body["output"]
+                    if item.get("type") == "message" and item.get("role") == "assistant"]
                 for item in body["output"]:
                     if item.get("type") == "reasoning":
                         audit["provider_reasoning_summary"].extend(
                             part["text"] for part in item.get("summary", [])
                             if part.get("type") == "summary_text" and isinstance(part.get("text"), str))
-                    if item.get("type") != "message" or item.get("role") != "assistant":
-                        continue
-                    for part in item.get("content", []):
-                        if part.get("type") == "refusal":
-                            raise ValueError("Responses API refused the request")
-                        if part.get("type") == "output_text":
-                            parts.append(part["text"])
-                content = "".join(parts)
+                content = response_decision_text(audit["provider_messages"])
             else:
                 content = body["choices"][0]["message"]["content"]
             result = json.loads(content)
@@ -300,3 +295,22 @@ class JSONLLM:
         self.store.event("llm_completed", {"role": role, "key": key, "model": self.model,
                                           "usage": body.get("usage", {}), "attempt": attempt, "attempt_key": attempt_key})
         return result
+
+
+def response_decision_text(messages: list[dict]) -> str:
+    """Select one protocol-defined answer, never guess JSON within prose or merge answers."""
+    answers = []
+    for message in messages:
+        phase = message.get("phase")
+        if phase not in (None, "commentary", "final_answer"):
+            raise ValueError("Unknown Responses message phase")
+        if message.get("status", "completed") != "completed":
+            raise ValueError("Responses message is incomplete")
+        parts = message.get("content", [])
+        if any(p.get("type") == "refusal" for p in parts):
+            raise ValueError("Responses API refused the request")
+        if phase != "commentary":
+            answers.append("".join(p["text"] for p in parts if p.get("type") == "output_text"))
+    if len(answers) != 1 or not answers[0].strip():
+        raise ValueError("Expected exactly one final Responses message")
+    return answers[0]

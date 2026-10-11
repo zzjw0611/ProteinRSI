@@ -82,6 +82,7 @@ def snapshot(directory):
 
 
 def summary(con, path):
+    from proteinrsi.execution_status import execution_status
     # Extract just these fields in SQLite, not the growing state/context into Python.
     row = con.execute("""SELECT json_extract(value,'$.status'),
         json_extract(value,'$.round_index'), json_extract(value,'$.task.execution_mode'),
@@ -91,7 +92,7 @@ def summary(con, path):
     limits = dict(con.execute("SELECT resource,amount FROM limits"))
     totals = dict(con.execute("SELECT resource,SUM(amount) FROM charges "
                               "WHERE state='committed' GROUP BY resource"))
-    return {"campaign": str(path.parent), "status": status, "rounds": rounds,
+    return {"campaign": str(path.parent), "status": status, "execution": execution_status(con, status), "rounds": rounds,
             "source": "computational" if mode == "computational" else source,
             "limits": limits, "spent": {key: totals.get(key, 0) for key in limits},
             "note": TRACE_NOTE}

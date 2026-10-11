@@ -12,6 +12,7 @@ import json
 from proteinrsi.contracts import canonical, digest
 
 VERSION = 'evidence-v1'
+POLICY_REVISION = 4
 MAX_ACTIONS = 12
 MAX_CONTEXT_BYTES = 48000
 PAGE_BYTES = 12000
@@ -23,7 +24,18 @@ To read one, return only {"_context_action":{"kind":"read","ref":"...",
 "offset":0,"limit":20}}. Lists page by rows, objects by keys, strings by characters.
 Use next_offset until null when completeness matters. Read tool/operation schemas
 before using an abbreviated specification. Only refs issued in this decision work.
-Only the latest page is carried forward; earlier reads remain in the audit.
+Successful reads stay in working_set or last_read until you explicitly release them.
+Do not reread retained evidence. If capacity is full, release an unused page with
+{"_context_action":{"kind":"release","ref":"...","offset":0}} or a named
+contract with {"_context_action":{"kind":"release","ref":"...","name":"..."}}.
+Releasing without offset/name removes all retained pages of that ref. Original evidence
+remains available. The runtime never silently evicts data to fit a new read.
+Catalogue descriptors list names. Read a named specification with
+{"_context_action":{"kind":"read","ref":"...","name":"exact operation name"}}.
+Select relevant capabilities by name instead of repeatedly scanning every schema.
+Named operation reads expose the execution input contract and a full_spec reference
+for optional detail. Binding types are inferred from source ports: omit schema_ref.
+Read full_spec only if that extra detail is necessary for the current decision.
 When research_python is offered to your role, it can analyze the complete revealed
 TaskView via context (observations, history, task); do not transcribe a table into
 generated code. Use only operations offered to your role, never invent tool access.
@@ -55,8 +67,15 @@ class ContextBuilder:
                   'type': type(value).__name__, 'count': len(value)}
         if isinstance(value, dict):
             result['keys_preview'] = sorted(value)[:12]
+            if size(sorted(value)) <= 3000:
+                result['names'] = sorted(value)
         elif isinstance(value, list) and value and isinstance(value[0], dict):
             result['row_fields_preview'] = sorted(value[0])[:16]
+        if isinstance(value, list) and value and all(
+                isinstance(row, dict) and isinstance(row.get('name'), str) for row in value):
+            names = [row['name'] for row in value]
+            if size(names) <= 3000:
+                result['names'] = names
         return result
 
     def pack(self, value, path='$', threshold=2000):
@@ -72,12 +91,43 @@ class ContextBuilder:
             return result
         return value
 
+    def operation_contract(self, row, path):
+        if not isinstance(row, dict) or not {'name', 'input_schema', 'output_schema_ref'} <= row.keys():
+            return self.pack(row, path)
+        result = {k: deepcopy(row[k]) for k in (
+            'name', 'input_schema', 'output_schema_ref', 'resource_inputs', 'question_from_step') if k in row}
+        result['full_spec'] = self.reference(row, path)
+        reply = row.get('agent_reply_contract')
+        if isinstance(reply, dict):
+            result['reply_guidance'] = {k: v for k, v in reply.items() if k != 'agent_reply_schema'}
+        return self.pack(result, path + '.execution_contract')
+
     def read(self, action):
-        if set(action) - {'kind', 'ref', 'offset', 'limit'}:
+        if set(action) - {'kind', 'ref', 'offset', 'limit', 'name'}:
             raise ValueError('Unknown read fields')
         ref = action.get('ref')
         if not isinstance(ref, str) or ref not in self.issued:
             raise ValueError('Reference is not available in this decision')
+        if 'name' in action:
+            if 'offset' in action or 'limit' in action or not isinstance(action['name'], str):
+                raise ValueError('Named reads require a string name without pagination fields')
+            record = self.issued[ref]
+            value = record['value']
+            if isinstance(value, dict):
+                if action['name'] not in value:
+                    raise ValueError('Named read requires one exact catalogue match')
+                name = action['name']
+                return {'ref': ref, 'name': name, 'offset': sorted(value).index(name),
+                        'next_offset': None, 'total': len(value),
+                        'value': self.pack(value[name], f'{record["path"]}.{name}')}
+            matches = ([(i, row) for i, row in enumerate(value)
+                        if isinstance(row, dict) and row.get('name') == action['name']]
+                       if isinstance(value, list) else [])
+            if len(matches) != 1:
+                raise ValueError('Named read requires one exact catalogue match')
+            i, row = matches[0]
+            return {'ref': ref, 'name': action['name'], 'offset': i, 'next_offset': None,
+                    'total': len(value), 'value': self.operation_contract(row, f'{record["path"]}[{i}]')}
         start, limit = action.get('offset', 0), action.get('limit', 20)
         if type(start) is not int or start < 0 or type(limit) is not int or not 1 <= limit <= 50:
             raise ValueError('offset must be nonnegative; limit must be 1..50')
@@ -130,7 +180,7 @@ def complete(llm, role, instructions, context, schema):
     from proteinrsi.llm import ProviderPaused
 
     store = llm.store
-    identity = {'version': VERSION, 'role': role, 'instructions': instructions,
+    identity = {'revision': POLICY_REVISION, 'version': VERSION, 'role': role, 'instructions': instructions,
                 'context': context, 'schema': schema, 'model': llm.model,
                 'url': llm.base_url, 'settings': llm.cache_settings,
                 'max_tokens': getattr(llm, 'max_tokens', None)}
@@ -162,14 +212,14 @@ def complete(llm, role, instructions, context, schema):
                         notes.append(note)
                     if len(notes) == 3:
                         break
-        saved = {'version': VERSION, 'role': role, 'source_ref': root['evidence_ref'],
+        saved = {'version': VERSION, 'revision': POLICY_REVISION, 'role': role, 'source_ref': root['evidence_ref'],
                  'notes': notes, 'state': 'pending'}
         store.put('context_sessions', key, saved)
     if saved['state'] == 'done':
         return saved['result']
     frame = builder.pack(context)
     # An unusually wide input must still be accessible, without dropping fields.
-    if size(frame) > MAX_CONTEXT_BYTES - PAGE_BYTES - 10000:
+    if size(frame) > MAX_CONTEXT_BYTES - PAGE_BYTES - 18000:
         frame = {'context_source': root}
     note_summaries = []
     for index, note in enumerate(saved['notes']):
@@ -187,8 +237,13 @@ def complete(llm, role, instructions, context, schema):
     read_schema = {'type': 'object', 'additionalProperties': False,
         'required': ['kind', 'ref'], 'properties': {
             'kind': {'const': 'read'}, 'ref': {'type': 'string'},
+            'name': {'type': 'string'},
             'offset': {'type': 'integer', 'minimum': 0},
             'limit': {'type': 'integer', 'minimum': 1, 'maximum': 50}}}
+    release_schema = {'type': 'object', 'additionalProperties': False,
+        'required': ['kind', 'ref'], 'properties': {
+            'kind': {'const': 'release'}, 'ref': {'type': 'string'},
+            'name': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}}}
     note_properties = {name: {'type': 'string'} for name in
         ('hypothesis', 'counterevidence', 'failures', 'open_questions', 'next_step')}
     note_properties.update({'kind': {'const': 'note'}, 'evidence_refs': {
@@ -197,7 +252,7 @@ def complete(llm, role, instructions, context, schema):
                    'required': list(note_properties), 'properties': note_properties}
     action_schema = {'type': 'object', 'required': ['_context_action'],
                      'additionalProperties': False,
-                     'properties': {'_context_action': {'oneOf': [read_schema, note_schema]}}}
+                     'properties': {'_context_action': {'oneOf': [read_schema, note_schema, release_schema]}}}
     # Preserve root definitions for original #/$defs/... references.
     response_schema = {'anyOf': [deepcopy(schema), action_schema]}
     for name in ('$defs', 'definitions'):
@@ -205,10 +260,20 @@ def complete(llm, role, instructions, context, schema):
             response_schema[name] = deepcopy(schema[name])
     page = None
     ledger = []
+    retained = []
+
+    def page_key(value):
+        return value.get('ref'), value.get('offset'), value.get('name'), value.get('next_offset')
+
+    def frame_for(latest, pages, index):
+        previous = [p for p in pages if page_key(p) != page_key(latest or {})]
+        return {**frame, '_context': {'version': VERSION, 'revision': POLICY_REVISION,
+            'session': key, 'source': root, 'recent_notes': note_frame,
+            'last_read': latest, 'working_set': previous, 'actions_used': index,
+            'actions_remaining': MAX_ACTIONS - index, 'read_ledger': list(ledger)}}
+
     for index in range(MAX_ACTIONS + 1):
-        current = {**frame, '_context': {'version': VERSION, 'session': key, 'source': root,
-            'recent_notes': note_frame, 'last_read': page, 'actions_used': index,
-            'actions_remaining': MAX_ACTIONS - index, 'read_ledger': ledger}}
+        current = frame_for(page, retained, index)
         if size(current) > MAX_CONTEXT_BYTES:
             raise ProviderPaused('Bounded context frame exceeds its policy; inspect context_sessions')
         step_key = f'{key}/{index}'
@@ -234,8 +299,28 @@ def complete(llm, role, instructions, context, schema):
                 raise ValueError('Return either one context action or the final decision')
             action = result['_context_action']
             if action.get('kind') == 'read':
-                page = builder.read(action)
-                ledger.append({'ref': page['ref'], 'offset': page['offset'], 'next_offset': page['next_offset']})
+                incoming = builder.read(action)
+                updated = [p for p in retained if page_key(p) != page_key(incoming)] + [incoming]
+                entry = {'ref': incoming['ref'], 'offset': incoming['offset'],
+                         'name': incoming.get('name'), 'next_offset': incoming['next_offset']}
+                ledger.append(entry)
+                if size(frame_for(incoming, updated, index + 1)) > MAX_CONTEXT_BYTES - 2000:
+                    ledger.pop()
+                    raise ValueError('Context capacity reached. Release unused retained pages before reading more; no evidence was evicted.')
+                retained, page = updated, incoming
+            elif action.get('kind') == 'release':
+                if (set(action) - {'kind', 'ref', 'name', 'offset'}
+                        or not isinstance(action.get('ref'), str) or action['ref'] not in builder.issued
+                        or ('offset' in action and (type(action['offset']) is not int or action['offset'] < 0))
+                        or ('name' in action and not isinstance(action['name'], str))):
+                    raise ValueError('Release requires an issued ref and valid optional name/offset')
+                def matches(item):
+                    return (item['ref'] == action['ref']
+                            and all(item.get(k) == action[k] for k in ('name', 'offset') if k in action))
+                remaining = [p for p in retained if not matches(p)]
+                count = len(retained) - len(remaining)
+                retained = remaining
+                page = {'released_pages': count, 'released_ref': action['ref']}
             elif action.get('kind') == 'note':
                 note = builder.note(action)
                 store.put('research_notes', step_key, {'session': key, 'role': role,

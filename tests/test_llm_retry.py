@@ -199,3 +199,36 @@ def test_recovery_cannot_reset_uncertain_or_permanent_failures(tmp_path, monkeyp
     llm.store.put('llm', key, record)
     with pytest.raises(Conflict):
         authorize_retry(llm.store, key, operator='test', reason='Unknown completion')
+
+
+def test_responses_commentary_kept_separate_from_final_json(tmp_path, monkeypatch):
+    messages = [
+        {'type': 'message', 'role': 'assistant', 'phase': 'commentary', 'status': 'completed',
+         'content': [{'type': 'output_text', 'text': 'I will validate the candidates.'}]},
+        {'type': 'message', 'role': 'assistant', 'phase': 'final_answer', 'status': 'completed',
+         'content': [{'type': 'output_text', 'text': '{"ok": true}'}]}]
+    llm = client(tmp_path, monkeypatch, lambda _: httpx.Response(200,
+        json={'status': 'completed', 'output': messages}), api_protocol='responses')
+    assert llm.complete(*ARGS) == {'ok': True}
+    audit = next(iter(llm.store.all('llm_attempts').values()))
+    assert audit['provider_messages'] == messages
+    assert audit['raw_output'] == '{"ok": true}'
+    assert llm.complete(*ARGS) == {'ok': True}
+    assert llm.store.usage()['llm_calls']['committed'] == 1
+
+
+@pytest.mark.parametrize('messages', [
+    [{'phase': 'commentary', 'content': [{'type': 'output_text', 'text': '{"ok": true}'}]}],
+    [{'content': [{'type': 'output_text', 'text': 'Preamble'}]},
+     {'content': [{'type': 'output_text', 'text': '{"ok": true}'}]}],
+    [{'phase': 'final_answer', 'status': 'incomplete', 'content': []}],
+    [{'phase': 'final_answer', 'content': [{'type': 'refusal', 'refusal': 'No'}]}],
+])
+def test_ambiguous_or_incomplete_provider_messages_are_not_guessed(tmp_path, monkeypatch, messages):
+    messages = [dict(m, type='message', role='assistant') for m in messages]
+    llm = client(tmp_path, monkeypatch, lambda _: httpx.Response(200,
+        json={'status': 'completed', 'output': messages}), api_protocol='responses')
+    with pytest.raises(LLMError):
+        llm.complete(*ARGS)
+    assert next(iter(llm.store.all('llm_attempts').values()))['provider_messages'] == messages
+    assert llm.store.usage()['llm_calls']['committed'] == 1

@@ -21,6 +21,8 @@ def read_trace(directory):
                   for i, t, k, p in con.execute("SELECT * FROM events ORDER BY id")]
         limits = dict(con.execute("SELECT resource,amount FROM limits"))
         charges = con.execute("SELECT resource,amount,state FROM charges").fetchall()
+        from proteinrsi.trace_export import summary
+        health = summary(con, path)["execution"]
     records = {}
     allowed = TRACE_NAMESPACES
     state = {}
@@ -43,7 +45,7 @@ def read_trace(directory):
             if record is not None:
                 event.setdefault("details", {})[namespace] = record
     spent = {k: sum(n for r, n, s in charges if r == k and s == "committed") for k in limits}
-    return {"campaign": str(path.parent), "status": state.get("status"),
+    return {"campaign": str(path.parent), "status": state.get("status"), "execution": health,
         "rounds": state.get("round_index"), "source": ("computational" if state.get("task", {}).get("execution_mode") == "computational"
                    else state.get("task", {}).get("feedback_source")),
         "limits": limits, "spent": spent, "events": events, "records": records,
@@ -76,7 +78,7 @@ def _export_full_html(directory, destination):
 <details><summary>完整记录：批次、测量、计划及版本验证</summary><pre id="records"></pre></details>
 <script id="data" type="application/json">DATA</script><script>
 const d=JSON.parse(document.getElementById('data').textContent);
-document.getElementById('status').textContent=`来源：${d.source} · 状态：${d.status} · 完成轮数：${d.rounds} · 已用预算：${JSON.stringify(d.spent)}`;
+document.getElementById('status').textContent=`来源：${d.source} · 阶段：${d.status} · 执行：${d.execution?.state ?? "unknown"} · 完成轮数：${d.rounds} · 已用预算：${JSON.stringify(d.spent)}`;
 document.getElementById('records').textContent=JSON.stringify(d.records,null,2);
 function render(){const q=document.getElementById('filter').value.toLowerCase(),root=document.getElementById('timeline');root.replaceChildren();for(const e of d.events){if(!JSON.stringify(e).toLowerCase().includes(q))continue;const item=document.createElement('details'),title=document.createElement('summary'),body=document.createElement('pre');title.textContent=`#${e.id} ${new Date(e.timestamp*1000).toLocaleString()} · ${e.kind} · ${JSON.stringify(e.payload).slice(0,180)}`;body.textContent=JSON.stringify({payload:e.payload,details:e.details},null,2);item.append(title,body);root.append(item);}}
 document.getElementById('filter').addEventListener('input',render);render();</script></html>'''.replace('DATA', data)

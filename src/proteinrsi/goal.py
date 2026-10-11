@@ -130,7 +130,7 @@ def input_catalog(store, paths):
 
 def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), llm_calls=200,
                           tool_calls=100, llm_factory=None, event_sink=None, continue_from=False, full_plate=False, protocol_mode=None):
-    if not goal.strip() or len(goal) > 12000 or llm_calls < 1 or tool_calls < 0:
+    if not goal.strip() or len(goal) > 12000 or (llm_calls is not None and llm_calls < 1) or (tool_calls is not None and tool_calls < 0):
         raise ValueError('Provide a nonempty goal and valid compute limits')
     out = Path(out).resolve()
     if not continue_from:

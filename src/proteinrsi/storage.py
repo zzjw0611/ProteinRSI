@@ -156,15 +156,15 @@ class Store:
             return [{"id": row["id"], "timestamp": row["timestamp"], "kind": row["kind"], "payload": json.loads(row["payload"])}
                     for row in con.execute("SELECT * FROM events ORDER BY id")]
 
-    def configure_budget(self, resources: dict[str, int]) -> None:
+    def configure_budget(self, resources: dict[str, int | None]) -> None:
         with self.connect() as con:
             self._begin(con)
             existing = dict(con.execute("SELECT resource,amount FROM limits").fetchall())
             if existing and existing != resources:
                 raise Conflict("Cannot reset an existing campaign budget")
             for key, amount in resources.items():
-                if type(amount) is not int or amount < 0:
-                    raise ValueError("Resource limits must be nonnegative integers")
+                if not (amount is None and key in {"llm_calls", "tool_calls"}) and (type(amount) is not int or amount < 0):
+                    raise ValueError("Resource limits must be nonnegative integers; only LLM/tool limits may be null")
                 con.execute("INSERT OR IGNORE INTO limits VALUES (?,?)", (key, amount))
 
     def reserve(self, key: str, resource: str, amount: int, payload: Any) -> None:
@@ -185,7 +185,7 @@ class Store:
                 raise ValueError(f"Unconfigured resource: {resource}")
             used = con.execute("SELECT COALESCE(SUM(amount),0) FROM charges WHERE resource=? AND state!='released'",
                                (resource,)).fetchone()[0]
-            if used + amount > limit[0]:
+            if limit[0] is not None and used + amount > limit[0]:
                 raise BudgetExceeded(f"{resource}: {used}+{amount} exceeds {limit[0]}")
             con.execute("INSERT INTO charges VALUES (?,?,?,?,?)", (key, resource, amount, fingerprint, "reserved"))
 
@@ -202,16 +202,16 @@ class Store:
                 raise Conflict("Committed resource usage cannot be rolled back")
             con.execute("UPDATE charges SET state=? WHERE key=?", (state, key))
 
-    def remaining(self, resource: str) -> int:
+    def remaining(self, resource: str) -> int | None:
         with self.connect() as con:
             limit = con.execute("SELECT amount FROM limits WHERE resource=?", (resource,)).fetchone()
             if limit is None:
                 raise KeyError(resource)
             used = con.execute("SELECT COALESCE(SUM(amount),0) FROM charges WHERE resource=? AND state!='released'",
                                (resource,)).fetchone()[0]
-            return limit[0] - used
+            return None if limit[0] is None else limit[0] - used
 
-    def usage(self) -> dict[str, dict[str, int]]:
+    def usage(self) -> dict[str, dict[str, int | None]]:
         with self.connect() as con:
             result = {}
             for row in con.execute("SELECT resource,amount FROM limits"):
@@ -251,7 +251,8 @@ class SponsoredStore(Store):
         super().settle(key, release=release)
 
     def remaining(self, resource):
-        return min(super().remaining(resource), self.sponsor.remaining(resource))
+        finite = [n for n in (super().remaining(resource), self.sponsor.remaining(resource)) if n is not None]
+        return min(finite) if finite else None
 
     def event(self, kind, payload):
         super().event(kind, payload)

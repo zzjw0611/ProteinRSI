@@ -22,7 +22,8 @@ def authorize_retry(store, request_key, *, operator, reason, attempts=1):
         used = call.get("attempt", 1)
         if previous.get("attempt_limit", 0) > used:
             raise Conflict("This request already has an unused retry allowance")
-        if attempts > store.remaining("llm_calls"):
+        remaining_calls = store.remaining("llm_calls")
+        if remaining_calls is not None and attempts > remaining_calls:
             raise BudgetExceeded("Additional attempts must fit the remaining LLM budget")
         record = {"request_key": request_key, "attempt_limit": used + attempts,
             "after_attempt": used, "additional_attempts": attempts,

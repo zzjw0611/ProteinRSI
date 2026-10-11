@@ -54,3 +54,38 @@ def test_budget_cannot_reset_and_immutable_data(tmp_path):
     store.put("raw", "r1", {"value": 1}, immutable=True)
     with pytest.raises(Conflict):
         store.put("raw", "r1", {"value": 2}, immutable=True)
+
+
+@pytest.mark.parametrize('resource', ['llm_calls', 'tool_calls'])
+def test_unlimited_compute_still_accounts_and_freezes_budget(tmp_path, resource):
+    store = Store(tmp_path)
+    store.configure_budget({resource: None, 'experimental_wells': 1})
+    for i in range(3):
+        store.reserve(str(i), resource, 1000000, {'i': i})
+        store.settle(str(i))
+    assert store.remaining(resource) is None
+    assert store.usage()[resource] == {'limit': None, 'committed': 3000000, 'reserved': 0}
+    store.configure_budget({resource: None, 'experimental_wells': 1})
+    with pytest.raises(Conflict):
+        store.configure_budget({resource: 100, 'experimental_wells': 1})
+    with pytest.raises(BudgetExceeded):
+        store.reserve('experiment', 'experimental_wells', 2, {})
+    with pytest.raises(ValueError):
+        Store(tmp_path/'invalid').configure_budget({'experimental_wells': None})
+
+
+@pytest.mark.parametrize('local,parent,expected', [(None, None, None), (None, 3, 3), (3, None, 3)])
+def test_sponsored_unlimited_compute_respects_any_finite_cap(tmp_path, local, parent, expected):
+    from proteinrsi.storage import SponsoredStore
+    sponsor = Store(tmp_path/'parent')
+    sponsor.configure_budget({'llm_calls': parent})
+    child = SponsoredStore(tmp_path/'child', sponsor, 'trial')
+    child.configure_budget({'llm_calls': local})
+    assert child.remaining('llm_calls') == expected
+    child.reserve('one', 'llm_calls', 1, {})
+    child.settle('one')
+    assert sponsor.usage()['llm_calls']['committed'] == 1
+    assert child.remaining('llm_calls') == (None if expected is None else expected - 1)
+    if expected is not None:
+        with pytest.raises(BudgetExceeded):
+            child.reserve('too-many', 'llm_calls', 3, {})

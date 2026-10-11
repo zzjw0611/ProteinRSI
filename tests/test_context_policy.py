@@ -229,3 +229,68 @@ def test_read_loop_has_hard_cap_and_no_free_retries(tmp_path):
         llm.complete(*args)
     assert len(calls) == 13
     assert llm.store.usage()['experimental_wells']['committed'] == 0
+
+
+def test_named_catalogue_reads_and_bounded_working_set(tmp_path):
+    class LLM:
+        model, base_url, cache_settings = 'fixture', 'fixture', {}
+        def __init__(self):
+            self.store = Store(tmp_path)
+            self.frames = []
+        def _complete(self, role, instructions, context, schema):
+            self.frames.append(context)
+            index = len(self.frames)
+            if index <= 3:
+                ref = context['operations']['evidence_ref']
+                return {'_context_action': {'kind': 'read', 'ref': ref, 'name': f'op{index}'}}
+            assert context['_context']['last_read']['name'] == 'op3'
+            assert [p['name'] for p in context['_context']['working_set']] == ['op1', 'op2']
+            return {'ok': True}
+    llm = LLM()
+    context = {'operations': [{'name': f'op{i}', 'description': 'fixture ' * 70}
+                              for i in range(30)]}
+    assert complete(llm, 'A-plan', 'choose', context, {}) == {'ok': True}
+    assert 'op2' in llm.frames[0]['operations']['names']
+    assert all(len(canonical(f).encode()) < MAX_CONTEXT_BYTES for f in llm.frames)
+    builder = ContextBuilder(llm.store, 'other')
+    with pytest.raises(ValueError, match='not available'):
+        builder.read({'ref': llm.frames[0]['operations']['evidence_ref'], 'name': 'op1'})
+
+
+def test_large_read_survives_followup_until_explicit_release(tmp_path):
+    class LLM:
+        model, base_url, cache_settings = 'fixture', 'fixture', {}
+        def __init__(self):
+            self.store = Store(tmp_path)
+            self.calls = 0
+        def _complete(self, role, instructions, context, schema):
+            self.calls += 1
+            ref = context['rows']['evidence_ref']
+            if self.calls == 1:
+                return {'_context_action': {'kind': 'read', 'ref': ref, 'limit': 10}}
+            if self.calls == 2:
+                assert len(canonical(context['_context']['last_read']).encode()) > 8000
+                return {'_context_action': {'kind': 'read', 'ref': ref, 'offset': 10, 'limit': 1}}
+            if self.calls == 3:
+                assert len(context['_context']['working_set'][0]['value']) == 10
+                return {'_context_action': {'kind': 'release', 'ref': ref, 'offset': 0}}
+            assert len(context['_context']['working_set']) == 1
+            assert context['_context']['working_set'][0]['offset'] == 10
+            assert context['_context']['last_read']['released_pages'] == 1
+            return {'ok': True}
+    assert complete(LLM(), 'A-plan', 'retain', {'rows': [{'text': 'x'*900} for _ in range(30)]}, {}) == {'ok': True}
+
+
+def test_dictionary_named_reads_are_exact_scoped_and_lossless(tmp_path):
+    builder = ContextBuilder(Store(tmp_path), 'named-dictionary')
+    value = {'protein.sequence_set/v1': {'schema': {'type': 'object'}, 'sha256': 'fixture'},
+             'large': 'x'*20000}
+    ref = builder.reference(value, '$.schemas')
+    assert ref['names'] == sorted(value)
+    page = builder.read({'ref': ref['evidence_ref'], 'name': 'protein.sequence_set/v1'})
+    assert page['value'] == value['protein.sequence_set/v1']
+    with pytest.raises(ValueError, match='exact'):
+        builder.read({'ref': ref['evidence_ref'], 'name': 'sequence_set'})
+    other = ContextBuilder(builder.store, 'other')
+    with pytest.raises(ValueError, match='not available'):
+        other.read({'ref': ref['evidence_ref'], 'name': 'protein.sequence_set/v1'})

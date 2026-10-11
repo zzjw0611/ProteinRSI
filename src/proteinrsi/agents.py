@@ -86,7 +86,8 @@ class DesignerAgent:
         self.llm = llm
         self.store = store or getattr(llm, "store", None)
 
-    def propose(self, view: TaskView, plan: Plan, tool_results: list[dict], catalog: list[dict]) -> Design:
+    def propose(self, view: TaskView, plan: Plan, tool_results: list[dict], catalog: list[dict], *,
+                tool_rounds_remaining: int | None = None) -> Design:
         if self.llm is None:
             if view.task.kind in (TaskKind.BINDER, TaskKind.AFFINITY):
                 raise ValueError("Binder/affinity tasks require an actual configured LLM/tool route")
@@ -95,7 +96,8 @@ class DesignerAgent:
             return Design(candidates=[Candidate(sequence=s, source="library") for s in view.task.candidates])
         instructions = compose(self.store, "designer", view.workflow.designer_prompt,
                                skill_text(view.workflow.skill_names))
-        return request_design(self.llm, self.store, instructions, view, plan, tool_results, catalog)
+        return request_design(self.llm, self.store, instructions, view, plan, tool_results, catalog,
+                              tool_rounds_remaining=tool_rounds_remaining)
 
 
 class AnalystAgent:
@@ -207,7 +209,8 @@ class Team:
         # A bounded design dialogue enables backbone -> sequence -> fold-back chains.
         # No generated shell commands; every requested operation goes through the gateway.
         for step in range(view.workflow.design_tool_rounds):
-            design = self.designer.propose(view, plan, results, catalog)
+            design = self.designer.propose(view, plan, results, catalog,
+                tool_rounds_remaining=view.workflow.design_tool_rounds - step - 1)
             candidates += list(design.candidates)
             candidates += [Candidate(sequence=apply_mutations(view.task.reference_sequence, edits),
                                      source="llm_edits") for edits in design.edits]

@@ -46,10 +46,19 @@ def propose(agent, view, last_patch_round):
     limit = config.get("meta_tool_rounds", 0)
     gateway, catalog = analysis_gateway(agent, view)
     allowed = [item["name"] for item in catalog]
+    from proteinrsi.governance import GovernancePolicy
+    from proteinrsi.dataflow.schema import ContractError
+    frozen_policy = store.get("configuration", "method_governance")
+    policy = GovernancePolicy.model_validate(frozen_policy) if frozen_policy is not None else None
     instructions = compose(store, "meta", view.meta.prompt)
+    instructions += ("\nFollow patch_constraints from the frozen controller policy. "
+        "A proposal must satisfy this contract before staging; satisfying it is not acceptance. "
+        "If response_repair is present, correct only the invalid proposal fields and preserve its evidence.")
     original = {"view": view.model_dump(mode="json"), "last_patch_round": last_patch_round,
         "workflow_schema": Workflow.model_json_schema(),
-        "meta_schema": type(view.meta).model_json_schema(), "available_tools": catalog}
+        "meta_schema": type(view.meta).model_json_schema(), "available_tools": catalog,
+        "patch_constraints": {"governance": policy.model_dump(mode="json") if policy else None,
+            "generated_code_enabled": bool(config.get("enable_generated_code", False))}}
     key = "meta-analysis:" + digest({"context": original, "instructions": instructions,
         "tool_rounds": limit, "model": getattr(llm, "model", None),
         "url": getattr(llm, "base_url", None), "client": getattr(llm, "cache_settings", {})})
@@ -75,9 +84,27 @@ def propose(agent, view, last_patch_round):
         raw = store.get("research_step_outputs", decision_key)
         if raw is None:
             schema = MetaStep.model_json_schema() if index < limit else MetaResponse.model_json_schema()
-            raw = llm.complete("M", instructions, context, schema)
-            # Validate before persisting an executable request.
-            parsed = MetaStep.model_validate(raw) if index < limit else MetaResponse.model_validate(raw)
+            from proteinrsi.dataflow.responses import validated_response
+            model = MetaStep if index < limit else MetaResponse
+            def validate_proposal(raw):
+                parsed = model.model_validate(raw)
+                patch = parsed.patch
+                if patch is not None:
+                    try:
+                        if patch.task_kind != view.task.kind:
+                            raise ValueError("Meta patch task scope differs")
+                        if policy is not None:
+                            policy.validate_patch(patch)
+                        parent = view.workflow if patch.target == "workflow" else view.meta
+                        candidate = apply_patch(parent, patch)
+                        if candidate.programs and not config.get("enable_generated_code", False):
+                            raise PermissionError("Method programs require operator-enabled generated code")
+                    except (ValueError, PermissionError) as exc:
+                        raise ContractError(str(exc), code="invalid_method_proposal", path="/patch") from exc
+                return parsed
+            parsed = validated_response(store, llm, key=decision_key, role="M",
+                instructions=instructions, context=context, schema=schema,
+                validate=validate_proposal, max_repairs=config.get("max_format_repairs", 2))
             raw = parsed.model_dump(mode="json")
             store.put("research_step_outputs", decision_key, raw, immutable=True)
         decision = MetaStep.model_validate(raw)

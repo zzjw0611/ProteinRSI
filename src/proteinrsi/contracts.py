@@ -48,8 +48,8 @@ class TaskKind(str, Enum):
 
 class BudgetSpec(Model):
     experimental_wells: int = Field(default=96, ge=0)
-    llm_calls: int = Field(default=200, ge=0)
-    tool_calls: int = Field(default=200, ge=0)
+    llm_calls: int | None = Field(default=200, ge=0, description="null means unlimited total calls; usage is still recorded")
+    tool_calls: int | None = Field(default=200, ge=0, description="null means unlimited total calls; usage is still recorded")
 
 
 class InitialParentMeasurement(Model):

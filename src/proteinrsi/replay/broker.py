@@ -18,7 +18,7 @@ from .sandbox import SandboxUnavailable, probe
 READ_NAMESPACES = {"research_runs", "research_step_outputs", "resource_selections", "research_analysis",
     "team_outputs", "artifacts", "task_predictions", "embedding_artifacts", "batches"}
 WRITE_NAMESPACES = {"research_runs", "research_step_outputs", "resource_selections", "research_analysis", "team_outputs"}
-CONFIG_KEYS = {"research", "know_how", "prompt_bundle", "protein_model", "local_tools"}
+CONFIG_KEYS = {"research", "know_how", "prompt_bundle", "protein_model", "local_tools", "method_governance"}
 ROLES = {"A", "A-plan", "A-review", "A-selection", "B", "C", "C-tools", "C-feedback", "M", "resource-selector", "A-resources"}
 
 

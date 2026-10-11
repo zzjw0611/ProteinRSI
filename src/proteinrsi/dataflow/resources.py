@@ -5,7 +5,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any, Literal
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, ValidationError, field_validator, model_validator
 
 from proteinrsi.contracts import Candidate, Model, canonical, digest, sequence_hash
 from .schema import ContractError, SchemaRegistry
@@ -136,16 +136,31 @@ class ResourceStore:
     def __init__(self, store, registry: SchemaRegistry, scope: str):
         self.store, self.registry, self.scope = store, registry, scope
 
+    def validate(self, schema_ref: str, data: Any, *, output=False):
+        """One shape/domain boundary for model repair, publication and resource reads."""
+        self.registry.validate(schema_ref, data, output=output)
+        if schema_ref in MODELS:
+            try:
+                MODELS[schema_ref].model_validate(data)
+            except ValidationError as exc:
+                error = exc.errors(include_url=False, include_context=False, include_input=False)[0]
+                raise ContractError(error["msg"], path="/" + "/".join(map(str, error["loc"])),
+                                    code="domain_validation") from exc
+        if schema_ref == STRUCTURES:
+            self._check_structure_artifacts(data)
+        if schema_ref == RANKING:
+            source = self.get(data["candidate_set_ref"], schema_ref=SEQUENCES)
+            known = {item["candidate_id"] for item in source["data"]["items"]}
+            if set(data["ordered_ids"]) - known:
+                raise ContractError("Ranking contains candidates outside its source resource",
+                                    path="/ordered_ids", code="domain_validation")
+
     def put(self, schema_ref: str, data: Any, *, producer: str,
             parents: list[str] | None = None, is_input: bool = False,
             prediction_refs: dict[str, str] | None = None) -> dict:
-        self.registry.validate(schema_ref, data, output=not is_input)
-        if schema_ref in MODELS:
-            MODELS[schema_ref].model_validate(data)
+        self.validate(schema_ref, data, output=not is_input)
         if len(canonical(data).encode()) > 4 * 1024**2:
             raise ContractError("Scientific resource exceeds 4MB; use a registered artifact")
-        if schema_ref == STRUCTURES:
-            self._check_structure_artifacts(data)
         parent_records = [self.get(parent) for parent in parents or []]
         annotations = dict(prediction_refs or {})
         if schema_ref == SEQUENCES:
@@ -194,11 +209,7 @@ class ResourceStore:
             raise ContractError(f"Expected {schema_ref}, received {actual}; use an explicit adapter")
         if payload["schema_sha256"] != self.registry.fingerprint(actual):
             raise ContractError("Stored resource schema has changed")
-        self.registry.validate(actual, payload["data"])
-        if actual in MODELS:
-            MODELS[actual].model_validate(payload["data"])
-        if actual == STRUCTURES:
-            self._check_structure_artifacts(payload["data"])
+        self.validate(actual, payload["data"])
         if actual == SEQUENCES:
             self._prediction_fields(payload["data"], payload.get("prediction_refs", {}))
         elif payload.get("prediction_refs"):

@@ -1,7 +1,9 @@
 # Typed research operation
 
 Answer the current step's question using only its supplied input resources and visible
-context. Return the exact declared output schema. Data references must refer to actual
+context. Return the exact supplied reply schema. This can differ from the registered
+resource schema: sequence proposals contain edits/candidates/candidate_refs, while the
+runtime constructs sequence IDs and the final sequence resource. Data references must refer to actual
 supplied resources, and computed evidence is not an experimental measurement.
 
 Do not copy a sequence collection that already exists. Return IDs/references where the

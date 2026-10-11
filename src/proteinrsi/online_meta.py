@@ -66,14 +66,18 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
         evaluation = freeze_trial_plan(campaign, state, view, patch, slots,
                                        evaluation_id=evaluation_id)
     usage = campaign.store.usage()
-    limits = old["equal_compute_limits"] if resuming else {k: campaign.store.remaining(k)//2 for k in usage}
+    remaining = {k: campaign.store.remaining(k) for k in usage}
+    limits = old["equal_compute_limits"] if resuming else {
+        k: None if n is None else n // 2 for k, n in remaining.items()}
     if not resuming and gate.criterion == "llm_adjudicated_v1":
         from proteinrsi.llm_evaluation import MAX_RESPONSE_REPAIRS
         # Keep initial E-verdict plus bounded schema repairs out of the two
         # science-arm allocations. Network retry costs still use the same ledger.
         headroom = 1 + MAX_RESPONSE_REPAIRS
-        limits["llm_calls"] = max(0, campaign.store.remaining("llm_calls") - headroom) // 2
-    if not resuming and campaign.team.llm is not None and limits.get("llm_calls", 0) < 2:
+        available = remaining["llm_calls"]
+        limits["llm_calls"] = None if available is None else max(0, available - headroom) // 2
+    if (not resuming and campaign.team.llm is not None
+            and limits.get("llm_calls", 0) is not None and limits["llm_calls"] < 2):
         return defer("Insufficient shared LLM budget for two improvers, descendants and E verdict headroom")
     # No additional experiment lookup takes place in either child. Queries are
     # submitted/settled ONCE by Campaign for the final disjoint two-arm batch.

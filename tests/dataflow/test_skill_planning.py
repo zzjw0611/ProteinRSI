@@ -84,7 +84,7 @@ def make_team(store, tmp_path, binder=False):
     view = TaskView(task=task, round_index=0, observations=[], history=[], remaining_wells=20,
         workflow=Workflow(skill_names=list(SKILLS), tool_names=names), meta=MetaPolicy())
     llm, gateway, design_contexts, rank_contexts, native_calls = Planner(binder), ToolGateway(store), [], [], []
-    def propose(v, p, results, catalog):
+    def propose(v, p, results, catalog, **kwargs):
         design_contexts.append(results)
         return Design(candidates=[Candidate(sequence="ACAA")])
     def rank(v, candidates, evidence):

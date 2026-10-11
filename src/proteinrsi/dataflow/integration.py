@@ -45,7 +45,8 @@ def build_operations(team, view, resources, knowledge=None):
             tool_results.append({"candidates": [c.model_dump(mode="json")
                                                  for c in resources.candidates(args["reuse"])]})
         response = team.designer.propose(view, Plan(rationale=args["question"]), tool_results,
-                                        gateway.catalog(view.task, allowed))
+                                        gateway.catalog(view.task, allowed),
+                                        tool_rounds_remaining=view.workflow.design_tool_rounds - 1)
         # Explicit tool requests are executed exactly as in the existing design loop.
         candidates = list(response.candidates)
         for turn in range(view.workflow.design_tool_rounds):
@@ -59,14 +60,15 @@ def build_operations(team, view, resources, knowledge=None):
                 for raw in _candidate_payload(result) or []:
                     candidates.append(Candidate.model_validate(raw))
             response = team.designer.propose(view, Plan(rationale=args["question"]), tool_results,
-                                             gateway.catalog(view.task, allowed))
+                                             gateway.catalog(view.task, allowed),
+                                             tool_rounds_remaining=view.workflow.design_tool_rounds - turn - 2)
             candidates.extend(response.candidates)
         descriptor = resources.sequences(candidates, producer="agent:B")
         return resources.get(descriptor["resource_id"])["data"]
 
     operations.register(Operation("agent:propose", object_schema({
         "question": {"type": "string"}, "reuse": ref_schema, "evidence": {"type": "object"}}, ["question"]),
-        SEQUENCES, propose, "typed-designer-v2" + knowledge_version, agent_reply_contract=proposal_contract(view)))
+        SEQUENCES, propose, "typed-designer-v2" + knowledge_version, agent_reply_contract=proposal_contract(view), question_argument="question"))
 
     def rank(args, key):
         candidates = resources.candidates(args["candidates"])
@@ -166,6 +168,7 @@ def build_operations(team, view, resources, knowledge=None):
 def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = None):
     """Called from ResearchRunner for an explicit protocol_mode='typed' task snapshot."""
     from proteinrsi.research.resources import ResourceSelector
+    from .plan_repair import DraftRepair, apply_edits, REPAIR_INSTRUCTIONS
     profiles = default_profiles()
     contract = profiles.contract(view)
     resources = ResourceStore(team.store, standard_registry(), scope_for(view))
@@ -196,48 +199,62 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
             raise ContractError("Typed protocol planning requires an LLM or an explicit Protocol")
         while plan_record["attempts"] <= config.max_format_repairs:
             attempt = plan_record["attempts"]
+            repairing = "draft" in plan_record
             raw = team.llm.complete("A-plan", compose(team.store, "protocol_planner", view.workflow.principal_prompt) +
                 "\nThis is a resource-protocol-v1 plan, NOT the legacy five-operation plan. "
                 "Choose operations from the supplied registry; no scientific tool is mandatory. "
-                "Connect input:name or step:step_id.result with schema_ref and pointer. "
+                "Connect input:name or step:step_id.result; omit binding schema_ref because the executor infers it. "
+                "Put the scientific question only in Step.question; registered adapters receive it automatically. "
                 "For typed references use delivery=ref. Native tool result schemas cannot be changed. "
                 "Use adapter:normalize_candidates for existing code/tool candidates rather than copying them. "
                 "Use custom.* schemas and agent operations only when an existing contract is insufficient. "
-                "Return final_outputs matching the task contract. Do not query experiments or grant permissions.",
+                "Return final_outputs matching the task contract. Do not query experiments or grant permissions." +
+                (REPAIR_INSTRUCTIONS if repairing else ""),
                 {"view": context, "task_contract": asdict(contract), "resources": selected,
                  "input_resources": {name: resources.describe(ref) for name, ref in inputs.items()},
                  "operations": operations.catalog(), "schemas": resources.registry.catalog(),
                  "format_attempt": attempt, "validation_errors": plan_record["errors"],
-                 "max_steps": min(config.max_plan_steps, config.max_executed_steps)}, Protocol.model_json_schema())
+                 "max_steps": min(config.max_plan_steps, config.max_executed_steps),
+                 **({"failed_draft": plan_record["draft"],
+                     "repair_history": plan_record.get("repair_history", [])} if repairing else {})},
+                DraftRepair.model_json_schema() if repairing else Protocol.model_json_schema())
+            team.store.put(NAMESPACE, f"{plan_key}/attempt/{attempt}",
+                {"reply": raw, "repair": repairing, "draft_before": plan_record.get("draft")}, immutable=True)
             plan_record["attempts"] += 1
             team.store.put(NAMESPACE, plan_key, plan_record)
             try:
-                candidate = Protocol.model_validate(raw)
+                draft = apply_edits(plan_record["draft"], raw) if repairing else raw
+                plan_record["draft"] = draft
+                candidate = Protocol.model_validate(draft)
                 # Use a fresh registry per failed attempt; do not retain invalid definitions.
                 trial_schemas = standard_registry()
                 trial_resources = ResourceStore(team.store, trial_schemas, resources.scope)
                 trial_ops = build_operations(team, view, trial_resources, knowledge)
                 register_agent_operations(candidate, trial_ops, team.llm, trial_resources, agent_context,
                                           max_repairs=config.max_format_repairs)
-                ProtocolExecutor(trial_resources, trial_ops, max_steps=config.max_plan_steps).preflight(candidate, inputs)
+                checked = ProtocolExecutor(trial_resources, trial_ops, max_steps=config.max_plan_steps).preflight(candidate, inputs)
                 for port, schema in contract.required_outputs.items():
                     binding = candidate.final_outputs.get(port)
-                    if binding is None or binding.schema_ref != schema:
+                    if binding is None or checked["output_schemas"].get(port) != schema:
                         raise ContractError("Final output port/schema does not match the task contract")
                 protocol = candidate
                 plan_record["protocol"] = protocol.model_dump(mode="json")
                 team.store.put(NAMESPACE, plan_key, plan_record)
                 break
             except (ContractError, ValidationError, ValueError) as exc:
-                plan_record["errors"] = [{"code": type(exc).__name__, "message": str(exc)[:1500]}]
+                error = exc.detail() if isinstance(exc, ContractError) else {
+                    "code": type(exc).__name__, "message": str(exc)[:1500]}
+                plan_record["errors"] = [error]
+                plan_record.setdefault("repair_history", []).append({"attempt": attempt, "error": error})
                 team.store.put(NAMESPACE, plan_key, plan_record)
         if protocol is None:
             raise ContractError("Protocol planning exhausted the format/preflight repair budget")
     register_agent_operations(protocol, operations, team.llm, resources, agent_context,
                               max_repairs=config.max_format_repairs)
+    checked = ProtocolExecutor(resources, operations).preflight(protocol, inputs)
     for name, schema in contract.required_outputs.items():
         binding = protocol.final_outputs.get(name)
-        if binding is None or binding.schema_ref != schema:
+        if binding is None or checked["output_schemas"].get(name) != schema:
             raise ContractError("Protocol final output does not match the task contract")
     executor = ProtocolExecutor(resources, operations,
                                 max_steps=min(config.max_plan_steps, config.max_executed_steps))
@@ -248,11 +265,11 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
         cloned_ops._operations = dict(operations._operations)
         register_agent_operations(revised, cloned_ops, team.llm, cloned_resources, agent_context,
                                   max_repairs=config.max_format_repairs)
+        checked = ProtocolExecutor(cloned_resources, cloned_ops, max_steps=config.max_plan_steps).preflight(revised, inputs)
         for port, schema in contract.required_outputs.items():
             binding = revised.final_outputs.get(port)
-            if binding is None or binding.schema_ref != schema:
+            if binding is None or checked["output_schemas"].get(port) != schema:
                 raise ContractError("Revision changed the task's final output contract")
-        ProtocolExecutor(cloned_resources, cloned_ops, max_steps=config.max_plan_steps).preflight(revised, inputs)
         resources.registry._schemas = cloned_schemas._schemas
         resources.registry._input_only = cloned_schemas._input_only
         operations._operations = cloned_ops._operations
@@ -267,20 +284,28 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
             return Protocol.model_validate(raw) if raw else None
         while saved["attempts"] <= config.max_format_repairs:
             attempt = saved["attempts"]
+            repairing = "draft" in saved
             raw = team.llm.complete("A-review", compose(team.store, "protocol_step", view.workflow.principal_prompt) +
                 "\nReview actual resource outputs. replacement=null keeps the protocol. "
                 "Only replace unexecuted steps; completed steps, operation definitions, schemas and final task contract "
-                "cannot change. New operations require new names. Never invent experiment results.",
+                "cannot change. New operations require new names. Never invent experiment results." +
+                (REPAIR_INSTRUCTIONS if repairing else ""),
                 {"view": context, "protocol": current.model_dump(mode="json"), "completed_steps": completed,
                  "actual_resources": {name: resources.describe(ref) for name, ref in refs.items()},
                  **({"method_knowledge": knowledge} if knowledge is not None else {}),
                  "validation_errors": saved["errors"], "format_attempt": attempt,
                  "execution_error": failure.detail() if failure else None,
-                 "operations": operations.catalog(), "schemas": resources.registry.catalog()}, ProtocolReview.model_json_schema())
+                 "operations": operations.catalog(), "schemas": resources.registry.catalog(),
+                 **({"failed_draft": saved["draft"], "repair_history": saved.get("repair_history", [])}
+                    if repairing else {})},
+                DraftRepair.model_json_schema() if repairing else ProtocolReview.model_json_schema())
+            team.store.put(NAMESPACE, f"{key}/attempt/{attempt}",
+                {"reply": raw, "repair": repairing, "draft_before": saved.get("draft")}, immutable=True)
             saved["attempts"] += 1
             team.store.put(NAMESPACE, key, saved)
             try:
-                decision = ProtocolReview.model_validate(raw)
+                saved["draft"] = apply_edits(saved["draft"], raw) if repairing else raw
+                decision = ProtocolReview.model_validate(saved["draft"])
                 revised = decision.replacement
                 if revised:
                     if ([s.model_dump(mode="json") for s in current.steps[:completed]] !=
@@ -292,7 +317,10 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                 team.store.put(NAMESPACE, key, saved)
                 return revised
             except (ContractError, ValidationError, ValueError) as exc:
-                saved["errors"] = [{"code": type(exc).__name__, "message": str(exc)[:1500]}]
+                error = exc.detail() if isinstance(exc, ContractError) else {
+                    "code": type(exc).__name__, "message": str(exc)[:1500]}
+                saved["errors"] = [error]
+                saved.setdefault("repair_history", []).append({"attempt": attempt, "error": error})
                 team.store.put(NAMESPACE, key, saved)
         raise ContractError("Protocol review exhausted its repair budget")
 

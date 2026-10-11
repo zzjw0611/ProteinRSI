@@ -41,6 +41,13 @@ class GovernancePolicy(Model):
     max_changed_fields: int = Field(default=3, ge=1, le=20)
     max_deferred_rounds: int = Field(default=2, ge=1, le=20)
 
+    def validate_patch(self, patch: Patch) -> None:
+        """Shared static admission contract; staging and adoption remain controller-owned."""
+        if patch.target not in self.allowed_patch_targets:
+            raise PermissionError("Patch target disabled by the frozen operator study configuration")
+        if len(patch.changes) > self.max_changed_fields:
+            raise ValueError(f"Patch changes too many fields ({len(patch.changes)}); frozen maximum is {self.max_changed_fields}")
+
 
 @lru_cache(maxsize=1)
 def _packaged_source() -> dict:
@@ -133,12 +140,9 @@ class MethodGovernance:
     def stage(self, state: dict, patch: Patch, candidate) -> None:
         if not self.enabled:
             return
-        if patch.target not in self.policy.allowed_patch_targets:
-            raise PermissionError("Patch target disabled by the frozen operator study configuration")
+        self.policy.validate_patch(patch)
         if self.paused(state):
             raise Conflict("Method improvement is paused; an operator must resume it")
-        if len(patch.changes) > self.policy.max_changed_fields:
-            raise ValueError("Patch changes too many fields; test a smaller method change")
         self.assert_plannable(state)
         current = TYPES[patch.target].model_validate(state[patch.target])
         base_ref = self._snapshot(patch.target, current)
@@ -379,6 +383,7 @@ class MethodGovernance:
             record = {"round": state["round_index"], "meta": MetaPolicy.model_validate(state["meta"]).version,
                 "evidence_version": self.campaign.view(state).evidence_version, "error_type": type(exc).__name__}
             key = digest(record)
+            record["error"] = redact(str(exc))[:2000]
             if self.store.get("method_proposal_failures", key) is None:
                 self.store.put("method_proposal_failures", key, record, immutable=True)
                 self._count_failure(state, "invalid_or_failed_proposal")

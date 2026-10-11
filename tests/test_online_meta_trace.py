@@ -173,3 +173,22 @@ def test_worker_cannot_read_or_edit_operator_audit(campaign):
             with pytest.raises(PermissionError):
                 dispatch(campaign.team, campaign.team.tools, campaign.view(), [],
                     {'rpc': operation, 'namespace': namespace, 'key': 'any', 'value': {}})
+
+
+def test_online_meta_accepts_unlimited_compute(tmp_path, fixture_data, monkeypatch):
+    from proteinrsi.contracts import BudgetSpec
+    from proteinrsi.runtime import Campaign
+    task, _ = fixture_data
+    task.budget = BudgetSpec(experimental_wells=task.budget.experimental_wells,
+                             llm_calls=None, tool_calls=None)
+    campaign = Campaign.initialize(str(tmp_path/'unlimited'), task,
+                                   gate=GatePolicy(min_per_arm=2, bootstrap_samples=200))
+    campaign, _ = stage(campaign)
+    monkeypatch.setattr('proteinrsi.online_meta.make_validation_team',
+                        lambda campaign, store: ScriptedOffspringTeam(store))
+    batch = campaign.prepare()
+    assert batch.patch_id
+    attempt = next(iter(campaign.store.all('meta_online_attempts').values()))
+    assert attempt['equal_compute_limits']['llm_calls'] is None
+    assert attempt['equal_compute_limits']['tool_calls'] is None
+    assert campaign.store.remaining('experimental_wells') is not None

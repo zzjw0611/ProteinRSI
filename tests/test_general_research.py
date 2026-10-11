@@ -349,3 +349,19 @@ def test_legacy_intake_mode_is_explicit_and_survives_clarification(tmp_path):
     prepared = prepare_research_goal('以 ACDE 为母本排序2轮，只改第2位，计算反馈', out=out,
         data_root=tmp_path, continue_from=True, llm_factory=factory(rank_intent(), []))
     assert prepared['campaign'].store.get('configuration', 'research')['protocol_mode'] == 'legacy'
+
+
+def test_unlimited_goal_compute_limits_survive_intake_and_report(tmp_path):
+    from proteinrsi.cli import compute_call_limit
+    assert compute_call_limit('unlimited') is None
+    assert compute_call_limit('250') == 250
+    requests = []
+    prepared = prepare_research_goal('对 ACDE 和 AVDE 排序，以 ACDE 为母本，仅第2位变化，计算迭代2轮',
+        out=tmp_path/'unlimited', data_root=tmp_path, llm_calls=None, tool_calls=None,
+        llm_factory=factory(rank_intent(), requests))
+    campaign = prepared['campaign']
+    assert campaign.view().task.budget.llm_calls is None
+    assert campaign.view().task.budget.tool_calls is None
+    assert campaign.report()['budget']['llm_calls']['limit'] is None
+    assert campaign.store.usage()['llm_calls']['committed'] == 1
+    assert len(requests) == 1

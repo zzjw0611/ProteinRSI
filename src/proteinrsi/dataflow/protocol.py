@@ -20,7 +20,7 @@ from .schema import ContractError, SchemaRegistry, pointer
 class Binding(Model):
     source: str = Field(min_length=1, max_length=120)
     # input:name or step:name.port; not a file path or an arbitrary database key.
-    schema_ref: str
+    schema_ref: str | None = None
     pointer: str = Field(default="", max_length=1000)
     delivery: Literal["value", "ref"] = "value"
 
@@ -82,6 +82,7 @@ class Operation:
     # Constraints on root resources, in addition to ordinary tool argument validation.
     resource_inputs: dict[str, str] | None = None
     agent_reply_contract: dict | None = None
+    question_argument: str | None = None
 
 
 class OperationRegistry:
@@ -99,7 +100,7 @@ class OperationRegistry:
         self._operations[operation.name] = Operation(
             operation.name, deepcopy(operation.input_schema), operation.output_schema_ref,
             operation.invoke, operation.implementation, deepcopy(operation.resource_inputs),
-            deepcopy(operation.agent_reply_contract))
+            deepcopy(operation.agent_reply_contract), operation.question_argument)
 
     def get(self, name):
         if name not in self._operations:
@@ -110,12 +111,19 @@ class OperationRegistry:
         return "operation.input/" + digest({"name": operation.name, "schema": operation.input_schema})
 
     def catalog(self):
-        return [{"name": op.name, "input_schema": deepcopy(op.input_schema),
-                 "output_schema_ref": op.output_schema_ref,
-                 "output_schema": self.schemas.schema(op.output_schema_ref),
-                 "resource_inputs": deepcopy(op.resource_inputs or {}), "implementation": op.implementation,
-                 "agent_reply_contract": deepcopy(op.agent_reply_contract)}
-                for op in self._operations.values()]
+        result = []
+        for op in self._operations.values():
+            schema = deepcopy(op.input_schema)
+            if op.question_argument:
+                schema.get("properties", {}).pop(op.question_argument, None)
+                schema["required"] = [x for x in schema.get("required", []) if x != op.question_argument]
+            result.append({"name": op.name, "input_schema": schema,
+                "output_schema_ref": op.output_schema_ref,
+                "output_schema": self.schemas.schema(op.output_schema_ref),
+                "resource_inputs": deepcopy(op.resource_inputs or {}), "implementation": op.implementation,
+                "question_from_step": op.question_argument,
+                "agent_reply_contract": deepcopy(op.agent_reply_contract)})
+        return result
 
 
 class ProtocolExecutor:
@@ -124,20 +132,33 @@ class ProtocolExecutor:
         self.store, self.schemas = resources.store, resources.registry
         self.max_steps = max_steps
 
+    @staticmethod
+    def arguments(step, operation):
+        """Only registered adapters receive the step question; native tool fields are untouched.
+
+        Explicit arguments in older protocols remain readable. New plans supply the
+        question once on Step and the operation catalogue omits this mechanical input.
+        """
+        args = deepcopy(step.arguments)
+        if operation.question_argument and operation.question_argument not in step.bindings:
+            args.setdefault(operation.question_argument, step.question)
+        return args
+
     def preflight(self, protocol: Protocol, inputs: dict[str, str]) -> dict:
         if len(protocol.steps) > self.max_steps:
             raise ContractError("Protocol exceeds the operator's step limit")
         types = {"input:" + name: self.resources.get(ref)["schema_ref"] for name, ref in inputs.items()}
         seen = set()
-        for step in protocol.steps:
+        for index, step in enumerate(protocol.steps):
             if (step.step_id in seen or not set(step.depends_on) <= seen
                     or len(step.depends_on) != len(set(step.depends_on))):
                 raise ContractError("Dependencies must be unique, ordered and already declared")
             operation = self.operations.get(step.operation)
-            supplied = set(step.arguments) | set(step.bindings)
+            supplied = set(self.arguments(step, operation)) | set(step.bindings)
             required = set(operation.input_schema.get("required", []))
             if required - supplied:
-                raise ContractError(f"Step {step.step_id} lacks required inputs: {sorted(required - supplied)}")
+                raise ContractError(f"Step {step.step_id} lacks required inputs: {sorted(required - supplied)}",
+                                    path=f"/steps/{index}/arguments", code="missing_input")
             properties = operation.input_schema.get("properties", {})
             if operation.input_schema.get("additionalProperties") is False and supplied - properties.keys():
                 raise ContractError(f"Step {step.step_id} contains unknown inputs")
@@ -145,10 +166,10 @@ class ProtocolExecutor:
                 if name not in step.bindings:
                     raise ContractError("Typed resources must be connected by bindings, not guessed IDs")
             for name, binding in step.bindings.items():
-                self._check_binding(binding, types)
+                actual_schema = self._check_binding(binding, types)
                 nominal = (operation.resource_inputs or {}).get(name)
                 if nominal and (binding.pointer or binding.delivery != "ref"
-                                or not self.schemas.compatible(binding.schema_ref, nominal)):
+                                or not self.schemas.compatible(actual_schema, nominal)):
                     raise ContractError("Typed resource input requires an explicit compatible adapter")
             types[f"step:{step.step_id}.result"] = operation.output_schema_ref
             for name, output in step.outputs.items():
@@ -162,15 +183,17 @@ class ProtocolExecutor:
             if binding.pointer:
                 raise ContractError("Final outputs must be whole validated resources; add an output view")
         return {"protocol": protocol.version, "steps": len(seen), "status": "compatible",
-                "scope": "nominal references, required fields and DAG; values/semantics checked at runtime"}
+                "scope": "nominal references, required fields and DAG; values/semantics checked at runtime",
+                "output_schemas": {name: types[b.source] for name, b in protocol.final_outputs.items()}}
 
     def _check_binding(self, binding: Binding, types):
         if binding.source not in types:
             raise ContractError("Binding refers to a missing or forward output", path=binding.source)
-        if not self.schemas.compatible(types[binding.source], binding.schema_ref):
+        if binding.schema_ref is not None and not self.schemas.compatible(types[binding.source], binding.schema_ref):
             raise ContractError("Binding schema/version mismatch", path=binding.source)
         if binding.pointer and not binding.pointer.startswith("/"):
             raise ContractError("Binding selector must be a JSON pointer")
+        return types[binding.source]
 
     def _read_binding(self, binding, refs):
         if binding.source not in refs:
@@ -207,7 +230,7 @@ class ProtocolExecutor:
                 op = self.operations.get(step.operation)
                 step_key = None
                 try:
-                    args = deepcopy(step.arguments)
+                    args = self.arguments(step, op)
                     args.update({name: self._read_binding(binding, refs) for name, binding in step.bindings.items()})
                     self.schemas.validate(self.operations.input_ref(op), args)
                     parents = list(dict.fromkeys(refs[b.source] for b in step.bindings.values()))
@@ -223,10 +246,13 @@ class ProtocolExecutor:
                     if receipt is None or receipt["status"] == "paused_provider":
                         self.store.put(NAMESPACE, step_key, {"status": "started"})
                         raw = op.invoke(args, step_key)
-                        self.schemas.validate(op.output_schema_ref, raw, output=True)
+                        receipt = {"status": "returned", "raw": raw}
+                        self.store.put(NAMESPACE, step_key, receipt)
+                    if receipt["status"] == "returned":
+                        raw = receipt["raw"]
                         result = self.resources.put(op.output_schema_ref, raw,
                             producer=op.name + "@" + op.implementation, parents=parents)
-                        receipt = {"status": "done", "resource_id": result["resource_id"]}
+                        receipt = {**receipt, "status": "done", "resource_id": result["resource_id"]}
                         self.store.put(NAMESPACE, step_key, receipt)
                     elif receipt["status"] != "done":
                         raise ContractError("Prior failed operation retained; change the failing step or reconcile")
@@ -240,6 +266,9 @@ class ProtocolExecutor:
                         refs[f"step:{step.step_id}.{name}"] = resource["resource_id"]
                 except Exception as exc:
                     current = self.store.get(NAMESPACE, step_key) if step_key else None
+                    if current and current.get("status") == "returned" and isinstance(exc, ContractError):
+                        self.store.put(NAMESPACE, step_key, {**current,
+                            "validation_error": exc.detail()})
                     if current and current.get("status") == "started" and not (
                             isinstance(exc, ContractError) and exc.code == "uncertain_completion"):
                         from proteinrsi.llm import ProviderPaused
@@ -328,8 +357,13 @@ def register_tool_operations(operations: OperationRegistry, gateway, task, allow
         operations.schemas.register(schema_ref, spec["output_schema"])
 
         def invoke(arguments, key, spec=deepcopy(spec)):
-            return gateway.call(ToolCall(name=spec["name"], arguments=arguments,
-                purpose="Explicit protocol operation"), task, allowed=allowed, context_key=key)
+            from jsonschema import ValidationError
+            try:
+                return gateway.call(ToolCall(name=spec["name"], arguments=arguments,
+                    purpose="Explicit protocol operation"), task, allowed=allowed, context_key=key)
+            except ValidationError as exc:
+                raise ContractError(exc.message, path="/" + "/".join(map(str, exc.path)),
+                                    code="tool_contract") from exc
 
         operations.register(Operation(name="tool:" + spec["name"], input_schema=spec["input_schema"],
             output_schema_ref=schema_ref, invoke=invoke, implementation=fingerprint))
@@ -339,10 +373,13 @@ def register_agent_operations(protocol, operations, llm, resources, context, *, 
     """Protocol-local agent schemas may vary; no model-generated imports or privileges."""
     for name, schema in protocol.schemas.items():
         operations.schemas.register(name, schema, custom=True)
+    from .design import SequenceProposal
+    from .resources import SEQUENCES
     for definition in protocol.agent_operations:
+        implementation = digest({"definition": definition.model_dump(mode="json"), "response_boundary": 2})
         previous = operations._operations.get(definition.name)
         if previous is not None:
-            if previous.implementation != digest(definition.model_dump(mode="json")):
+            if previous.implementation != implementation:
                 raise ContractError("An existing operation definition is immutable; use a new name/version")
             continue
         # Custom input schemas are also checked before use, not just output schemas.
@@ -353,28 +390,38 @@ def register_agent_operations(protocol, operations, llm, resources, context, *, 
         def invoke(arguments, key, definition=definition, output_schema=output_schema):
             if llm is None:
                 raise ContractError("A protocol agent operation requires a configured LLM")
-            record_key = key + ":format"
-            record = resources.store.get(NAMESPACE, record_key, {"attempts": 0, "errors": []})
-            while record["attempts"] <= max_repairs:
-                attempt = record["attempts"]
-                from proteinrsi.prompting import compose
-                raw = llm.complete(definition.role,
-                    compose(resources.store, "protocol_step", definition.instructions),
-                    {"view": context, "inputs": arguments, "format_attempt": attempt,
-                     "validation_errors": record["errors"]}, output_schema)
-                record["attempts"] += 1
-                resources.store.put(NAMESPACE, record_key, record)
-                try:
-                    operations.schemas.validate(definition.output_schema_ref, raw, output=True)
-                    return raw
-                except ContractError as exc:
-                    record["errors"] = [exc.detail()]
-                    resources.store.put(NAMESPACE, record_key, record)
-            raise ContractError("Protocol agent exhausted its format repair limit")
+            from proteinrsi.prompting import compose
+            from .responses import validated_response
+            from .design import SequenceProposal, materialize_sequence_proposal
+            from .resources import SEQUENCES
+
+            sequence_output = definition.output_schema_ref == SEQUENCES
+            reply_schema = SequenceProposal.model_json_schema() if sequence_output else output_schema
+            instructions = compose(resources.store, "protocol_step", definition.instructions)
+            if sequence_output:
+                instructions += ("\nReturn a sequence proposal, not a resource envelope. "
+                    "Use residue edits for substitutions, candidate_refs for supplied resources, "
+                    "or candidates for complete new sequences. Never generate candidate IDs. "
+                    "The runtime validates task constraints and computes IDs. Tools must be "
+                    "separate protocol operations; this response cannot invoke tools.")
+
+            def materialize(raw):
+                if sequence_output:
+                    raw = materialize_sequence_proposal(raw, resources, context, arguments, key)
+                resources.validate(definition.output_schema_ref, raw, output=True)
+                return raw
+
+            return validated_response(resources.store, llm, key=key, role=definition.role,
+                instructions=instructions, context={"view": context, "inputs": arguments},
+                schema=reply_schema, validate=materialize, max_repairs=max_repairs)
 
         operations.register(Operation(name=definition.name, input_schema=definition.input_schema,
             output_schema_ref=definition.output_schema_ref, invoke=invoke,
-            implementation=digest(definition.model_dump(mode="json"))))
+            implementation=implementation,
+            agent_reply_contract=({"agent_reply_schema": SequenceProposal.model_json_schema(),
+                "step_result_schema": SEQUENCES,
+                "adapter_responsibilities": ["validate task constraints", "compute sequence IDs"]}
+                if definition.output_schema_ref == SEQUENCES else None)))
 
 
 class ProtocolReview(Model):

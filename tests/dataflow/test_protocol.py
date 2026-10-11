@@ -466,7 +466,10 @@ def test_campaign_protocol_repairs_preflight_before_execution(team, view):
         def complete(self, role, instructions, context, schema):
             if role == 'A-plan':
                 self.plans += 1
-                name = 'uninstalled_tool' if self.plans == 1 else 'agent:propose'
+                if self.plans == 2:
+                    assert context['failed_draft']['steps'][0]['operation'] == 'uninstalled_tool'
+                    return {'edits': [{'op': 'replace', 'path': '/steps/0/operation', 'value': 'agent:propose'}]}
+                name = 'uninstalled_tool'
                 return {'hypothesis': 'Only configured operations may execute.',
                     'steps': [{'step_id': 'design', 'operation': name, 'question': 'fixture',
                                'arguments': {'question': 'Propose one legal variant.'}}],
@@ -491,6 +494,7 @@ def test_planning_invalid_json_schema_is_repaired(team, view, bad_schema):
                 self.plans += 1
                 if self.plans == 2:
                     assert context['validation_errors']
+                    return {'edits': [{'op': 'remove', 'path': '/schemas/custom.example~1v1'}]}
                 return {'hypothesis': 'Repair the schema before any tools execute',
                     'schemas': {'custom.example/v1': bad_schema} if self.plans == 1 else {},
                     'steps': [{'step_id': 'design', 'operation': 'agent:propose', 'question': 'fixture',
@@ -561,3 +565,81 @@ def test_execution_repairs_are_bounded_across_resume(resources, store):
         with pytest.raises(ContractError):
             executor.execute(protocol, {}, on_error=repair, max_repairs=2)
     assert len(calls) == 1 and repairs == [1, 2]
+
+
+def test_step_question_and_inferred_binding_preserve_contract(resources):
+    resources.registry.register('custom.obj/v1', {'type': 'object'}, custom=True)
+    ops = OperationRegistry(resources.registry)
+    calls = []
+    ops.register(Operation('agent:fixture', {'type': 'object', 'required': ['question'],
+        'properties': {'question': {'type': 'string'}}}, 'custom.obj/v1',
+        lambda args, key: calls.append(args) or args, 'v1', question_argument='question'))
+    spec = {'hypothesis': 'Single source of truth', 'steps': [{
+        'step_id': 'one', 'operation': 'agent:fixture', 'question': 'Scientific intent'}],
+        'final_outputs': {'result': {'source': 'step:one.result'}}}
+    executor = ProtocolExecutor(resources, ops)
+    protocol = Protocol.model_validate(spec)
+    assert executor.preflight(protocol, {})['output_schemas'] == {'result': 'custom.obj/v1'}
+    result = executor.execute(protocol, {})
+    assert resources.get(result['outputs']['result']['resource_id'])['data']['question'] == 'Scientific intent'
+    assert calls == [{'question': 'Scientific intent'}]
+    spec['final_outputs']['result']['schema_ref'] = SEQUENCES
+    with pytest.raises(ContractError):
+        executor.preflight(Protocol.model_validate(spec), {})
+
+
+def test_native_question_is_not_implicitly_injected(resources):
+    resources.registry.register('custom.obj/v1', {'type': 'object'}, custom=True)
+    ops = OperationRegistry(resources.registry)
+    ops.register(Operation('tool:fixture', {'type': 'object', 'required': ['question'],
+        'properties': {'question': {'type': 'string'}}}, 'custom.obj/v1', lambda a,k: a, 'v1'))
+    protocol = Protocol.model_validate({'hypothesis': 'Native contract', 'steps': [{
+        'step_id': 'one', 'operation': 'tool:fixture', 'question': 'Step intent'}],
+        'final_outputs': {'result': {'source': 'step:one.result'}}})
+    with pytest.raises(ContractError, match='required'):
+        ProtocolExecutor(resources, ops).preflight(protocol, {})
+
+
+def test_draft_repairs_are_atomic_and_preserve_previous_fixes():
+    from proteinrsi.dataflow.plan_repair import apply_edits
+    original = {'steps': [{'operation': 'bad', 'question': 'keep'}], 'schemas': {'custom.x/v1': {}}}
+    first = apply_edits(original, {'edits': [{'op': 'replace', 'path': '/steps/0/operation', 'value': 'good'}]})
+    second = apply_edits(first, {'edits': [{'op': 'remove', 'path': '/schemas/custom.x~1v1'}]})
+    assert second['steps'] == [{'operation': 'good', 'question': 'keep'}]
+    assert original['steps'][0]['operation'] == 'bad'
+    with pytest.raises(ContractError):
+        apply_edits(first, {'edits': [{'op': 'remove', 'path': '/steps/0'},
+                                    {'op': 'remove', 'path': '/missing'}]})
+    assert first['steps'] == [{'operation': 'good', 'question': 'keep'}]
+
+
+def test_designer_sees_remaining_turns_and_finalizes_after_last_tool(team, view):
+    from proteinrsi.agents import DesignerAgent
+    calls = []
+    team.tools.register(ToolSpec(name='fixture_inspect', capability='analysis.test',
+        task_kinds=[view.task.kind], implementation_version='test',
+        input_schema={'type': 'object'}, output_schema={'type': 'object'}),
+        lambda args: calls.append(args) or {'status': 'ok'})
+    view.workflow.tool_names = ['fixture_inspect']
+    view.workflow.design_tool_rounds = 2
+    class LLM:
+        turns = []
+        def complete(self, role, instructions, context, schema):
+            if role == 'A-plan':
+                return {'hypothesis': 'Finish after inspection', 'steps': [{
+                    'step_id': 'design', 'operation': 'agent:propose', 'question': 'Use inspected evidence'}],
+                    'final_outputs': {'candidates': {'source': 'step:design.result'}}}
+            assert role == 'B'
+            remaining = context['design_dialogue']['tool_rounds_remaining']
+            self.turns.append(remaining)
+            if remaining:
+                return {'tool_calls': [{'name': 'fixture_inspect', 'arguments': {}}]}
+            assert context['design_dialogue']['phase'] == 'finalize'
+            assert context['available_tools'] == []
+            assert schema['properties']['tool_calls']['maxItems'] == 0
+            return {'edits': [[{'position': 39, 'from': 'V', 'to': 'A'}]]}
+    team.llm = LLM()
+    team.designer = DesignerAgent(team.llm, team.store)
+    result = run_campaign_protocol(team, view, ResearchConfig(protocol_mode='typed', review_after_step=False))
+    assert result[0].sequence[38] == 'A'
+    assert team.llm.turns == [1, 0] and len(calls) == 1

@@ -293,7 +293,8 @@ class Campaign:
                 if trial["gate"].get("criterion") == "llm_adjudicated_v1":
                     from proteinrsi.llm_evaluation import MAX_RESPONSE_REPAIRS
                     headroom = 1 + MAX_RESPONSE_REPAIRS
-                    if self.store.remaining("llm_calls") < headroom:
+                    remaining_calls = self.store.remaining("llm_calls")
+                    if remaining_calls is not None and remaining_calls < headroom:
                         raise ProviderPaused("E-verdict requires remaining LLM budget for its initial response "
                             "and bounded schema repairs; batch is not approved and no assay was charged")
                 patch = Patch.model_validate(trial["patch"])
@@ -466,7 +467,7 @@ class Campaign:
             except (BudgetExceeded, LLMError, ValueError, PermissionError) as exc:
                 self.methods.rejected_proposal(state, exc)
                 self.store.event("meta_change_blocked", {"round": view.round_index,
-                                                         "error_type": type(exc).__name__})
+                                                         "error_type": type(exc).__name__, "error": str(exc)[:2000]})
             state["considered_round"] = state["round_index"]
             self.store.put("campaign", "state", state)
 
@@ -563,10 +564,13 @@ class Campaign:
         task = TaskSpec.model_validate(state["task"])
         values = [o["value"] for o in state["observations"] if o["qc"] == "valid"]
         best = (max(values) if task.direction == "maximize" else min(values)) if values else None
+        from proteinrsi.execution_status import execution_status
+        with self.store.connect() as connection:
+            health = execution_status(connection, state["status"])
         from proteinrsi.reporting import study_details
         from proteinrsi.rsi_evidence import summarize_rsi
         return {**study_details(self), "rsi_evidence": summarize_rsi(self.store), "campaign_id": state["campaign_id"], "status": state["status"],
-                "completed_rounds": state["round_index"],
+                "execution": health, "completed_rounds": state["round_index"],
                 "research_config": self.store.get("configuration", "research"),
                 "protein_model": self.store.get("configuration", "protein_model"),
                 "protein_snapshot": self.store.get("protein_backend", "snapshot"), "evidence_source": task.feedback_source,

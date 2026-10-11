@@ -141,8 +141,11 @@ def test_tool_limit_is_external_not_meta_editable(campaign):
     view = configure(campaign, rounds=0)
     llm = Script(lambda _: {'reason': 'Over limit', 'tool_call': {
         'name': 'research_evidence_summary', 'arguments': {}}})
-    with pytest.raises(ValidationError):
+    from proteinrsi.dataflow.schema import ContractError
+    with pytest.raises(ContractError, match="repair limit"):
         MetaAgent(llm, campaign.store).propose(view)
+    assert len(llm.contexts) == 3
+    assert campaign.store.usage()["tool_calls"]["committed"] == 0
     bad = Patch(target='meta', base_version=view.meta.version,
                 changes={'meta_tool_rounds': 1000}, hypothesis='Bypass the external call cap', task_kind=view.task.kind)
     with pytest.raises(PermissionError):
@@ -309,4 +312,42 @@ result = {{'denied': denied, 'key': os.environ.get('PROTEINRSI_API_KEY'),
     result = GuardedMetaAgent(team).propose(view)
     assert result.patch is None
     assert campaign.store.usage()['tool_calls']['committed'] == 1
+    assert campaign.store.usage()['experimental_wells']['committed'] == 0
+
+
+def test_meta_repairs_format_once_and_preserves_valid_abstention(campaign):
+    view = configure(campaign)
+    def answer(context):
+        if 'response_repair' not in context:
+            return {'unexpected': 'invalid reply'}
+        assert context['response_repair']['previous_response'] == {'unexpected': 'invalid reply'}
+        return {'reason': 'Available evidence does not justify changing the method'}
+    llm = Script(answer)
+    agent = MetaAgent(llm, campaign.store)
+    assert agent.propose(view).patch is None
+    assert agent.propose(view).patch is None
+    assert len(llm.contexts) == 2
+    assert campaign.store.usage()['experimental_wells']['committed'] == 0
+
+
+def test_meta_repairs_frozen_patch_limit_before_staging(campaign):
+    view = configure(campaign, rounds=0)
+    campaign.store.put('configuration', 'method_governance', {
+        'allowed_patch_targets': ['workflow'], 'max_changed_fields': 1})
+    def decision(context):
+        assert context['patch_constraints']['governance']['max_changed_fields'] == 1
+        changes = {'designer_prompt': 'Use revealed feedback', 'analyst_prompt': 'Compare evidence'}
+        if context.get('response_repair'):
+            assert 'frozen maximum is 1' in context['response_repair']['errors'][0]['message']
+            changes.pop('analyst_prompt')
+        return {'reason': 'Test a bounded change', 'patch': {
+            'target': 'workflow', 'base_version': view.workflow.version,
+            'task_kind': view.task.kind.value, 'hypothesis': 'Bounded fixture change', 'changes': changes}}
+    llm = Script(decision)
+    agent = MetaAgent(llm, campaign.store, ToolGateway(campaign.store))
+    result = agent.propose(view)
+    assert list(result.patch.changes) == ['designer_prompt']
+    assert len(llm.contexts) == 2
+    assert agent.propose(view) == result and len(llm.contexts) == 2
+    assert not campaign.store.all('method_candidates')
     assert campaign.store.usage()['experimental_wells']['committed'] == 0

@@ -49,9 +49,12 @@ def test_no_silent_egress_and_bad_output(campaign):
     with pytest.raises(ValidationError):
         gateway.call(ToolCall(name="example", arguments={"target": task.reference_sequence}), task,
                      allowed=["example"], context_key="x")
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValidationError):
         gateway.call(ToolCall(name="example", arguments={"target": task.reference_sequence}), task,
                      allowed=["example"], context_key="x")
+    assert campaign.store.usage()["tool_calls"]["committed"] == 1
+    receipt = next(iter(campaign.store.all("tool_jobs").values()))
+    assert receipt["state"] == "returned" and receipt["raw_result"] == {}
 
 
 def test_llm_real_client_contract_and_cache(campaign):

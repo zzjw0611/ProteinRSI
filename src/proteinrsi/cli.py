@@ -30,6 +30,19 @@ def attach(directory: str, args) -> Campaign:
     return Campaign(store, Team(store, llm, tools), MetaAgent(llm))
 
 
+def compute_call_limit(value: str) -> int | None:
+    """Explicit unbounded total; still record every actual call."""
+    if value.lower() == "unlimited":
+        return None
+    try:
+        limit = int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Use a nonnegative integer or unlimited") from exc
+    if limit < 0:
+        raise argparse.ArgumentTypeError("Use a nonnegative integer or unlimited")
+    return limit
+
+
 def main(argv: list[str] | None = None) -> None:
     parser = argparse.ArgumentParser(prog="proteinrsi")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -48,8 +61,8 @@ def main(argv: list[str] | None = None) -> None:
     start.add_argument("--out", help="New campaign directory; defaults to a timestamped runs directory")
     start.add_argument("--data-root", default=str(Path.home()/"data"/"ssmula"))
     start.add_argument("--local-tools", help="Installed tool configuration; local project config is auto-detected")
-    start.add_argument("--llm-calls", type=int, default=200)
-    start.add_argument("--tool-calls", type=int, default=100)
+    start.add_argument("--llm-calls", type=compute_call_limit, default=200, help="Total LLM calls, or unlimited")
+    start.add_argument("--tool-calls", type=compute_call_limit, default=100, help="Total tool calls, or unlimited")
     start.add_argument("--prepare-only", action="store_true", help="Parse and save the task, without experimental queries")
     start.add_argument("--full-plate", action="store_true", help="Require exactly batch_size wells before each experimental submission")
     start.add_argument("--protocol-mode", choices=["typed", "legacy"],

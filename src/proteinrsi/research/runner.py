@@ -134,7 +134,8 @@ class ResearchRunner:
                 plan = Plan(rationale=step.question + "\nExpected: " + step.expected_output)
                 # Full source observations stay protected; candidates are explicitly visible to redesign.
                 results = [*state["tool_results"], {"current_candidates": state["candidates"]}]
-                design = self.team.designer.propose(context, plan, results, design_catalog)
+                design = self.team.designer.propose(context, plan, results, design_catalog,
+                    tool_rounds_remaining=view.workflow.design_tool_rounds - i - 1)
                 new = [*design.candidates, *[Candidate(
                     sequence=apply_mutations(view.task.reference_sequence, edits), source="llm_edits") for edits in design.edits]]
                 self._merge_candidates(view, state, new)

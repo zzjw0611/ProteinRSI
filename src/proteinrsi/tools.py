@@ -84,6 +84,15 @@ class ToolGateway:
             "context": context_key, "key": key, "arguments": call.arguments,
             "cache_hit": bool(previous and previous.get("state")=="done")})
         if previous:
+            if previous["state"] == "returned":
+                result = previous["raw_result"]
+                if not isinstance(result, dict):
+                    raise ValueError("Tool result must be an object")
+                Draft202012Validator(spec.output_schema).validate(result)
+                self.store.put("tool_jobs", key, {**previous, "state": "done", "result": result})
+                self.store.event("tool_completed", {"key": key, "tool": call.name,
+                    "version": spec.implementation_version, "reused_return": True})
+                return result
             if previous["state"] != "done":
                 raise RuntimeError("Uncertain/failed prior tool job; reconcile rather than resubmit blindly")
             return previous["result"]
@@ -94,13 +103,18 @@ class ToolGateway:
         self.store.put("tool_jobs", key, record)
         try:
             result = executor(call.arguments)
+            # Persist execution separately from validation, before interpreting the result.
+            returned = {**record, "state": "returned", "raw_result": result}
+            self.store.put("tool_jobs", key, returned)
+            record = returned
             if not isinstance(result, dict):
                 raise ValueError("Tool result must be an object")
             Draft202012Validator(spec.output_schema).validate(result)
             # JSON serialization also rejects NaN/Infinity before persistence.
             self.store.put("tool_jobs", key, {**record, "state": "done", "result": result})
         except Exception as exc:
-            self.store.put("tool_jobs", key, {**record, "state": "failed", "error_type": type(exc).__name__})
+            self.store.put("tool_jobs", key, {**record, "state": "returned" if record["state"] == "returned" else "failed",
+                                               "error_type": type(exc).__name__})
             self.store.event("tool_failed", {"key": key, "tool": call.name, "error_type": type(exc).__name__})
             raise
         self.store.event("tool_completed", {"key": key, "tool": call.name,
