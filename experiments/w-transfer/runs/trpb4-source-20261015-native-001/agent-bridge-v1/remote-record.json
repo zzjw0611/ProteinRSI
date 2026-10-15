@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "checkpoint_id": "agent-bridge-v1",
+  "bundle_sha256": "83a5d1a62d701999c1c7854a4be9ae00c3ceadca49f93316064f156a2ba617d5",
+  "bundle_encoding": "ordered-concatenated-base64-shards-of-gzip-tar",
+  "bundle_parts": [
+    {
+      "name": "bundle.part-0000.b64",
+      "git_blob_sha": "fdabfa826c2acee8a6e7e148db48152026402a40"
+    },
+    {
+      "name": "bundle.part-0001.b64",
+      "git_blob_sha": "93871d10e564b957e46e77ee3c244d42784bbefc"
+    },
+    {
+      "name": "bundle.part-0002.b64",
+      "git_blob_sha": "855d3ccff8e0ba04841ea60a5e5de31d75d564ae"
+    },
+    {
+      "name": "bundle.part-0003.b64",
+      "git_blob_sha": "1a941406c02a21d6900a5ee32dd3ef41e173a192"
+    },
+    {
+      "name": "bundle.part-0004.b64",
+      "git_blob_sha": "5b17d37b8004849a8366242c94e8420947f028de"
+    },
+    {
+      "name": "bundle.part-0005.b64",
+      "git_blob_sha": "418edda87912c59853b8aa81ca5e207af1d2fa70"
+    },
+    {
+      "name": "bundle.part-0006.b64",
+      "git_blob_sha": "912a0e2d272edb7a37a4ab7c164c4c5ea260b9cd"
+    },
+    {
+      "name": "bundle.part-0007.b64",
+      "git_blob_sha": "e12aeb4c2b149bce88615ac735a3f9f23a1c415f"
+    },
+    {
+      "name": "bundle.part-0008.b64",
+      "git_blob_sha": "a09e1afc84b02c7844dd13c1bc25fdba3074e4b2"
+    },
+    {
+      "name": "bundle.part-0009.b64",
+      "git_blob_sha": "38b59e5d2cc617fd1edbe4fbae267fca417cac12"
+    },
+    {
+      "name": "bundle.part-0010.b64",
+      "git_blob_sha": "350b04f760b0ab1948874aa8580dfe8e2f4f22e5"
+    },
+    {
+      "name": "bundle.part-0011.b64",
+      "git_blob_sha": "f3502f7366e0bb45bb61793c8983d2acae1be751"
+    },
+    {
+      "name": "bundle.part-0012.b64",
+      "git_blob_sha": "13050eae95a99bb2e74f864ca2b4e0500d8dc2b7"
+    },
+    {
+      "name": "bundle.part-0013.b64",
+      "git_blob_sha": "23994f6380ee5096e3382d6d432d11224a329239"
+    },
+    {
+      "name": "bundle.part-0014.b64",
+      "git_blob_sha": "468dfaf50c23553eeb559498956497ccfc90ae3c"
+    }
+  ],
+  "manifest_sha256": "b363de9c82b3a1a34d884aeb8c39e58c7d8d62c36da842cdbf10a7b012f12c0b",
+  "previous_remote_commit": "e15a6054e7cc4a42d11cfca747bfb1a4288ed9cf"
+}
