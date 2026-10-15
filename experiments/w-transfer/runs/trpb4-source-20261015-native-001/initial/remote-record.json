@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "checkpoint_id": "initial",
+  "bundle_sha256": "32a3b8a0b0115ae6e75facfd5c6d5cb773fbd7a22098ab05e59437a119097400",
+  "bundle_encoding": "ordered-concatenated-base64-shards-of-gzip-tar",
+  "bundle_parts": [
+    {
+      "name": "bundle.part-0000.b64",
+      "git_blob_sha": "468784a5e10b7ba25ac53d91f724548f452fd03e"
+    },
+    {
+      "name": "bundle.part-0001.b64",
+      "git_blob_sha": "2d89f42b56262d7b7508fea418c8e327db17abc0"
+    },
+    {
+      "name": "bundle.part-0002.b64",
+      "git_blob_sha": "1765ac1d91a8248bb85766d655e201eccdcddf88"
+    },
+    {
+      "name": "bundle.part-0003.b64",
+      "git_blob_sha": "e362c6a006461108a979ae5e3e090485e6f69304"
+    },
+    {
+      "name": "bundle.part-0004.b64",
+      "git_blob_sha": "4bf8096727c35f826ccfdc4d718abc84e44002a1"
+    },
+    {
+      "name": "bundle.part-0005.b64",
+      "git_blob_sha": "c6d51b81bc9ca04acf7a541fc3ed608a41b1f1be"
+    },
+    {
+      "name": "bundle.part-0006.b64",
+      "git_blob_sha": "1f346aa4243d0e01777493047a548d9ebb9259a3"
+    },
+    {
+      "name": "bundle.part-0007.b64",
+      "git_blob_sha": "deb8382ae0ab24ec87abbc96806bae920b08ba43"
+    },
+    {
+      "name": "bundle.part-0008.b64",
+      "git_blob_sha": "a2f009c400629409787f3243272609d0eeb2b7e3"
+    },
+    {
+      "name": "bundle.part-0009.b64",
+      "git_blob_sha": "326bd73570304241daccfb4a9444cc18938dbcf9"
+    },
+    {
+      "name": "bundle.part-0010.b64",
+      "git_blob_sha": "acef69691725d77df3b1c1946aae274af1d1332f"
+    },
+    {
+      "name": "bundle.part-0011.b64",
+      "git_blob_sha": "45bd0691c266b2856c9b848511c580f4f910b4f2"
+    },
+    {
+      "name": "bundle.part-0012.b64",
+      "git_blob_sha": "3d0e4b0c1fe9676039add708f6894b1f43a5a786"
+    },
+    {
+      "name": "bundle.part-0013.b64",
+      "git_blob_sha": "f2f34cd6d2574165d5b8d503fd8f73e1b0504ab4"
+    },
+    {
+      "name": "bundle.part-0014.b64",
+      "git_blob_sha": "0738a3c59b55d79605dfc31b76a370561d0eec17"
+    }
+  ],
+  "manifest_sha256": "dbbb46554ff99d1184282b42f95277386a991362029ba10bf258a1bc26ac70d6",
+  "previous_remote_commit": "2bf636ddb7974a45a3b9372bffef4b1ab7875948"
+}
