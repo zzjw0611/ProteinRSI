@@ -16,7 +16,6 @@ import socket
 import subprocess
 import sys
 import time
-from types import SimpleNamespace
 
 import pytest
 
@@ -187,7 +186,7 @@ def test_real_mounts_raw_syscalls_and_symlink_escape(tmp_path, generated):
     assert all(not Path(path).exists() for path in write_targets)
 
 
-def test_production_generated_numpy_and_artifact_input(tmp_path):
+def test_production_generated_numpy_and_artifact_input(tmp_path, campaign):
     store = Store(tmp_path / "campaign")
     source = tmp_path / "synthetic-input.json"
     source.write_text('{"values": [2, 4, 6]}')
@@ -195,12 +194,14 @@ def test_production_generated_numpy_and_artifact_input(tmp_path):
     artifact = registry.put(source, "json", origin="synthetic-bwrap-acceptance")
     code = """
 import json, numpy as np
-assert context == {'synthetic': True}
+assert context == inputs['expected_context']
 values = json.load(open(artifacts[inputs['ref']]))['values']
 result = {'sum': float(np.asarray(values).sum()), 'pid': __import__('os').getpid()}
 """
-    view = SimpleNamespace(model_dump=lambda **kwargs: {"synthetic": True})
-    result = execute_code(store, view, {"code": code, "inputs": {"ref": artifact["ref"]},
+    view = campaign.view()
+    expected_context = view.for_task().model_dump(mode="json")
+    result = execute_code(store, view, {"code": code, "inputs": {"ref": artifact["ref"],
+                                                              "expected_context": expected_context},
                                        "artifact_refs": [artifact["ref"]]})
     assert _success(result) == {"sum": 12.0, "pid": 2}
     assert registry.resolve(artifact["ref"]).read_bytes() == source.read_bytes()
