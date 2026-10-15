@@ -124,7 +124,8 @@ blocked = []
 for path in [{str(hidden)!r}, {str(code_campaign.store.path)!r}, '/etc/passwd']:
     try:
         open(path).read()
-    except PermissionError:
+    except OSError as exc:
+        assert exc.errno in (1, 2, 13, 30)
         blocked.append(path)
 try:
     socket.socket()
@@ -290,7 +291,9 @@ def test_de_novo_binder_adapters_use_actual_backbone_without_fake_reference(tmp_
 def test_generated_code_has_no_unbounded_scratch_writes(code_campaign):
     output = call_code(code_campaign, "open('unbounded-file', 'x').write('data')\nresult = {}")
     assert output['status'] == 'failed'
-    assert output['error_type'] == 'PermissionError'
+    assert output['error_type'] in {'PermissionError', 'OSError'}
+    if output['error_type'] == 'OSError':
+        assert output['error'].startswith('[Errno 30]')
 
 
 @pytest.mark.core

@@ -22,12 +22,12 @@ ARGS = ("A", "Return the transport test decision.", {"visible": "test fixture"},
 RESULT = {"ok": True}
 
 
-def client(tmp_path, *, store=None, model="interactive-test-label", timeout=0.015):
+def client(tmp_path, *, store=None, model="interactive-test-label", timeout=0.015, **kwargs):
     if store is None:
         store = Store(tmp_path / "store")
         store.configure_budget({"llm_calls": 20, "lab_wells": 5})
     return AssistantBridgeLLM(store, model=model, mailbox=tmp_path / "mailbox",
-                              timeout=timeout, poll_interval=0.001)
+                              timeout=timeout, poll_interval=0.001, **kwargs)
 
 
 def pending(llm, args=ARGS):
@@ -429,9 +429,9 @@ def test_protocol_resume_reuses_completed_upstream_and_pending_bridge(tmp_path):
 
 
 def test_evidence_context_bridge_read_and_resume(tmp_path):
-    llm = client(tmp_path)
+    llm = client(tmp_path, max_request_bytes=20000)
     llm.store.put('configuration', 'research', {'context_policy': 'evidence-v1'})
-    args = ('A-plan', 'Inspect evidence', {'rows': [{'id': i, 'sequence': 'A'*56} for i in range(100)]}, SCHEMA)
+    args = ('A-plan', 'Inspect evidence', {'rows': [{'id': i, 'sequence': 'A'*56} for i in range(1000)]}, SCHEMA)
     request = pending(llm, args)
     ref = request['context']['rows']['evidence_ref']
     respond(llm, request, envelope(request, {'_context_action': {
@@ -442,3 +442,121 @@ def test_evidence_context_bridge_read_and_resume(tmp_path):
     assert llm.complete(*args) == RESULT
     assert llm.store.usage()['llm_calls']['committed'] == 2
     assert llm.store.usage()['lab_wells']['committed'] == 0
+
+
+@pytest.mark.core
+@pytest.mark.parametrize("policy", ["legacy", "evidence-v1", "state-v1"])
+def test_context_capacity_resume_without_native_provider(tmp_path, monkeypatch, policy):
+    def forbidden(*args, **kwargs):
+        pytest.fail("Bridge must not use native HTTP or tokenizer capacity")
+    monkeypatch.setattr(JSONLLM, "_payload", forbidden)
+    monkeypatch.setattr("proteinrsi.llm.estimate_tokens", forbidden)
+    monkeypatch.setattr(httpx.Client, "send", forbidden)
+    monkeypatch.setenv("PROTEINRSI_CODEX_AUTH_FILE", str(tmp_path / "absent-auth"))
+    monkeypatch.setenv("PROTEINRSI_ASSISTANT_BRIDGE_DIR", str(tmp_path / "mailbox"))
+    monkeypatch.setenv("PROTEINRSI_MODEL", "interactive-test-label")
+    monkeypatch.setenv("PROTEINRSI_ASSISTANT_BRIDGE_TIMEOUT", "0.01")
+    monkeypatch.setenv("PROTEINRSI_ASSISTANT_BRIDGE_MAX_REQUEST_BYTES", "20000")
+    llm = JSONLLM.from_env(client(tmp_path).store)
+    llm.store.put("configuration", "research", {"context_policy": policy})
+    request = pending(llm)
+    again = JSONLLM.from_env(llm.store)
+    assert pending(again) == request
+    respond(again, request)
+    assert again.complete(*ARGS) == RESULT
+    assert JSONLLM.from_env(llm.store).complete(*ARGS) == RESULT
+    assert llm.store.usage()["llm_calls"]["committed"] == 1
+    assert llm.store.usage()["lab_wells"]["committed"] == 0
+    assert len(list((llm.mailbox / "requests").glob("*.json"))) == 1
+    assert llm.capacity_settings["max_request_bytes"] == 20000
+
+
+@pytest.mark.parametrize("policy", ["legacy", "evidence-v1", "state-v1"])
+def test_capacity_limit_pauses_before_publication_and_charge(tmp_path, policy):
+    llm = client(tmp_path, max_request_bytes=1)
+    llm.store.put("configuration", "research", {"context_policy": policy})
+    for _ in range(2):
+        with pytest.raises(ProviderPaused, match="request capacity"):
+            llm.complete(*ARGS)
+    assert llm.store.usage()["llm_calls"]["committed"] == 0
+    assert llm.store.all("llm") == {}
+    assert not list(llm.mailbox.rglob("*.json"))
+    # Explicitly changing the limit allows a new request; no failed request was charged.
+    resumed = client(tmp_path, max_request_bytes=20000)
+    request = pending(resumed)
+    respond(resumed, request)
+    assert resumed.complete(*ARGS) == RESULT
+    assert resumed.store.usage()["llm_calls"]["committed"] == 1
+
+
+def test_capacity_counts_utf8_schema_instructions_and_actual_role(tmp_path):
+    llm = client(tmp_path, max_request_bytes=1000)
+    args = ("A", "返回结果", {"visible": "蛋白"}, SCHEMA)
+    before = llm.store.all("assistant_bridge")
+    capacity = llm.request_capacity(*args[1:], role=args[0])
+    assert llm.store.all("assistant_bridge") == before  # Sizing is side-effect free.
+    request = pending(llm, args)
+    payload = {k: v for k, v in request.items() if k not in {"request_id", "request_hash"}}
+    assert capacity["request_bytes"] == len(canonical(payload).encode("utf-8"))
+    assert capacity["input_tokens"] is None
+    assert capacity["context_window_verified"] is False
+    for index in range(4):
+        oversized = list(args)
+        oversized[index] = ({"description": "x" * 1000} if index in (2, 3) else "x" * 1000)
+        with pytest.raises(ProviderPaused, match="request capacity"):
+            llm.complete(*oversized)
+    assert llm.store.usage()["llm_calls"]["committed"] == 1
+
+
+@pytest.mark.parametrize("policy", ["legacy", "evidence-v1", "state-v1"])
+def test_capacity_changes_identity_and_original_request_can_resume(tmp_path, policy):
+    first = client(tmp_path, max_request_bytes=20000)
+    first.store.put("configuration", "research", {"context_policy": policy})
+    original = pending(first)
+    changed = client(tmp_path, max_request_bytes=21000)
+    different = pending(changed)
+    assert original["request_id"] != different["request_id"]
+    respond(changed, different, envelope(original))
+    with pytest.raises(ProviderPaused, match="response rejected"):
+        changed.complete(*ARGS)
+    restored = client(tmp_path, max_request_bytes=20000)
+    assert pending(restored) == original
+    respond(restored, original)
+    assert restored.complete(*ARGS) == RESULT
+    assert first.store.usage()["llm_calls"]["committed"] == 2
+
+
+@pytest.mark.parametrize("limit", [True, 0, -1, 1.5, 32 * 1024 * 1024, None])
+def test_invalid_request_capacity_rejected(tmp_path, limit):
+    with pytest.raises(ValueError, match="byte limit"):
+        client(tmp_path, max_request_bytes=limit)
+
+
+def test_default_capacity_keeps_existing_transport_identity(tmp_path):
+    from proteinrsi.assistant_bridge import PROTOCOL_VERSION, TRANSPORT
+    from proteinrsi.contracts import digest
+    llm = client(tmp_path)
+    request = pending(llm)
+    original_payload = {"protocol_version": PROTOCOL_VERSION, "transport": TRANSPORT,
+                        "model": llm.model, "role": ARGS[0], "instructions": ARGS[1],
+                        "context": ARGS[2], "schema": ARGS[3]}
+    assert request["request_hash"] == digest(original_payload)
+    assert llm.cache_settings == {"llm_transport": TRANSPORT, "llm_bridge_protocol": PROTOCOL_VERSION}
+
+
+def test_exact_byte_boundary_and_one_byte_over(tmp_path):
+    llm = client(tmp_path, max_request_bytes=1000)
+    context = {"padding": ""}
+    size = llm.request_capacity(ARGS[1], context, SCHEMA, role=ARGS[0])["request_bytes"]
+    context["padding"] = "x" * (1000 - size)
+    args = (ARGS[0], ARGS[1], context, SCHEMA)
+    assert llm.request_capacity(*args[1:], role=args[0])["request_bytes"] == 1000
+    request = pending(llm, args)
+    # The published ID/hash envelope fits within the separately reserved allowance.
+    path = llm.mailbox / "requests" / (request["request_id"] + ".json")
+    assert 1000 < path.stat().st_size <= 2024
+    context["padding"] += "x"
+    assert not llm.request_capacity(*args[1:], role=args[0])["fits"]
+    with pytest.raises(ProviderPaused, match="request capacity"):
+        llm.complete(*args)
+    assert llm.store.usage()["llm_calls"]["committed"] == 1

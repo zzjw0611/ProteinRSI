@@ -14,6 +14,8 @@ export PROTEINRSI_MODEL=interactive-assistant-session
 export PROTEINRSI_ASSISTANT_BRIDGE_TIMEOUT=900
 # Optional polling interval in seconds (default 0.25):
 export PROTEINRSI_ASSISTANT_BRIDGE_POLL_INTERVAL=0.25
+# Optional administrative request byte limit (example: 1 MiB):
+# export PROTEINRSI_ASSISTANT_BRIDGE_MAX_REQUEST_BYTES=1048576
 ```
 
 Use the normal CLI with `--agent llm` (or an existing LLM-enabled start flow).
@@ -28,6 +30,34 @@ roots. The existing guarded worker uses its unchanged controller RPC: it receive
 an opaque transport identity, never the mailbox path or environment variables.
 An in-process run still has its existing weaker isolation; this bridge does not
 add an OS sandbox. Protect both the mailbox and campaign store as private data.
+
+### Request capacity
+
+The bridge implements its own capacity contract for `legacy`, `evidence-v1` and
+`state-v1`. It sizes the canonical UTF-8 JSON payload, including instructions,
+context, schema and transport metadata, without constructing an HTTP request or
+using a provider tokenizer. The limit defaults to 32 MiB minus 1 KiB (the existing
+transport allowance); a positive integer override may lower it. The reserved
+1 KiB covers request ID/hash fields and the final newline. Responses retain the
+separate 32 MiB transport limit.
+
+This is an administrative byte limit, **not** the interactive model's token window
+or proof that the assistant can process a request. Set a practical limit for the
+session. Native API capacity settings do not configure the bridge. Shared evidence
+paging still uses the existing local tokenizer estimate; provision its cache for
+offline use. Neither an estimate nor a byte count is provider-reported usage.
+
+The context planner checks capacity before sending and can use its existing
+reference/paging flow. Publication rechecks with the actual role (not supplied to
+the planner's sizing interface) before reserving a call. Oversize requests pause
+without publication or a new LLM charge, including on the legacy path.
+
+Default transport request IDs and cache settings remain compatible. A custom byte
+limit is included in the request and cache identity; changing it creates a different
+request/context session, not a retry of the pending one. To resume a pending request
+without another charge, restore the same limit, store, model and input. Capacity
+settings also participate in the existing context-session identity; do not hot-swap
+code/configuration into historical studies or rewrite their frozen checkpoints.
 
 ## Answer a request
 

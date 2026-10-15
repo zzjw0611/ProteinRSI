@@ -29,6 +29,7 @@ from proteinrsi.storage import Store
 PROTOCOL_VERSION = 1
 TRANSPORT = "assistant_bridge"
 MAX_JSON_BYTES = 32 * 1024 * 1024
+DEFAULT_MAX_REQUEST_BYTES = MAX_JSON_BYTES - 1024
 
 
 # The existing guarded RPC recognizes the exact ProviderPaused wire name.
@@ -150,7 +151,8 @@ class AssistantBridgeLLM(JSONLLM):
     """JSONLLM-compatible manual transport. Only the trusted controller owns it."""
 
     def __init__(self, store: Store, *, model: str, mailbox: str | Path,
-                 timeout: float = 900, poll_interval: float = 0.25):
+                 timeout: float = 900, poll_interval: float = 0.25,
+                 max_request_bytes: int = DEFAULT_MAX_REQUEST_BYTES):
         if not isinstance(model, str) or not model.strip():
             raise ValueError("Assistant bridge requires an explicit model label")
         if not mailbox:
@@ -162,8 +164,12 @@ class AssistantBridgeLLM(JSONLLM):
             raise ValueError("Assistant bridge timeout must be > 0 and <= 86400 seconds")
         if not math.isfinite(poll_interval) or not 0 < poll_interval <= 60:
             raise ValueError("Assistant bridge poll interval must be > 0 and <= 60 seconds")
+        if type(max_request_bytes) is not int or not 0 < max_request_bytes <= DEFAULT_MAX_REQUEST_BYTES:
+            raise ValueError(
+                "Assistant bridge request byte limit must be positive and within the transport limit")
         self.store, self.model, self.mailbox = store, model, path
         self.timeout, self.poll_interval = timeout, poll_interval
+        self.max_request_bytes = max_request_bytes
         # Workers receive this opaque identity, never the controller's mailbox path.
         self.base_url = "assistant-bridge://local"
         self.api_protocol = TRANSPORT
@@ -172,7 +178,38 @@ class AssistantBridgeLLM(JSONLLM):
 
     @property
     def cache_settings(self) -> dict:
-        return {"llm_transport": TRANSPORT, "llm_bridge_protocol": PROTOCOL_VERSION}
+        settings = {"llm_transport": TRANSPORT, "llm_bridge_protocol": PROTOCOL_VERSION}
+        if self.max_request_bytes != DEFAULT_MAX_REQUEST_BYTES:
+            settings["llm_bridge_capacity"] = self.capacity_settings
+        return settings
+
+    @property
+    def capacity_settings(self) -> dict:
+        """Administrative JSON byte budget, not a model token-window estimate."""
+        return {"policy": "bridge-json-bytes-v1", "max_request_bytes": self.max_request_bytes}
+
+    def _request_payload(self, role: str, instructions: str, context: dict, schema: dict) -> dict:
+        payload = {"protocol_version": PROTOCOL_VERSION, "transport": TRANSPORT,
+                   "model": self.model, "role": role, "instructions": instructions,
+                   "context": context, "schema": schema}
+        # Preserve existing default transport identities; custom limits are explicit
+        # parts of the request so their pending replies cannot be silently reused.
+        if self.max_request_bytes != DEFAULT_MAX_REQUEST_BYTES:
+            payload["capacity"] = self.capacity_settings
+        return payload
+
+    def request_capacity(self, instructions: str, context: dict, schema: dict,
+                         *, role: str = "") -> dict:
+        """Size the bridge payload without native HTTP, tokenizers or store writes.
+
+        The context planner has no role argument. Publication checks again with
+        the actual role, before charging; 1024 bytes remain for the ID/hash envelope.
+        """
+        payload = self._request_payload(role, instructions, context, schema)
+        size = len(canonical(payload).encode("utf-8"))
+        return {**self.capacity_settings, "request_bytes": size,
+                "input_tokens": None, "context_window": None, "context_window_verified": False,
+                "fits": size <= self.max_request_bytes}
 
     def _request(self, role: str, instructions: str, context: dict, schema: dict):
         if not isinstance(role, str) or not isinstance(instructions, str):
@@ -180,12 +217,11 @@ class AssistantBridgeLLM(JSONLLM):
         if not isinstance(context, dict) or not isinstance(schema, dict):
             raise ValueError("Bridge context and schema must be JSON objects")
         _validator(schema)
-        payload = {"protocol_version": PROTOCOL_VERSION, "transport": TRANSPORT,
-                   "model": self.model, "role": role, "instructions": instructions,
-                   "context": context, "schema": schema}
+        payload = self._request_payload(role, instructions, context, schema)
         encoded = canonical(payload)
-        if len(encoded.encode("utf-8")) > MAX_JSON_BYTES - 1024:
-            raise ValueError("Bridge request exceeds size limit")
+        if len(encoded.encode("utf-8")) > self.max_request_bytes:
+            raise ProviderPaused("Bridge request exceeds request capacity; inspect the byte limit",
+                                 reason="input_budget_exceeded")
         # Detach mutable caller input. Store-scoped identity prevents cross-campaign
         # reply reuse when several campaigns share an operator mailbox.
         payload = json.loads(encoded)

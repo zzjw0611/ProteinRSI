@@ -85,7 +85,7 @@ def main(argv: list[str] | None = None) -> None:
     for name in ("pause", "resume"):
         control = sub.add_parser(name, help=name + " the registered controller and its validation workers")
         control.add_argument("--campaign", required=True)
-    sub.add_parser("sandbox-check", help="Probe Linux Landlock/seccomp prerequisites; no model or API calls")
+    sub.add_parser("sandbox-check", help="Probe explicitly selected Linux sandbox prerequisites; no model or API calls")
     prompts = sub.add_parser("prompts", help="Inspect role prompt templates and snapshot versions")
     prompts.add_argument("--campaign")
     prompts.add_argument("--role", default="all")
