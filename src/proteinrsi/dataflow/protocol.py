@@ -43,6 +43,11 @@ class Step(Model):
     def no_hidden_overrides(self):
         if set(self.arguments) & set(self.bindings):
             raise ValueError("A parameter cannot be both a literal and a resource binding")
+        for name in self.bindings:
+            if name.startswith("resource_refs."):
+                port = name.split(".", 1)[1]
+                if not port or port in self.arguments.get("resource_refs", {}):
+                    raise ValueError("A resource input cannot be both literal and bound")
         if "result" in self.outputs:
             raise ValueError("The operation owns its result schema; add named output views instead")
         for name in (*self.bindings, *self.outputs):
@@ -83,6 +88,8 @@ class Operation:
     resource_inputs: dict[str, str] | None = None
     agent_reply_contract: dict | None = None
     question_argument: str | None = None
+    execution_contract: dict | None = None
+    output_views: dict[str, OutputView] | None = None
 
 
 class OperationRegistry:
@@ -97,10 +104,15 @@ class OperationRegistry:
                                                 "schema": operation.input_schema})
         self.schemas.register(input_ref, operation.input_schema)
         self.schemas.schema(operation.output_schema_ref)
+        for name, view in (operation.output_views or {}).items():
+            if name == 'result':
+                raise ContractError('A registered output view cannot replace the receipt')
+            self.schemas.schema(view.schema_ref)
         self._operations[operation.name] = Operation(
             operation.name, deepcopy(operation.input_schema), operation.output_schema_ref,
             operation.invoke, operation.implementation, deepcopy(operation.resource_inputs),
-            deepcopy(operation.agent_reply_contract), operation.question_argument)
+            deepcopy(operation.agent_reply_contract), operation.question_argument,
+            deepcopy(operation.execution_contract), deepcopy(operation.output_views))
 
     def get(self, name):
         if name not in self._operations:
@@ -123,6 +135,11 @@ class OperationRegistry:
                 "resource_inputs": deepcopy(op.resource_inputs or {}), "implementation": op.implementation,
                 "question_from_step": op.question_argument,
                 "agent_reply_contract": deepcopy(op.agent_reply_contract)})
+            if op.execution_contract:
+                result[-1]["execution_contract"] = deepcopy(op.execution_contract)
+            if op.output_views:
+                result[-1]["output_views"] = {name: view.model_dump(mode="json")
+                                            for name, view in op.output_views.items()}
         return result
 
 
@@ -144,6 +161,27 @@ class ProtocolExecutor:
             args.setdefault(operation.question_argument, step.question)
         return args
 
+    @staticmethod
+    def input_name(name):
+        return "resource_refs" if name.startswith("resource_refs.") else name
+
+    @staticmethod
+    def output_views(step, operation):
+        """Registered ports have stable paths; a plan may refine their business schema."""
+        views = dict(operation.output_views or {})
+        for name, view in step.outputs.items():
+            if name in views and views[name].pointer != view.pointer:
+                raise ContractError('A registered output port has a fixed data path', path=name)
+            views[name] = view
+        return views
+
+    @staticmethod
+    def bind_argument(args, name, value):
+        if name.startswith("resource_refs."):
+            args.setdefault("resource_refs", {})[name.split(".", 1)[1]] = value
+        else:
+            args[name] = value
+
     def preflight(self, protocol: Protocol, inputs: dict[str, str]) -> dict:
         if len(protocol.steps) > self.max_steps:
             raise ContractError("Protocol exceeds the operator's step limit")
@@ -154,7 +192,7 @@ class ProtocolExecutor:
                     or len(step.depends_on) != len(set(step.depends_on))):
                 raise ContractError("Dependencies must be unique, ordered and already declared")
             operation = self.operations.get(step.operation)
-            supplied = set(self.arguments(step, operation)) | set(step.bindings)
+            supplied = set(self.arguments(step, operation)) | {self.input_name(n) for n in step.bindings}
             required = set(operation.input_schema.get("required", []))
             if required - supplied:
                 raise ContractError(f"Step {step.step_id} lacks required inputs: {sorted(required - supplied)}",
@@ -167,12 +205,14 @@ class ProtocolExecutor:
                     raise ContractError("Typed resources must be connected by bindings, not guessed IDs")
             for name, binding in step.bindings.items():
                 actual_schema = self._check_binding(binding, types)
+                if name.startswith("resource_refs.") and (binding.delivery != "ref" or binding.pointer):
+                    raise ContractError("Hydrated resource inputs require whole reference bindings")
                 nominal = (operation.resource_inputs or {}).get(name)
                 if nominal and (binding.pointer or binding.delivery != "ref"
                                 or not self.schemas.compatible(actual_schema, nominal)):
                     raise ContractError("Typed resource input requires an explicit compatible adapter")
             types[f"step:{step.step_id}.result"] = operation.output_schema_ref
-            for name, output in step.outputs.items():
+            for name, output in self.output_views(step, operation).items():
                 self.schemas.schema(output.schema_ref)
                 if not output.pointer.startswith("/") and output.pointer:
                     raise ContractError("Output selector must be a JSON pointer")
@@ -231,12 +271,17 @@ class ProtocolExecutor:
                 step_key = None
                 try:
                     args = self.arguments(step, op)
-                    args.update({name: self._read_binding(binding, refs) for name, binding in step.bindings.items()})
-                    self.schemas.validate(self.operations.input_ref(op), args)
+                    for name, binding in step.bindings.items():
+                        self.bind_argument(args, name, self._read_binding(binding, refs))
+                    # Native tool argument repair belongs to the action executor.
+                    # Gateway validates it before any tool work or budget charge.
+                    if not op.name.startswith("tool:"):
+                        self.schemas.validate(self.operations.input_ref(op), args)
                     parents = list(dict.fromkeys(refs[b.source] for b in step.bindings.values()))
-                    step_key = "protocol-step:" + digest({"scope": self.resources.scope,
+                    identity = {"scope": self.resources.scope,
                         "operation": op.name, "implementation": op.implementation, "arguments": args,
-                        "parents": parents, "output_schema": self.schemas.fingerprint(op.output_schema_ref)})
+                        "parents": parents, "output_schema": self.schemas.fingerprint(op.output_schema_ref)}
+                    step_key = "protocol-step:" + digest(identity)
                     receipt = self.store.get(NAMESPACE, step_key)
                     self.store.event("research_step_started", {"run_id": run_key, "step_id": step.step_id,
                         "operation": op.name, "question": step.question, "cache_hit": bool(receipt),
@@ -244,12 +289,15 @@ class ProtocolExecutor:
                     if receipt is not None and receipt["status"] == "started":
                         raise ContractError("Prior execution has uncertain completion; reconcile it before retrying", code="uncertain_completion")
                     if receipt is None or receipt["status"] == "paused_provider":
-                        self.store.put(NAMESPACE, step_key, {"status": "started"})
+                        self.store.put(NAMESPACE, step_key, {"status": "started", "identity": identity})
                         raw = op.invoke(args, step_key)
-                        receipt = {"status": "returned", "raw": raw}
+                        receipt = {"status": "returned", "raw": raw, "identity": identity}
                         self.store.put(NAMESPACE, step_key, receipt)
                     if receipt["status"] == "returned":
                         raw = receipt["raw"]
+                        if op.name.startswith("tool:"):
+                            from proteinrsi.execution import require_success
+                            require_success(op.name.removeprefix("tool:"), raw)
                         result = self.resources.put(op.output_schema_ref, raw,
                             producer=op.name + "@" + op.implementation, parents=parents)
                         receipt = {**receipt, "status": "done", "resource_id": result["resource_id"]}
@@ -259,7 +307,7 @@ class ProtocolExecutor:
                     raw_record = self.resources.get(receipt["resource_id"], schema_ref=op.output_schema_ref)
                     refs[f"step:{step.step_id}.result"] = receipt["resource_id"]
                     # A bad output-view mapping never invalidates the successful raw tool receipt.
-                    for name, view in step.outputs.items():
+                    for name, view in self.output_views(step, op).items():
                         data = pointer(raw_record["data"], view.pointer)
                         resource = self.resources.put(view.schema_ref, data,
                             producer="validated-output-view", parents=[receipt["resource_id"]])
@@ -274,10 +322,14 @@ class ProtocolExecutor:
                         from proteinrsi.llm import ProviderPaused
                         self.store.put(NAMESPACE, step_key, {
                             "status": "paused_provider" if isinstance(exc, ProviderPaused) else "failed",
-                            "error_type": type(exc).__name__})
+                            "error_type": type(exc).__name__,
+                            **({"error": exc.detail()} if isinstance(exc, ContractError) else {})})
                     journal.update(status="blocked", failed_step=step.step_id, error_type=type(exc).__name__)
                     self.store.put(NAMESPACE, run_key, journal)
-                    if (on_error and isinstance(exc, ContractError) and exc.code != "uncertain_completion"
+                    from proteinrsi.execution import ExecutionFailure
+                    runtime_errors = {"uncertain_completion", "resource_scope", "resource_integrity", "input_collision"}
+                    if (on_error and isinstance(exc, ContractError) and not isinstance(exc, ExecutionFailure)
+                            and exc.code not in runtime_errors
                             and journal.get("repair_attempts", 0) < max_repairs):
                         journal["repair_attempts"] = journal.get("repair_attempts", 0) + 1
                         self.store.put(NAMESPACE, run_key, journal)
@@ -346,7 +398,8 @@ class ProtocolExecutor:
 
 
 
-def register_tool_operations(operations: OperationRegistry, gateway, task, allowed: list[str]):
+def register_tool_operations(operations: OperationRegistry, gateway, task, allowed: list[str], *,
+                             llm=None, view=None, resources=None, max_repairs=2):
     """Tool manifests are the only source of native argument/result contracts."""
     from proteinrsi.tools import ToolCall
     for spec in gateway.catalog(task, allowed):
@@ -355,28 +408,35 @@ def register_tool_operations(operations: OperationRegistry, gateway, task, allow
         fingerprint = digest(spec)
         schema_ref = "tool.result/" + spec["name"] + "/" + fingerprint
         operations.schemas.register(schema_ref, spec["output_schema"])
+        result_contract = spec.get('execution_contract', {}).get('result', {})
+        output_views = {}
+        if result_contract:
+            payload_schema_ref = 'tool.payload/' + spec['name'] + '/' + fingerprint
+            operations.schemas.register(payload_schema_ref, result_contract['payload_schema'])
+            output_views[result_contract['payload_port']] = OutputView(
+                schema_ref=payload_schema_ref, pointer=result_contract['payload_pointer'])
 
         def invoke(arguments, key, spec=deepcopy(spec)):
-            from jsonschema import ValidationError
-            try:
-                return gateway.call(ToolCall(name=spec["name"], arguments=arguments,
-                    purpose="Explicit protocol operation"), task, allowed=allowed, context_key=key)
-            except ValidationError as exc:
-                raise ContractError(exc.message, path="/" + "/".join(map(str, exc.path)),
-                                    code="tool_contract") from exc
+            from proteinrsi.execution import execute_tool
+            return execute_tool(gateway, ToolCall(name=spec["name"], arguments=arguments,
+                purpose="Explicit protocol operation"), task, allowed=allowed, context_key=key,
+                llm=llm, view=view, resources=resources, max_repairs=max_repairs)
 
         operations.register(Operation(name="tool:" + spec["name"], input_schema=spec["input_schema"],
-            output_schema_ref=schema_ref, invoke=invoke, implementation=fingerprint))
+            output_schema_ref=schema_ref, invoke=invoke, implementation="executed-v1:" + fingerprint,
+            execution_contract=spec.get("execution_contract"), output_views=output_views))
 
 
-def register_agent_operations(protocol, operations, llm, resources, context, *, max_repairs=2):
+def register_agent_operations(protocol, operations, llm, resources, context, *, max_repairs=2,
+                              gateway=None, view=None, allowed=()):
     """Protocol-local agent schemas may vary; no model-generated imports or privileges."""
     for name, schema in protocol.schemas.items():
         operations.schemas.register(name, schema, custom=True)
     from .design import SequenceProposal
     from .resources import SEQUENCES
     for definition in protocol.agent_operations:
-        implementation = digest({"definition": definition.model_dump(mode="json"), "response_boundary": 2})
+        implementation = digest({"definition": definition.model_dump(mode="json"), "response_boundary": 3,
+                                 "tool_contracts": gateway.catalog(view.task, list(allowed)) if gateway else []})
         previous = operations._operations.get(definition.name)
         if previous is not None:
             if previous.implementation != implementation:
@@ -402,8 +462,7 @@ def register_agent_operations(protocol, operations, llm, resources, context, *, 
                 instructions += ("\nReturn a sequence proposal, not a resource envelope. "
                     "Use residue edits for substitutions, candidate_refs for supplied resources, "
                     "or candidates for complete new sequences. Never generate candidate IDs. "
-                    "The runtime validates task constraints and computes IDs. Tools must be "
-                    "separate protocol operations; this response cannot invoke tools.")
+                    "The runtime validates task constraints and computes IDs.")
 
             def materialize(raw):
                 if sequence_output:
@@ -411,9 +470,47 @@ def register_agent_operations(protocol, operations, llm, resources, context, *, 
                 resources.validate(definition.output_schema_ref, raw, output=True)
                 return raw
 
-            return validated_response(resources.store, llm, key=key, role=definition.role,
-                instructions=instructions, context={"view": context, "inputs": arguments},
-                schema=reply_schema, validate=materialize, max_repairs=max_repairs)
+            if gateway is None:
+                return validated_response(resources.store, llm, key=key, role=definition.role,
+                    instructions=instructions, context={"view": context, "inputs": arguments},
+                    schema=reply_schema, validate=materialize, max_repairs=max_repairs)
+            from proteinrsi.execution import AgentAction, execute_tool, run_agent_step
+            from proteinrsi.tools import ToolCall
+            from .design import prepare_handoff
+            tool_schema = {"type": "object", "properties": {"tool_calls": {
+                "type": "array", "items": ToolCall.model_json_schema(), "minItems": 1, "maxItems": 4}},
+                "required": ["tool_calls"], "additionalProperties": False}
+            final_schema = deepcopy(reply_schema)
+            definitions = final_schema.pop("$defs", {})
+            action_schema = {"anyOf": [final_schema, tool_schema], **({"$defs": definitions} if definitions else {})}
+            catalog = gateway.catalog(view.task, list(allowed))
+            instructions += ("\nYou may return {tool_calls:[...]} to request authorized actions, or your "
+                "final scientific payload. Tool results return to this same step. Python receives "
+                "complete backend context; use resource_refs for existing objects, without copying them.")
+            def decide(results, turn):
+                compact, candidate_sets = prepare_handoff(resources, results, view=view)
+                supplied = {**arguments, **{"generated_candidates": list(candidate_sets)}}
+                def validate(raw):
+                    if isinstance(raw, dict) and raw.get("tool_calls"):
+                        from jsonschema import Draft202012Validator
+                        if next(Draft202012Validator(tool_schema).iter_errors(raw), None) is not None:
+                            raise ContractError("Malformed tool action", code="tool_arguments")
+                        return raw
+                    if sequence_output:
+                        raw = materialize_sequence_proposal(raw, resources, context, supplied, key)
+                    resources.validate(definition.output_schema_ref, raw, output=True)
+                    return raw
+                raw = validated_response(resources.store, llm, key=key + "/decision/" + str(turn),
+                    role=definition.role, instructions=instructions,
+                    context={"view": context, "inputs": arguments, "tool_results": compact,
+                        "available_tools": catalog, "available_candidate_sets": list(candidate_sets.values())},
+                    schema=action_schema, validate=validate, max_repairs=max_repairs)
+                return AgentAction(tool_calls=[ToolCall.model_validate(call) for call in raw["tool_calls"]]) \
+                    if raw.get("tool_calls") else AgentAction(result=raw)
+            outcome = run_agent_step(resources.store, key, decide, lambda call, call_key:
+                execute_tool(gateway, call, view.task, allowed=list(allowed), context_key=call_key,
+                    llm=llm, view=view, resources=resources, max_repairs=max_repairs))
+            return outcome["result"]
 
         operations.register(Operation(name=definition.name, input_schema=definition.input_schema,
             output_schema_ref=definition.output_schema_ref, invoke=invoke,

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 """Budgeted generated analysis code; outputs are always unvalidated computational evidence."""
+from functools import partial
 import json
 import os
 from pathlib import Path
@@ -9,20 +10,65 @@ import subprocess
 import sys
 import tempfile
 
-from proteinrsi.contracts import TaskKind, canonical, digest
+from proteinrsi.contracts import TaskKind, TaskView, canonical, digest
 from proteinrsi.localtools.artifacts import ArtifactStore
 from proteinrsi.tools import ToolSpec
 
 CODE_TOOL = 'research_python'
 
 
-def execute_code(store, view, arguments, *, pure=False):
+def python_input_contract(*, role='task'):
+    """Small runtime interface derived from the model actually injected into Python."""
+    schema = TaskView.model_json_schema()
+
+    def type_name(field):
+        if '$ref' in field:
+            return field['$ref'].rsplit('/', 1)[-1]
+        if 'anyOf' in field:
+            return ' | '.join(type_name(item) for item in field['anyOf'])
+        if field.get('type') == 'array':
+            return 'list[' + type_name(field.get('items', {})) + ']'
+        return field.get('type', 'any')
+
+    def fields(model):
+        return {name: type_name(field) for name, field in model['properties'].items()}
+
+    return {'version': 'research-python-input-v2', 'context_scope': role, 'variables': {
+        'context': {'type': 'TaskView', 'fields': fields(schema),
+            'task_fields': fields(schema['$defs']['TaskSpec']),
+            'observation_fields': fields(schema['$defs']['Observation']),
+            'research_state_path': "context['research_context']['research_state']",
+            'research_state_optional': True,
+            'representation': 'Original revealed JSON: observations and history are lists, '
+                'observation sequences are full sequences. Prompt tables and evidence_ref '
+                'descriptors are presentation only; do not decode them in Python.'},
+        'inputs': 'dict: literal inputs plus backend-hydrated resource_refs by input name',
+        'artifacts': 'dict: requested artifact refs mapped to readable local paths',
+        'write_artifact': "write_artifact(name, content, kind='json') returns a descriptor"},
+        'output': 'Set result to a JSON object. Computational results are not experimental measurements.',
+        'result': {'payload_port': 'payload', 'payload_pointer': '/output',
+            'payload_schema': {'type': 'object'},
+            'description': 'The result port is an execution receipt (status, logs, output). '
+                'Business fields live only in output. Bind step:<id>.payload to downstream '
+                'resource_refs for direct business data; step:<id>.result retains the receipt. '
+                'Named output views may validate more specific agent-defined business schemas.'}}
+
+
+def execute_code(store, view, arguments, *, pure=False, role="task"):
+    if role not in {"task", "improver"}:
+        raise ValueError('Unknown generated-code role')
+    if not pure and role == "task":
+        view = view.for_task()
     from proteinrsi.replay.broker import reader_roots
     from proteinrsi.replay.sandbox import probe, SandboxUnavailable
     if not probe()['available']:
         raise SandboxUnavailable('Generated code requires Landlock and seccomp')
     if pure and set(arguments) - {'code', 'inputs'}:
         raise ValueError('Pure metric execution cannot request artifacts or capabilities')
+    from proteinrsi.dataflow.resources import ResourceStore, standard_registry, scope_for
+    resources = ResourceStore(store, standard_registry(), scope_for(view)) if not pure else None
+    inputs = (resources.hydrate(arguments.get('resource_refs', {}), arguments.get('inputs', {}))
+              if resources is not None else arguments.get('inputs', {}))
     source_hash = digest(arguments['code'])
     programs = store.root/'programs'
     programs.mkdir(exist_ok=True)
@@ -41,19 +87,20 @@ def execute_code(store, view, arguments, *, pure=False):
         (root/'inputs').mkdir()
         (root/'outputs').mkdir()
         files = {}
+        if role == 'task':
+            registry.require_task_access(arguments.get('artifact_refs', []))
         for ref in arguments.get('artifact_refs', []):
             source = registry.resolve(ref)
             destination = root/'inputs'/source.name
             shutil.copyfile(source, destination)
             files[ref] = str(destination)
         context = {} if pure else view.model_dump(mode='json')
-        request = {'code': arguments['code'], 'inputs': arguments.get('inputs', {}),
+        request = {'code': arguments['code'], 'inputs': inputs,
             'artifacts': files, 'context': context, 'read_roots': reader_roots(), 'work': work,
             'parent_pid': os.getpid()}
         # Bulk revealed evidence travels as a local sandbox input, never through
         # model text or the small worker command pipe. No oracle files are copied.
-        from proteinrsi.research.context import enabled
-        if not pure and enabled(store):
+        if not pure:
             encoded_context = canonical(context).encode()
             if len(encoded_context) > 64 * 1024**2:
                 raise ValueError('Generated-code revealed evidence exceeds 64MB')
@@ -61,6 +108,14 @@ def execute_code(store, view, arguments, *, pure=False):
             context_file.write_bytes(encoded_context)
             request['context'] = {}
             request['context_file'] = str(context_file)
+        encoded_inputs = canonical(inputs).encode()
+        if len(encoded_inputs) > 64 * 1024**2:
+            raise ValueError('Generated-code inputs exceed 64MB')
+        if len(encoded_inputs) > 256 * 1024:
+            input_file = root/'bound-inputs.json'
+            input_file.write_bytes(encoded_inputs)
+            request['inputs'] = {}
+            request['inputs_file'] = str(input_file)
         payload = canonical(request).encode()+b'\n'
         if len(payload) > 4 * 1024**2:
             raise ValueError('Generated-code context exceeds 4MB')
@@ -117,10 +172,9 @@ def execute_code(store, view, arguments, *, pure=False):
                     raise ValueError('Invalid generated scientific text output')
                 with path.open('x') as output_file:
                     output_file.write(content)
-                registered.append(registry.put(path, item['kind'], origin='generated-code:'+source_hash))
+                registered.append(registry.put(path, item['kind'], origin='generated-code:'+source_hash,
+                                               task_visible=role == 'task'))
             result['artifacts'] = registered
-            if 'candidates' in output:
-                result['candidates'] = output['candidates']
         result.update(execution_backend='landlock_seccomp_generated_v1',
                       evidence_kind='computed_unvalidated', code_sha256=source_hash,
                       measurement_authority=False, source_file='programs/'+source_path.name)
@@ -128,7 +182,11 @@ def execute_code(store, view, arguments, *, pure=False):
         return result
 
 
-def register_code_tool(gateway, view):
+def register_code_tool(gateway, view, *, role="task"):
+    if role not in {"task", "improver"}:
+        raise ValueError('Unknown generated-code role')
+    if role == "task":
+        view = view.for_task()
     if getattr(gateway, 'remote_context_tools', False):
         return
     gateway._tools.pop(CODE_TOOL, None)
@@ -136,7 +194,10 @@ def register_code_tool(gateway, view):
         return
     spec = ToolSpec(name=CODE_TOOL, capability='analysis.program',
         description='Write and run Python to compute metrics, analyze visible evidence, or generate candidates. '
-            'context is the revealed TaskView; inputs is your JSON; artifacts maps requested refs to readable paths. '
+            'context is the complete revealed TaskView; inputs contains literal JSON and hydrated resource_refs. '
+            'Declare resource_refs={input_name: resource_id}; the backend resolves them into inputs[input_name]. '
+            'Do not read and retranscribe existing candidate/history resources into model output. '
+            'artifacts maps requested refs to readable paths. '
             'Use Python standard library or numpy. Set result to a JSON object; result.candidates may contain Candidate objects. '
             'Use write_artifact(name,text,kind) and return its descriptors in result.artifacts to save scientific files. '
             'Read status/error/stdout, correct the code, and call again when needed.',
@@ -145,14 +206,26 @@ def register_code_tool(gateway, view):
             'Protein engines are separate tools; request their outputs then pass relevant results in inputs.',
         when_to_use=['A task-specific metric, custom analysis, filtering or candidate transformation is needed.'],
         when_not_to_use=['A dedicated protein engine is needed; use its deployed tool.'],
-        output_semantics='Generated-code metrics are unvalidated computational evidence; errors are returned for repair.',
-        implementation_version='isolated-python-v1', task_kinds=list(TaskKind),
+        output_semantics='Execution receipt: status/logs plus output containing all generated business fields. '
+            'The payload port exposes output directly; generated-code metrics are unvalidated computational evidence.',
+        implementation_version='isolated-python-role-v5:'+role, task_kinds=list(TaskKind),
+        execution_contract=python_input_contract(role=role),
+        examples=[{'code': "result = {'observations_seen': len(context['observations'])}"},
+                  {'inputs': {'values': [1, 2]},
+                   'code': "result = {'total': sum(inputs['values'])}"}],
         input_schema={'type': 'object', 'properties': {
             'code': {'type': 'string', 'minLength': 1, 'maxLength': 30000},
-            'inputs': {'type': 'object'}, 'artifact_refs': {'type': 'array', 'maxItems': 16,
+            'inputs': {'type': 'object'},
+            'resource_refs': {'type': 'object', 'maxProperties': 16, 'additionalProperties': {
+                'type': 'string', 'pattern': r'^resource:[0-9a-f]{64}$'}},
+            'artifact_refs': {'type': 'array', 'maxItems': 16,
                 'uniqueItems': True, 'items': {'type': 'string'}}},
             'required': ['code'], 'additionalProperties': False},
         output_schema={'type': 'object', 'required': ['status', 'evidence_kind', 'code_sha256'],
             'properties': {'status': {'enum': ['ok', 'failed']},
-                'evidence_kind': {'const': 'computed_unvalidated'}, 'code_sha256': {'type': 'string'}}})
-    gateway.register(spec, lambda arguments: execute_code(gateway.store, view, arguments))
+                'output': {'type': 'object', 'description': 'Generated business data; not receipt metadata.'},
+                'stdout': {'type': 'string'}, 'error_type': {'type': 'string'}, 'error': {'type': 'string'},
+                'evidence_kind': {'const': 'computed_unvalidated'}, 'code_sha256': {'type': 'string'}},
+            'allOf': [{'if': {'properties': {'status': {'const': 'ok'}}},
+                       'then': {'required': ['output']}}]})
+    gateway.register(spec, partial(execute_code, gateway.store, view, role=role))

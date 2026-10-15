@@ -31,7 +31,8 @@ def run_task_loop(campaign, feedback: FeedbackAdapter | None = None, *,
 
     No adapter means prepare-only (a real laboratory can import results later).
     An optional main-study scheduler may validate a method at a safe boundary.
-    Fixed-W children omit it; fixed-M children use it for branch-local W trials.
+    Fixed-W children only check operator lifecycle; fixed-M children additionally
+    use it for branch-local W trials.
     Governance, not this driver, determines method-change authority.
     Known provider pauses are resumable; unknown side effects/integrity errors
     deliberately propagate rather than being treated as an ordinary stop.
@@ -85,7 +86,7 @@ def run_task_loop(campaign, feedback: FeedbackAdapter | None = None, *,
     except Exception as exc:
         if not is_provider_paused(exc):
             raise
-        result = stopped("paused", "provider_paused")
+        result = stopped("paused", getattr(exc, "reason", "provider_paused"))
         if raise_on_pause:
             raise
         return result

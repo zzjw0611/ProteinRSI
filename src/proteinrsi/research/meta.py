@@ -24,14 +24,16 @@ class MetaStep(MetaResponse):
 
 def analysis_gateway(agent, view):
     gateway = agent.tools.fork() if agent.tools is not None else ToolGateway(agent.store)
+    gateway.context_role = "improver"
     if not getattr(gateway, "remote_context_tools", False):
         for name in ANALYSIS_TOOLS:
             gateway._tools.pop(name, None)
     core = register_analysis_tools(gateway, view)
-    register_code_tool(gateway, view)
+    register_code_tool(gateway, view, role="improver")
+    from proteinrsi.permissions import available_tools
     configured = [name for name in view.workflow.tool_names if name in gateway._tools]
-    allowed = list(dict.fromkeys([*core, *configured,
-                                 *([CODE_TOOL] if CODE_TOOL in gateway._tools else [])]))
+    allowed = available_tools(gateway, view, [*core, *configured,
+                                 *([CODE_TOOL] if CODE_TOOL in gateway._tools else [])])
     catalog = gateway.catalog(view.task, allowed)
     catalog = [item for item in catalog if not item["data_egress"] or gateway.allow_egress]
     return gateway, catalog
@@ -59,6 +61,20 @@ def propose(agent, view, last_patch_round):
         "meta_schema": type(view.meta).model_json_schema(), "available_tools": catalog,
         "patch_constraints": {"governance": policy.model_dump(mode="json") if policy else None,
             "generated_code_enabled": bool(config.get("enable_generated_code", False))}}
+    original["improvement_brief"] = {
+        "current_workflow": view.workflow.model_dump(mode="json"),
+        "current_meta": view.meta.model_dump(mode="json"),
+        "recent_execution": [{"round": entry.get("round"),
+            "analyst_feedback": entry.get("analyst_feedback"),
+            "recorded_runs": entry.get("research_traces", [])} for entry in view.history[-2:]],
+        "recent_method_outcomes": view.research_context.get("method_history", [])[-3:],
+        "scope": "this visible evidence snapshot; plans are intentions, receipts establish execution"}
+    if config.get("context_policy") == "state-v1":
+        original["improvement_brief"] = {
+            "execution_summary": view.research_context.get("execution_summary", {}),
+            "recent_method_outcomes": view.research_context.get("method_history", [])[-3:],
+            "own_behavior": view.research_context.get("execution_summary", {}).get("improver_behavior", []),
+            "scope": "branch-local execution receipts; inspect scoped details only for a concrete capability question"}
     key = "meta-analysis:" + digest({"context": original, "instructions": instructions,
         "tool_rounds": limit, "model": getattr(llm, "model", None),
         "url": getattr(llm, "base_url", None), "client": getattr(llm, "cache_settings", {})})
@@ -99,6 +115,9 @@ def propose(agent, view, last_patch_round):
                             policy.validate_patch(patch)
                         parent = view.workflow if patch.target == "workflow" else view.meta
                         candidate = apply_patch(parent, patch)
+                        if patch.target == "workflow":
+                            from proteinrsi.permissions import require_tools
+                            require_tools(store, candidate.tool_names)
                         if candidate.programs and not config.get("enable_generated_code", False):
                             raise PermissionError("Method programs require operator-enabled generated code")
                     except (ValueError, PermissionError) as exc:

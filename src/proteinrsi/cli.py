@@ -64,6 +64,12 @@ def main(argv: list[str] | None = None) -> None:
     start.add_argument("--local-tools", help="Installed tool configuration; local project config is auto-detected")
     start.add_argument("--llm-calls", type=compute_call_limit, default=None, help="Total LLM calls, or unlimited")
     start.add_argument("--tool-calls", type=compute_call_limit, default=None, help="Total tool calls, or unlimited")
+    start.add_argument("--method-policy", choices=["validate", "direct"],
+                       help="Adopt statically admitted changes as unvalidated (default), or validate before adoption")
+    start.add_argument("--method-execution", choices=["blocking", "background"],
+                       help="Wait at the round boundary (default), or validate in the background")
+    start.add_argument("--validation-rounds", type=int, help="W comparison rounds per arm (default: 1)")
+    start.add_argument("--validation-batch-size", type=int, help="Comparison batch size per arm (default: 8)")
     start.add_argument("--prepare-only", action="store_true", help="Parse and save the task, without experimental queries")
     start.add_argument("--full-plate", action="store_true", help="Require exactly batch_size wells before each experimental submission")
     start.add_argument("--protocol-mode", choices=["typed", "legacy"],
@@ -76,6 +82,9 @@ def main(argv: list[str] | None = None) -> None:
     trace.add_argument("--full", action="store_true",
                        help="Use legacy unbounded inline HTML; JSON is always complete and streamed")
     trace.add_argument("--follow", action="store_true")
+    for name in ("pause", "resume"):
+        control = sub.add_parser(name, help=name + " the registered controller and its validation workers")
+        control.add_argument("--campaign", required=True)
     sub.add_parser("sandbox-check", help="Probe Linux Landlock/seccomp prerequisites; no model or API calls")
     prompts = sub.add_parser("prompts", help="Inspect role prompt templates and snapshot versions")
     prompts.add_argument("--campaign")
@@ -176,11 +185,13 @@ def main(argv: list[str] | None = None) -> None:
                 options = [Path.cwd()/"configs"/"protein_tools.local.json",
                            Path(__file__).resolve().parents[2]/"configs"/"protein_tools.local.json"]
                 local = next((p for p in options if p.is_file()), None)
-            from proteinrsi.trajectory import export_html, print_event
+            from proteinrsi.trajectory import export_html, export_text, print_event
             prepared = prepare_research_goal(args.goal, out=out, data_root=Path(args.data_root),
                 local_tools=local, llm_calls=args.llm_calls, tool_calls=args.tool_calls,
                 event_sink=None if args.quiet else print_event, inputs=args.input,
-                continue_from=bool(args.continue_from), full_plate=args.full_plate, protocol_mode=args.protocol_mode, memory_library=args.memory_library)
+                continue_from=bool(args.continue_from), full_plate=args.full_plate, protocol_mode=args.protocol_mode, memory_library=args.memory_library,
+                method_policy=args.method_policy, method_execution=args.method_execution,
+                validation_rounds=args.validation_rounds, validation_batch_size=args.validation_batch_size)
             if prepared['questions']:
                 print(json.dumps({'status': 'needs_clarification', **prepared,
                     'continue': f'proteinrsi start "补充说明" --continue-from {out}'}, ensure_ascii=False, indent=2))
@@ -193,6 +204,8 @@ def main(argv: list[str] | None = None) -> None:
                 "parent_fitness": task.initial_parent_measurement.value if task.initial_parent_measurement else None,
                 "parent_query_cost": 0, "resource_selection": "llm",
                 "protocol_mode": campaign.store.get("configuration", "research")["protocol_mode"],
+                "method_policy": campaign.store.get("configuration", "research")["method_policy"],
+                "method_execution": campaign.store.get("configuration", "research")["evaluation_execution"],
                 "llm_call_limit": args.llm_calls, "tool_call_limit": args.tool_calls},
                 ensure_ascii=False, indent=2), flush=True)
             if not args.prepare_only:
@@ -218,14 +231,16 @@ def main(argv: list[str] | None = None) -> None:
                     raise
                 finally:
                     export_html(out, out/"trajectory.html")
+                    export_text(out, out/"trajectory.txt")
                     (out/"report.json").write_text(json.dumps(campaign.report(), ensure_ascii=False, indent=2)+"\n")
             output = campaign.report()
-            output["trajectory"] = (export_html(out, out/"trajectory.html") if args.prepare_only
-                                    else str((out/"trajectory.html").resolve()))
+            output["trajectory"] = export_text(out, out/"trajectory.txt")
+            output["trajectory_html"] = (export_html(out, out/"trajectory.html") if args.prepare_only
+                                         else str((out/"trajectory.html").resolve()))
             (out/"report.json").write_text(json.dumps(output, ensure_ascii=False, indent=2)+"\n")
         elif args.command == "trace":
-            from proteinrsi.trajectory import (export_html, export_json, iter_events,
-                                               print_event, follow, write_json)
+            from proteinrsi.trajectory import (export_html, export_json,
+                                               follow, write_json, write_text, export_text)
             if args.full and args.format == "text":
                 raise ValueError("--full applies to HTML; JSON exports are always complete")
             if args.follow:
@@ -243,11 +258,14 @@ def main(argv: list[str] | None = None) -> None:
                     write_json(args.campaign, sys.stdout)
                 return
             else:
-                import contextlib
-                with (open(args.out, "w") if args.out else contextlib.nullcontext(sys.stdout)) as stream:
-                    for event in iter_events(args.campaign):
-                        print_event(event, stream)
+                if args.out:
+                    export_text(args.campaign, args.out)
+                else:
+                    write_text(args.campaign, sys.stdout)
                 return
+        elif args.command in {"pause", "resume"}:
+            from proteinrsi.execution_control import pause_campaign, resume_campaign
+            output = (pause_campaign if args.command == "pause" else resume_campaign)(args.campaign)
         elif args.command == "sandbox-check":
             from proteinrsi.replay.sandbox import probe
             output = probe()
@@ -336,7 +354,7 @@ def main(argv: list[str] | None = None) -> None:
                     workflow.analysis_tool_rounds = 2
                     workflow.skill_names += ["local-protein-tools"]
             from proteinrsi.research.contracts import ResearchConfig
-            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig(protocol_mode="typed", context_policy="evidence-v1", improvement_contract="capability-v1", workflow_validation="independent", evaluation_protocol="method-loop-v1", auto_evaluation={})
+            research_config = ResearchConfig.model_validate(load_json(args.research_config)) if args.research_config else ResearchConfig(protocol_mode="typed", context_policy="state-v1", improvement_contract="capability-v1", workflow_validation="independent", evaluation_protocol="method-loop-v1", method_policy="direct", evaluation_execution="blocking", auto_evaluation={"rounds": 1, "meta_rounds": 2, "batch_size": 8})
             if args.research_mode is not None:
                 research_config.enabled = args.research_mode == "adaptive"
             campaign = Campaign.initialize(args.out, TaskSpec.model_validate(load_json(args.task)),
@@ -396,7 +414,7 @@ def main(argv: list[str] | None = None) -> None:
                 campaign.stage_patch(Patch.model_validate(load_json(args.file)))
             elif args.command == "replay":
                 from proteinrsi.replay.controller import run_replay
-                from proteinrsi.trajectory import export_html, print_event
+                from proteinrsi.trajectory import export_html, export_text, print_event
                 campaign.store.event_sink = print_event
                 campaign.store.event("run_started", {"resume": True})
                 try:
@@ -409,6 +427,7 @@ def main(argv: list[str] | None = None) -> None:
                 finally:
                     directory = campaign.store.root
                     export_html(directory, directory/"trajectory.html")
+                    export_text(directory, directory/"trajectory.txt")
                     (directory/"report.json").write_text(json.dumps(campaign.report(), ensure_ascii=False, indent=2)+"\n")
             elif args.command in {"evaluate-meta", "evaluate-workflow"}:
                 from proteinrsi.evaluation import evaluate_meta, read_cases

@@ -1,6 +1,7 @@
 {
   "enabled": true,
   "protocol_mode": "typed",
+  "context_policy": "state-v1",
   "enable_generated_code": true,
   "resource_selection": "llm",
   "max_resources": 24,
@@ -15,5 +16,7 @@
   "improvement_contract": "capability-v1",
   "workflow_validation": "independent",
   "evaluation_protocol": "method-loop-v1",
-  "auto_evaluation": {}
+  "method_policy": "direct",
+  "evaluation_execution": "blocking",
+  "auto_evaluation": {"rounds": 1, "meta_rounds": 2, "batch_size": 8}
 }

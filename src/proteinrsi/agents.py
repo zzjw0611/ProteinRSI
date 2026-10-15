@@ -6,14 +6,15 @@ from importlib.resources import files
 
 from pydantic import Field
 
-from proteinrsi.contracts import Candidate, DecisionNotes, Model, Patch, TaskKind, TaskView, Workflow
+from proteinrsi.contracts import Candidate, DecisionNotes, MetaPolicy, Model, Patch, TaskKind, TaskView, Workflow
 from proteinrsi.llm import JSONLLM
 from proteinrsi.storage import Store
 from proteinrsi.prompting import compose, prompt_version
 from proteinrsi.protein.metadata import declared_identity
 from proteinrsi.tasks import apply_mutations, rank_candidates, validate_candidate
 from proteinrsi.tools import ToolCall, ToolGateway
-from proteinrsi.dataflow.design import Design, request_design
+from proteinrsi.dataflow.design import Design, _candidate_payload, request_design
+from proteinrsi.research.state import WorkingMemory
 
 
 class Plan(Model):
@@ -33,6 +34,7 @@ class FeedbackAnalysis(Model):
     decision_notes: DecisionNotes = Field(default_factory=DecisionNotes)
     summary: str
     alternatives: list[str] = Field(default_factory=list)
+    working_memory: WorkingMemory | None = None
 
 
 class MetaResponse(Model):
@@ -63,6 +65,7 @@ class PrincipalAgent:
         self.store = store or getattr(llm, "store", None)
 
     def plan(self, view: TaskView, catalog: list[dict]) -> Plan:
+        view = view.for_task()
         if self.llm is None:
             return Plan(rationale="Deterministic baseline: use revealed measurements only.")
         instructions = compose(self.store, "principal_fixed_plan", view.workflow.principal_prompt)
@@ -71,6 +74,7 @@ class PrincipalAgent:
 
 
     def finalize(self, view: TaskView, ranked: list[Candidate]) -> list[Candidate]:
+        view = view.for_task()
         if self.llm is None:
             return ranked
         from proteinrsi.ranking import request_ranking
@@ -107,6 +111,7 @@ class AnalystAgent:
         self.protein_model = protein_model
 
     def rank(self, view: TaskView, candidates: list[Candidate], tool_results: list[dict]) -> list[Candidate]:
+        view = view.for_task()
         if self.llm is None and self.protein_model is not None and view.task.kind in (TaskKind.VARIANT, TaskKind.RANKING):
             from proteinrsi.protein.analysis import rank_with_esmc
             ranked, report = rank_with_esmc(view, candidates, self.protein_model)
@@ -136,6 +141,7 @@ class AnalystAgent:
 
 
     def feedback(self, view: TaskView) -> FeedbackAnalysis:
+        view = view.for_task()
         if self.llm is None:
             return FeedbackAnalysis(summary="Deterministic feedback: inspect QC, prediction errors and trial records.")
         return FeedbackAnalysis.model_validate(self.llm.complete("C-feedback",
@@ -162,17 +168,25 @@ class Team:
         self.analyst = AnalystAgent(llm, self.protein_model, store)
 
     def bind_tools(self, view: TaskView):
+        view = view.for_task()
         from proteinrsi.research.prediction import register_prediction_tool
         from proteinrsi.research.library import register_library_tools
         self.tools = self.tools.fork()
+        self.tools.context_role = "task"
         register_prediction_tool(self.tools, view, self.protein_model)
         register_library_tools(self.tools, view)
+        from proteinrsi.research.analysis import register_analysis_tools
+        register_analysis_tools(self.tools, view)
         from proteinrsi.research.code import register_code_tool
         register_code_tool(self.tools, view)
         from proteinrsi.research.metric_tools import register_metric_tool
         register_metric_tool(self.tools, view)
 
     def run(self, view: TaskView) -> list[Candidate]:
+        view = view.for_task()
+        from proteinrsi.localtools.artifacts import ArtifactStore
+        artifacts = ArtifactStore(self.store)
+        view.artifacts = [r for r in view.artifacts if artifacts.is_task_visible(r["ref"])]
         self.store.event("task_harness_invoked", {"workflow": view.workflow.version,
             "meta": view.meta.version, "round": view.round_index,
             "evidence_version": view.evidence_version, "prompts": prompt_version(self.store),
@@ -205,9 +219,11 @@ class Team:
             return [Candidate.model_validate(c) for c in previous]
         if self.llm is None and self.protein_model is not None:
             self.protein_model.validate(view.task.reference_sequence)
-        catalog = self.tools.catalog(view.task, view.workflow.tool_names)
+        from proteinrsi.permissions import available_tools
+        allowed = available_tools(self.tools, view, view.workflow.tool_names)
+        catalog = self.tools.catalog(view.task, allowed)
         plan = self.principal.plan(view, catalog)
-        results = [self.tools.call(c, view.task, allowed=view.workflow.tool_names, context_key=key)
+        results = [self.tools.call(c, view.task, allowed=allowed, context_key=key)
                    for c in plan.tool_calls]
         candidates = []
         # A bounded design dialogue enables backbone -> sequence -> fold-back chains.
@@ -223,7 +239,7 @@ class Team:
             if step == view.workflow.design_tool_rounds - 1:
                 raise ValueError("Design tool-round limit reached; no unreviewed partial batch submitted")
             for call in design.tool_calls:
-                result = self.tools.call(call, view.task, allowed=view.workflow.tool_names,
+                result = self.tools.call(call, view.task, allowed=allowed,
                                          context_key=key)
                 results.append(result)
                 self.store.event("design_tool_result", {"round": view.round_index,
@@ -231,8 +247,7 @@ class Team:
         else:
             raise ValueError("Design did not terminate")
         for result in results:
-            # The operator's binding must normalize tool output to this documented contract.
-            for item in result.get("candidates", []):
+            for item in _candidate_payload(result) or []:
                 candidates.append(Candidate.model_validate(item))
         deduplicated = {}
         for candidate in candidates:
@@ -274,6 +289,8 @@ class MetaAgent:
 
     def propose(self, view: TaskView, last_patch_round: int = -100) -> MetaResponse:
         policy = view.meta
+        if not isinstance(policy, MetaPolicy):
+            raise PermissionError("Improver requires a controller-bound full M policy")
         valid = [o for o in view.observations if o.qc == "valid"]
         config = self.store.get("configuration", "research", {}) if self.store else {}
         autonomous = self.llm is not None and config.get("meta_autonomous", False)

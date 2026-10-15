@@ -6,5 +6,5 @@
   "batch_size": 2,
   "max_residues": 2046,
   "max_masked_positions": 128,
-  "max_model_inputs": 4096
+  "max_model_inputs": null
 }

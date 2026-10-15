@@ -13,6 +13,7 @@ from test_full_plate import plate_campaign
 
 
 @pytest.mark.parametrize('guarded', [False, True])
+@pytest.mark.core
 def test_paused_plate_resumes_same_request_without_extra_wells(tmp_path, guarded, monkeypatch):
     if guarded:
         from proteinrsi.replay.sandbox import probe
@@ -32,14 +33,14 @@ def test_paused_plate_resumes_same_request_without_extra_wells(tmp_path, guarded
         payload = json.loads(request.content)
         context = json.loads(payload['messages'][1]['content'])
         instructions = payload['messages'][0]['content']
-        if '# A — resource protocol planner' in instructions:
+        if '# Planner — research protocol' in instructions:
             a_requests.append(context)
             result = {'hypothesis': 'Synthetic recovery check', 'steps': [
                 {'step_id': 'design', 'operation': 'agent:propose', 'question': 'design',
                  'arguments': {'question': 'Generate four variants'}}],
                 'final_outputs': {'candidates': {'source': 'step:design.result',
                                                 'schema_ref': 'protein.sequence_set/v1'}}}
-        elif '# B — protein design' in instructions:
+        elif '# Executor — protein design' in instructions:
             b_requests.append(context)
             if len(b_requests) == 1:
                 return httpx.Response(503)

@@ -36,6 +36,13 @@ def _saved_report(store, evaluation_id, attempt):
         from proteinrsi.llm_evaluation import load_evaluation_plan
         plan = load_evaluation_plan(store, plan_ref)
         validate_saved_metric_evidence(store, saved["gate"], plan)
+    if saved.get("budget_scope") == "independent":
+        from proteinrsi.contracts import EvaluationSpec
+        from proteinrsi.evaluation_fork import evaluation_budget_store
+        spec = EvaluationSpec.model_validate(store.get("evaluation_specs", saved["spec_ref"]))
+        if spec.spec_ref != saved["spec_ref"]:
+            raise Conflict("Comparison budget specification changed")
+        evaluation_budget_store(store, evaluation_id, spec).release_allocations(evaluation_id)
     return saved
 
 
@@ -281,12 +288,15 @@ def abandon_evaluation(campaign, evaluation_id, *, operator, reason, acknowledge
         attempt = campaign.store.get("harness_attempts", evaluation_id)
         if not attempt or attempt["state"] not in {"started", "paused_provider", "blocked"}:
             raise Conflict("No unfinished comparison with this ID")
-        pending = state.get("pending_patch")
+        pending = state.get("pending_meta" if attempt.get("target") == "meta" else "pending_patch")
         if pending and Patch.model_validate(pending).patch_id == attempt["patch_id"]:
             campaign.methods.finish(state, Patch.model_validate(pending), "cancelled",
                 detail={"operator": operator, "reason": reason, "evaluation_id": evaluation_id})
         campaign.store.put("harness_attempts", evaluation_id, {**attempt, "state": "abandoned",
             "operator": operator, "reason": reason})
+        job = campaign.store.get("evaluation_jobs", evaluation_id)
+        if job:
+            campaign.store.put("evaluation_jobs", evaluation_id, {**job, "status": "cancelled"})
         campaign.store.event("harness_evaluation_abandoned", {"evaluation_id": evaluation_id,
             "operator": operator, "reason": reason, "refunded_queries": 0})
         if attempt.get("protocol") == "task-loop-v1":

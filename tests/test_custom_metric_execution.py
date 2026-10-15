@@ -611,6 +611,7 @@ class TestSupportedMetricSandbox:
             "PROTEINRSI_REQUIRE_METRIC_SANDBOX=1 requires real Landlock/seccomp; "
             "the supported-sandbox acceptance job must not silently skip: " + str(sandbox.probe()))
 
+    @pytest.mark.core
     def test_supported_sandbox_program_fixtures_execution_and_replay(self, tmp_path):
         store, team, plan = freeze_fixture(tmp_path)
         envelope = envelope_fixture(plan)

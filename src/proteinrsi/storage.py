@@ -11,7 +11,7 @@ import logging
 from typing import Any, Iterator
 import json
 
-from proteinrsi.contracts import canonical, digest
+from proteinrsi.contracts import COMPUTE_RESOURCES, canonical, digest
 
 
 class BudgetExceeded(RuntimeError):
@@ -40,10 +40,21 @@ class Store:
             CREATE TABLE IF NOT EXISTS charges (key TEXT PRIMARY KEY, resource TEXT,
                 amount INTEGER, fingerprint TEXT, state TEXT);
             CREATE TABLE IF NOT EXISTS allocations (allocation_id TEXT, resource TEXT,
-                amount INTEGER NOT NULL, state TEXT NOT NULL, fingerprint TEXT NOT NULL,
+                amount INTEGER, state TEXT NOT NULL, fingerprint TEXT NOT NULL,
                 PRIMARY KEY(allocation_id, resource));
             CREATE TABLE IF NOT EXISTS charge_allocations (key TEXT PRIMARY KEY, allocation_id TEXT NOT NULL);
             """)
+            # SQLite cannot drop NOT NULL in place. Preserve existing finite
+            # reservations while enabling null compute allocations for new runs.
+            self._begin(con)
+            if any(row["name"] == "amount" and row["notnull"]
+                   for row in con.execute("PRAGMA table_info(allocations)")):
+                con.execute("ALTER TABLE allocations RENAME TO allocations_finite")
+                con.execute("""CREATE TABLE allocations (allocation_id TEXT, resource TEXT,
+                    amount INTEGER, state TEXT NOT NULL, fingerprint TEXT NOT NULL,
+                    PRIMARY KEY(allocation_id, resource))""")
+                con.execute("INSERT INTO allocations SELECT * FROM allocations_finite")
+                con.execute("DROP TABLE allocations_finite")
 
     @contextmanager
     def connect(self) -> Iterator[sqlite3.Connection]:
@@ -113,10 +124,12 @@ class Store:
                 logging.getLogger(__name__).exception("Audit sink failed after database commit")
 
     @contextmanager
-    def lock(self) -> Iterator[None]:
+    def lock(self, name: str = ".campaign.lock") -> Iterator[None]:
         """One campaign writer at a time. POSIX/WSL; not an OS sandbox."""
         import fcntl
-        with (self.root / ".campaign.lock").open("a") as handle:
+        if Path(name).name != name:
+            raise ValueError("Lock name must be a filename")
+        with (self.root / name).open("a") as handle:
             fcntl.flock(handle, fcntl.LOCK_EX)
             try:
                 yield
@@ -135,6 +148,8 @@ class Store:
             row = con.execute("SELECT value FROM kv WHERE namespace=? AND key=?", (namespace, key)).fetchone()
             if immutable and row and row["value"] != encoded:
                 raise Conflict(f"Cannot overwrite immutable {namespace}/{key}")
+            if row and row["value"] == encoded:
+                return
             con.execute("INSERT INTO kv VALUES (?,?,?) ON CONFLICT(namespace,key) DO UPDATE SET value=excluded.value",
                         (namespace, key, encoded))
 
@@ -167,8 +182,8 @@ class Store:
             if existing and existing != resources:
                 raise Conflict("Cannot reset an existing campaign budget")
             for key, amount in resources.items():
-                if not (amount is None and key in {"llm_calls", "tool_calls"}) and (type(amount) is not int or amount < 0):
-                    raise ValueError("Resource limits must be nonnegative integers; only LLM/tool limits may be null")
+                if not (amount is None and key in COMPUTE_RESOURCES) and (type(amount) is not int or amount < 0):
+                    raise ValueError("Query limits must be finite nonnegative integers; compute limits may be null")
                 con.execute("INSERT OR IGNORE INTO limits VALUES (?,?)", (key, amount))
 
     def reserve(self, key: str, resource: str, amount: int, payload: Any) -> None:
@@ -241,12 +256,28 @@ class Store:
     def _held(cls, con, resource):
         # Actual charges already count in usage; hold only the unspent allocation.
         return sum(row["amount"] - cls._allocation_used(con, row["allocation_id"], resource)
-                   for row in con.execute("SELECT * FROM allocations WHERE resource=? AND state='active'",
+                   for row in con.execute("SELECT * FROM allocations WHERE resource=? AND state='active' AND amount IS NOT NULL",
                                           (resource,)))
 
-    def reserve_allocations(self, group_id: str, allocations: dict[str, dict[str, int]],
+    def check_allocation_capacity(self, allocations: dict[str, dict[str, int | None]],
+                                  *, keep_free: dict[str, int] | None = None) -> None:
+        """Read-only preflight; actual holds must still be reserved atomically."""
+        keep_free = keep_free or {}
+        if any(not (v is None and r in COMPUTE_RESOURCES) and (type(v) is not int or v < 0)
+               for caps in allocations.values() for r, v in caps.items()):
+            raise ValueError("Query allocations must be finite; compute limits may be null")
+        if any(type(v) is not int or v < 0 for v in keep_free.values()):
+            raise ValueError("Invalid main-study headroom")
+        resources = set(keep_free) | {r for caps in allocations.values() for r in caps}
+        for resource in resources:
+            required = sum(caps.get(resource) or 0 for caps in allocations.values())
+            available = self.remaining(resource)
+            if available is not None and required + keep_free.get(resource, 0) > available:
+                raise BudgetExceeded(f"{resource}: paired allocation plus main headroom exceeds available budget")
+
+    def reserve_allocations(self, group_id: str, allocations: dict[str, dict[str, int | None]],
                             *, keep_free: dict[str, int] | None = None) -> None:
-        """Atomically hold both arms' finite caps before either arm can execute.
+        """Atomically hold query quotas; null compute allocations still track usage.
 
         This is controller-only. Repeating the identical group is idempotent;
         changing it or resurrecting a released group is forbidden.
@@ -255,10 +286,6 @@ class Store:
             raise ValueError("Nonempty allocation group required")
         keep_free = keep_free or {}
         record = {"allocations": allocations, "keep_free": keep_free}
-        if any(type(v) is not int or v < 0 for limits in allocations.values() for v in limits.values()):
-            raise ValueError("Allocations require finite nonnegative integer caps")
-        if any(type(v) is not int or v < 0 for v in keep_free.values()):
-            raise ValueError("Invalid main-study headroom")
         with self.transaction():
             saved = self.get("budget_allocation_groups", group_id)
             if saved is not None:
@@ -272,12 +299,7 @@ class Store:
                             if not row or row["state"] != "active" or row["amount"] != amount:
                                 raise Conflict("Allocation was released or changed")
                 return
-            resources = set(keep_free) | {r for caps in allocations.values() for r in caps}
-            for resource in resources:
-                required = sum(caps.get(resource, 0) for caps in allocations.values())
-                available = self.remaining(resource)
-                if available is not None and required + keep_free.get(resource, 0) > available:
-                    raise BudgetExceeded(f"{resource}: paired allocation plus main headroom exceeds available budget")
+            self.check_allocation_capacity(allocations, keep_free=keep_free)
             with self.connect() as con:
                 for name, limits in allocations.items():
                     for resource, amount in limits.items():
@@ -297,7 +319,7 @@ class Store:
                 raise KeyError((allocation_id, resource))
             if row["state"] != "active":
                 return 0
-            return row["amount"] - self._allocation_used(con, allocation_id, resource)
+            return None if row["amount"] is None else row["amount"] - self._allocation_used(con, allocation_id, resource)
 
     def reserve_allocated(self, allocation_id, key, resource, amount, payload):
         """Convert held capacity to an idempotent real-call reservation, without double counting."""
@@ -312,8 +334,13 @@ class Store:
                 if old["state"] == "released":
                     raise Conflict("Released call cannot be repeated under the same key")
                 return
-            if self.allocation_remaining(allocation_id, resource) < amount:
+            remaining = self.allocation_remaining(allocation_id, resource)
+            if remaining is not None and remaining < amount:
                 raise BudgetExceeded(f"{resource}: branch allocation exhausted")
+            # An unbounded child never bypasses an explicitly finite sponsor.
+            global_remaining = self.remaining(resource)
+            if remaining is None and global_remaining is not None and global_remaining < amount:
+                raise BudgetExceeded(f"{resource}: sponsor budget exhausted")
             # Allocation existence/state is checked explicitly even for zero-cost calls.
             row = con.execute("SELECT state FROM allocations WHERE allocation_id=? AND resource=?",
                               (allocation_id, resource)).fetchone()
@@ -343,15 +370,17 @@ class Store:
 
 
 class SponsoredStore(Store):
-    """Private child caches, local comparison caps, but all actual resources charge a study sponsor.
+    """Private child caches with a funding ledger and a parent audit trail.
 
     Reservation IDs are stable per evaluation arm. No refund after execution. This
     is trusted controller code, not a worker ability to choose its budget sponsor.
     """
-    def __init__(self, directory, sponsor: Store, prefix: str, *, allocation_id: str | None = None):
+    def __init__(self, directory, sponsor: Store, prefix: str, *, allocation_id: str | None = None,
+                 budget_store: Store | None = None):
         super().__init__(directory)
         self.sponsor, self.prefix = sponsor, prefix
         self.allocation_id = allocation_id
+        self.budget_store = budget_store if budget_store is not None else sponsor
 
     def reserve(self, key, resource, amount, payload):
         # Stable keys reconcile sponsor commits if this local transaction crashes.
@@ -363,9 +392,9 @@ class SponsoredStore(Store):
         sponsor_key = "meta-" + self.prefix + "-" + key
         request = {"evaluation_arm": self.prefix, "request": payload}
         if self.allocation_id is None:
-            self.sponsor.reserve(sponsor_key, resource, amount, request)
+            self.budget_store.reserve(sponsor_key, resource, amount, request)
         else:
-            self.sponsor.reserve_allocated(self.allocation_id, sponsor_key, resource, amount, request)
+            self.budget_store.reserve_allocated(self.allocation_id, sponsor_key, resource, amount, request)
 
     def reserve_allocated(self, allocation_id, key, resource, amount, payload):
         """Nested W/E reservations consume the enclosing M arm exactly once.
@@ -379,12 +408,12 @@ class SponsoredStore(Store):
             self._reserve_sponsor(key, resource, amount, payload)
 
     def settle(self, key, *, release=False):
-        self.sponsor.settle("meta-" + self.prefix + "-" + key, release=release)
+        self.budget_store.settle("meta-" + self.prefix + "-" + key, release=release)
         super().settle(key, release=release)
 
     def remaining(self, resource):
-        sponsor_remaining = (self.sponsor.allocation_remaining(self.allocation_id, resource)
-                             if self.allocation_id else self.sponsor.remaining(resource))
+        sponsor_remaining = (self.budget_store.allocation_remaining(self.allocation_id, resource)
+                             if self.allocation_id else self.budget_store.remaining(resource))
         finite = [n for n in (super().remaining(resource), sponsor_remaining) if n is not None]
         return min(finite) if finite else None
 
@@ -411,21 +440,28 @@ class SponsoredStore(Store):
             return
         super().put(namespace, key, value, immutable=immutable)
         # These namespaces are operator-only; the worker RPC cannot read them.
-        if namespace in {"context_evidence", "context_sessions", "context_frames", "context_reads", "research_notes", "llm", "llm_attempts", "llm_preflights", "tool_jobs", "agent_snapshots", "research_runs", "research_step_outputs", "code_programs", "feedback_inputs", "feedback_results", "batches", "measurements", "task_reports", "task_loop_results", "harness_evaluations", "method_switches", "evaluation_specs"}:
+        if namespace in {"context_evidence", "context_sessions", "context_frames", "context_reads", "research_notes", "llm", "llm_attempts", "llm_preflights", "tool_jobs", "agent_snapshots", "research_runs", "research_step_outputs", "code_programs", "artifact_visibility", "feedback_inputs", "feedback_results", "batches", "measurements", "task_reports", "task_loop_results", "harness_evaluations", "method_switches", "evaluation_specs"}:
             self.sponsor.put("validation_"+namespace, self.prefix+"/"+key,
                              {"branch": self.prefix, **(value if isinstance(value, dict) else {"value": value})}, immutable=immutable)
 
 
 class AllocatedBudgetView:
     """Controller facade: same evaluation records, separately reserved E-call caps."""
-    def __init__(self, store: Store, allocation_id: str):
+    def __init__(self, store: Store, allocation_id: str, *, budget_store: Store | None = None):
         self.store, self.allocation_id = store, allocation_id
+        self.budget_store = budget_store if budget_store is not None else store
 
     def __getattr__(self, name):
         return getattr(self.store, name)
 
     def reserve(self, key, resource, amount, payload):
-        return self.store.reserve_allocated(self.allocation_id, key, resource, amount, payload)
+        return self.budget_store.reserve_allocated(self.allocation_id, key, resource, amount, payload)
 
     def remaining(self, resource):
-        return self.store.allocation_remaining(self.allocation_id, resource)
+        return self.budget_store.allocation_remaining(self.allocation_id, resource)
+
+    def settle(self, key, *, release=False):
+        return self.budget_store.settle(key, release=release)
+
+    def usage(self):
+        return self.budget_store.usage()

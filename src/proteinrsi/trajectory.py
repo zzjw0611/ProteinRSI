@@ -9,6 +9,7 @@ import time
 from proteinrsi.trace_export import (
     DETAIL_FIELDS, TRACE_NAMESPACES, _atomic_text, _destination, export_compact_html, snapshot,
     export_json as export_json, iter_events as iter_events, write_json as write_json,
+    _refs, summary, unwrap_event,
 )
 
 
@@ -19,7 +20,6 @@ def read_trace(directory):
             ",".join("?" for _ in names) + ") OR (namespace='campaign' AND key='state')", names).fetchall()
         events = [{"id": i, "timestamp": t, "kind": k, "payload": json.loads(p)}
                   for i, t, k, p in con.execute("SELECT * FROM events ORDER BY id")]
-        from proteinrsi.trace_export import summary
         metadata = summary(con, path)
     records = {}
     allowed = TRACE_NAMESPACES
@@ -27,16 +27,13 @@ def read_trace(directory):
         if ns in allowed:
             records.setdefault(ns, {})[key] = json.loads(value)
     for event in events:
-        payload = event["payload"]
-        prefix, branch = "", ""
-        if event["kind"] == "validation_event":
-            prefix, branch = "validation_", payload["branch"]+"/"
-            payload = payload["payload"]
+        _, payload, branches = unwrap_event(event)
+        prefix, branch = "validation_" * len(branches), "/".join(branches)
         for field, namespace in DETAIL_FIELDS:
             ref = payload.get(field)
             if not isinstance(ref, str):
                 continue
-            record = records.get(prefix+namespace, {}).get(branch+ref)
+            record = records.get(prefix+namespace, {}).get((branch + "/" if branch else "") + ref)
             if record is not None:
                 event.setdefault("details", {})[namespace] = record
     return {**metadata, "events": events, "records": records}
@@ -44,21 +41,94 @@ def read_trace(directory):
 
 def print_event(event, stream=None):
     stream = stream or sys.stderr
-    payload = event["payload"]
-    kind = event["kind"]
-    if kind == "validation_event":
-        kind = payload["branch"]+" · "+payload["kind"]
-        payload = payload["payload"]
+    kind, payload, branches = unwrap_event(event)
+    if branches:
+        kind = " / ".join(branches) + " · " + kind
     from proteinrsi.roles import role_name
     payload = dict(payload)
     if "role" in payload:
         payload["role"] = role_name(payload["role"]) + " (" + payload["role"] + ")"
     stamp = time.strftime("%H:%M:%S", time.localtime(event["timestamp"]))
-    detail = " ".join(f"{k}={payload[k]}" for k in ("round", "role", "phase", "tool", "wells", "batch_id", "decision", "error_type", "http_status", "attempt", "delay_seconds", "context_bytes", "source_bytes") if k in payload)
+    detail = " ".join(f"{k}={payload[k]}" for k in ("round", "role", "phase", "tool", "wells", "batch_id", "decision", "error_type", "http_status", "attempt", "delay_seconds", "context_bytes", "source_bytes", "estimated_input_tokens", "context_actions", "action", "from_version", "to_version") if k in payload)
     try:
         print(f"[{stamp}] {kind} {detail}", file=stream, flush=True)
     except OSError:
         pass  # A closed display must not abort a persisted research operation.
+
+
+def write_text(directory, stream):
+    """Readable flow and actual I/O references, derived from the original audit."""
+    with snapshot(directory) as (con, path):
+        info = summary(con, path)
+        print("ProteinRSI 文字轨迹", file=stream)
+        print(f"主研究：{info['rounds']}轮；状态：{info['execution']['state']}；查询："
+              f"{info['spent'].get('experimental_wells', 0)}", file=stream)
+        row = con.execute("SELECT value FROM kv WHERE namespace='configuration' AND key='research'").fetchone()
+        policy = json.loads(row[0]).get("method_policy", "validate") if row else "validate"
+        meta_flow = ("轨迹 → Improver → 直接采纳（未经对照）→ 边界发布" if policy == "direct" else
+                     "轨迹 → Improver → 冻结对照 → H0 ∥ H1 → Evaluator → 边界发布")
+        print("Task：Planner → Executor → Experiment → Analyst → 下一轮\n"
+              f"Meta：{meta_flow}\n"
+              "输入输出引用指向原始数据库记录；下方文字为实际返回内容的预览。\n", file=stream)
+        starts, wait, calls, reads = {}, 0.0, 0, 0
+        for event_id, timestamp, kind, payload in con.execute(
+                "SELECT id,timestamp,kind,payload FROM events ORDER BY id"):
+            event = {"id": event_id, "timestamp": timestamp, "kind": kind, "payload": json.loads(payload)}
+            leaf, detail, branches = unwrap_event(event)
+            identity = (tuple(branches), detail.get("attempt_key", detail.get("key")))
+            if leaf == "llm_started":
+                starts[identity] = timestamp
+                calls += 1
+            elif leaf in {"llm_completed", "llm_failed"}:
+                started = starts.pop(identity, None)
+                if started is not None:
+                    wait += timestamp - started
+            elif leaf == "context_read_completed":
+                reads += 1
+            if branches:
+                label = " → ".join("H0" if b.endswith("/baseline") else
+                    "H1" if b.endswith("/challenger") else b for b in branches)
+            else:
+                label = "主研究"
+            print(f"[{label}]", end=" ", file=stream)
+            print_event({**event, "kind": leaf, "payload": detail}, stream)
+            if leaf == "research_state_updated":
+                print("  研究状态：" + str(detail.get("research_state_ref")) +
+                      "；当前焦点：" + detail.get("working_memory", {}).get("focus", ""), file=stream)
+                best = detail.get("best_measured")
+                if best:
+                    print(f"  最佳已测：{best['sequence']}；{best['value']}", file=stream)
+            if leaf == "execution_attempt_failed":
+                print("  原步骤执行失败：" + detail.get("error", {}).get("message", "") +
+                      "；attempt=" + str(detail.get("attempt")) +
+                      "；记录=" + detail.get("call_ref", ""), file=stream)
+            elif leaf == "execution_call_repaired":
+                print("  Executor局部修复：" + detail.get("reason", "") +
+                      "；保留成功上游；记录=" + detail.get("call_ref", ""), file=stream)
+            elif leaf == "research_plan_revised":
+                print("  当轮计划变化：" + detail.get("reason", "scientific_review") +
+                      "（尚未发布W/M方法版本）", file=stream)
+            for namespace, stored_ns, key in _refs(con, event_id):
+                if namespace not in {"context_frames", "llm_attempts", "tool_jobs", "method_candidates", "research_step_outputs"}:
+                    continue
+                depth = stored_ns.count("validation_")
+                result_path = "$" + ".value" * depth + ".result"
+                row = con.execute("SELECT substr(coalesce(json_extract(value,?),"
+                    "json_extract(value,'$.result')),1,1000) FROM kv WHERE namespace=? AND key=?",
+                    (result_path, stored_ns, key)).fetchone()
+                direction = "输入" if namespace == "context_frames" else "输入/输出"
+                print(f"  {direction}记录：{stored_ns}/{key}", file=stream)
+                if row and row[0] and leaf in {"llm_completed", "tool_completed"}:
+                    print("  实际输出预览：" + row[0] + "（完整内容见原记录）", file=stream)
+        print(f"\n耗时统计：LLM请求{calls}次；上下文读取动作{reads}次；"
+              f"已结束LLM请求累计耗时{wait:.1f}秒（并发请求耗时会重叠）。", file=stream)
+
+
+def export_text(directory, destination):
+    destination = _destination(directory, destination)
+    with _atomic_text(destination) as stream:
+        write_text(directory, stream)
+    return str(destination.resolve())
 
 
 def _export_full_html(directory, destination):

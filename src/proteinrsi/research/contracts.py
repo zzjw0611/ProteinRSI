@@ -10,7 +10,7 @@ from proteinrsi.tools import ToolCall
 
 class ResearchConfig(Model):
     enabled: bool = True
-    context_policy: Literal["legacy", "evidence-v1"] = "legacy"
+    context_policy: Literal["legacy", "evidence-v1", "state-v1"] = "legacy"
     protocol_mode: Literal["legacy", "typed"] = "legacy"
     max_format_repairs: int = Field(default=2, ge=0, le=3)
     enable_generated_code: bool = False
@@ -18,6 +18,8 @@ class ResearchConfig(Model):
     improvement_contract: Literal["legacy", "capability-v1"] = "legacy"
     workflow_validation: Literal["online", "independent"] = "online"
     evaluation_protocol: Literal["decision-v1", "task-loop-v1", "method-loop-v1"] = "decision-v1"
+    evaluation_execution: Literal["background", "blocking"] = "background"
+    method_policy: Literal["validate", "direct"] = "validate"
     auto_evaluation: EvaluationPolicy | None = None
     meta_autonomous: bool = True
     meta_tool_rounds: int = Field(default=4, ge=0, le=12)

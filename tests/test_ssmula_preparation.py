@@ -25,6 +25,7 @@ def fixture(tmp_path, monkeypatch, rows=None):
     return table
 
 
+@pytest.mark.core
 def test_prepared_inputs_load_and_expose_only_parent(tmp_path, monkeypatch):
     fixture(tmp_path, monkeypatch)
     result = prepare(tmp_path, "GB1")

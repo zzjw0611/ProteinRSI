@@ -25,16 +25,17 @@ class ESMCConfig(Model):
     batch_size: int = Field(default=2, ge=1, le=32)
     max_residues: int = Field(default=2046, ge=1, le=2046)
     max_masked_positions: int = Field(default=128, ge=1, le=2046)
-    max_model_inputs: int = Field(default=4096, ge=1)
+    max_model_inputs: int | None = Field(default=None, ge=1)
+    cache_dir: str | None = None
     worker_python: str | None = None
     worker_timeout_seconds: int = Field(default=1800, ge=1, le=86400)
 
 
-    @field_validator("worker_python")
+    @field_validator("worker_python", "cache_dir")
     @classmethod
-    def worker_path(cls, value):
+    def absolute_path(cls, value, info):
         if value is not None and not Path(value).is_absolute():
-            raise ValueError("worker_python must be an absolute interpreter path")
+            raise ValueError(f"{info.field_name} must be an absolute path")
         return value
 
 
@@ -65,6 +66,7 @@ class TransformersBackend:
         try:
             path = snapshot_download(
                 self.config.model_id, revision=revision, local_files_only=not download,
+                cache_dir=self.config.cache_dir,
                 allow_patterns=["*.json", "*.txt", "*.safetensors", "README.md", "LICENSE*"],
             )
         except Exception as exc:

@@ -35,6 +35,8 @@ def main():
     restrict(request['read_roots'], request['work'], generated_code=True)
     if request.get('context_file'):
         request['context'] = json.loads(Path(request['context_file']).read_text())
+    if request.get('inputs_file'):
+        request['inputs'] = json.loads(Path(request['inputs_file']).read_text())
     logs = BoundedText()
     def write_artifact(name, content, kind='json'):
         if Path(name).name != name or kind not in {'pdb', 'cif', 'a3m', 'fasta', 'json'}:

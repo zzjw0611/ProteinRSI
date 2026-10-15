@@ -2,15 +2,21 @@
 """Portable method programs. Source is versioned data, never trusted controller code."""
 from proteinrsi.contracts import TaskView, Workflow, MetaPolicy, digest
 from proteinrsi.tools import ToolCall
-from .code import CODE_TOOL
+from .code import CODE_TOOL, register_code_tool
 
 
 def run_method_programs(store, gateway, view: TaskView, method: Workflow | MetaPolicy, *, owner: str):
     """Run the programs explicitly retained by W/M, on revealed inputs, with paid receipts."""
+    if owner not in {"W", "M"}:
+        raise ValueError("Unknown method owner")
     if not method.programs:
         return []
     if not store.get("configuration", "research", {}).get("enable_generated_code", False):
         raise PermissionError("Method programs require operator-enabled generated code")
+    view = view.for_task() if owner == "W" else view
+    gateway = gateway.fork()
+    gateway.context_role = "task" if owner == "W" else "improver"
+    register_code_tool(gateway, view, role=gateway.context_role)
     context_key = "method-programs:" + digest({"owner": owner, "version": method.version,
                                                "view": view.model_dump(mode="json")})
     outputs = []

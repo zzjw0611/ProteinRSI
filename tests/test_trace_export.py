@@ -38,6 +38,28 @@ def bundle(path):
     return next(path.parent.glob(path.name + ".assets-*"))
 
 
+@pytest.mark.core
+def test_text_trace_resolves_nested_arm_inputs_outputs(store):
+    from proteinrsi.trajectory import write_text
+    prefix = 'outer/baseline/inner/challenger/'
+    for ns in ('llm', 'llm_attempts'):
+        record = {'result': {'summary': 'actual output'}}
+        if ns == 'llm_attempts':
+            record = {'branch': 'outer/baseline', 'value': {'branch': 'inner/challenger', 'value': record}}
+        store.put('validation_validation_' + ns, prefix + 'call', record)
+    store.event('validation_event', {'branch': 'outer/baseline', 'kind': 'validation_event',
+        'payload': {'branch': 'inner/challenger', 'kind': 'llm_completed',
+                    'payload': {'key': 'call', 'attempt_key': 'call', 'role': 'C-feedback'}}})
+    text = io.StringIO()
+    write_text(store.root, text)
+    assert '[H0 → H1]' in text.getvalue()
+    assert 'actual output' in text.getvalue()
+    assert 'validation_validation_llm_attempts/' + prefix + 'call' in text.getvalue()
+    assert 'DO_NOT_EXPORT' not in text.getvalue()
+    nested = read_trace(store.root)['events'][-1]
+    assert nested['details']['llm_attempts']['value']['value']['result']['summary'] == 'actual output'
+
+
 def entries(assets):
     return [json.loads(line) for line in (assets / "manifest.jsonl").read_text().splitlines()]
 
@@ -56,6 +78,7 @@ def test_streamed_json_matches_legacy_and_compressed_cli(store, tmp_path, capsys
     assert json.loads(capsys.readouterr().out) == expected
 
 
+@pytest.mark.core
 def test_compact_evidence_reconstructs_original_cells_and_linked_records(store, tmp_path):
     path = tmp_path / "trace.html"
     export_html(store.root, path, page_size=2)

@@ -13,6 +13,8 @@ from pydantic import ValidationError
 
 from proteinrsi.contracts import Candidate, digest, sequence_hash
 from proteinrsi.prompting import compose
+from proteinrsi.execution import AgentAction, execute_tool, run_agent_step
+from proteinrsi.permissions import authorization, available_tools
 from .design import _candidate_payload, proposal_contract
 from .protocol import (Operation, OperationRegistry, Protocol, ProtocolExecutor, ProtocolReview,
                        register_agent_operations, register_tool_operations)
@@ -34,41 +36,45 @@ def build_operations(team, view, resources, knowledge=None):
     from proteinrsi.research.analysis import register_analysis_tools
     gateway = team.tools.fork()
     core = register_analysis_tools(gateway, view)
-    allowed = list(dict.fromkeys([*view.workflow.tool_names, *core]))
+    from proteinrsi.research.code import register_code_tool
+    register_code_tool(gateway, view)
+    allowed = available_tools(gateway, view, [*view.workflow.tool_names, *core])
+    repairs = team.store.get("configuration", "research", {}).get("max_format_repairs", 2)
     operations = OperationRegistry(resources.registry)
-    register_tool_operations(operations, gateway, view.task, allowed)
+    register_tool_operations(operations, gateway, view.task, allowed, llm=team.llm, view=view,
+                             resources=resources, max_repairs=repairs)
+    # Custom operations inherit this same executor and catalogue, not extra authority.
+    operations.agent_runtime = {"gateway": gateway, "view": view, "allowed": allowed}
     ref_schema = {"type": "string", "pattern": r"^resource:[0-9a-f]{64}$"}
 
     def propose(args, key):
-        tool_results = [*knowledge_evidence, *([args["evidence"]] if args.get("evidence") else [])]
+        initial = [*knowledge_evidence, *([args["evidence"]] if args.get("evidence") else [])]
         if args.get("reuse"):
-            tool_results.append({"candidates": [c.model_dump(mode="json")
+            initial.append({"candidates": [c.model_dump(mode="json")
                                                  for c in resources.candidates(args["reuse"])]})
-        response = team.designer.propose(view, Plan(rationale=args["question"]), tool_results,
-                                        gateway.catalog(view.task, allowed),
-                                        tool_rounds_remaining=view.workflow.design_tool_rounds - 1)
-        # Explicit tool requests are executed exactly as in the existing design loop.
-        candidates = list(response.candidates)
-        for turn in range(view.workflow.design_tool_rounds):
-            if not response.tool_calls:
-                break
-            if turn == view.workflow.design_tool_rounds - 1:
-                raise ContractError("Designer did not finish within its tool-turn limit")
-            for call in response.tool_calls:
-                result = gateway.call(call, view.task, allowed=allowed, context_key=key)
-                tool_results.append(result)
-                for raw in _candidate_payload(result) or []:
-                    candidates.append(Candidate.model_validate(raw))
-            response = team.designer.propose(view, Plan(rationale=args["question"]), tool_results,
-                                             gateway.catalog(view.task, allowed),
-                                             tool_rounds_remaining=view.workflow.design_tool_rounds - turn - 2)
-            candidates.extend(response.candidates)
+        legacy_limit = view.workflow.design_tool_rounds if authorization(team.store) is None else None
+        def decide(results, turn):
+            response = team.designer.propose(view, Plan(rationale=args["question"]), [*initial, *results],
+                gateway.catalog(view.task, allowed), tool_rounds_remaining=(
+                    legacy_limit - turn - 1 if legacy_limit is not None else None))
+            if response.replan_reason:
+                raise ContractError(response.replan_reason, code="plan_infeasible")
+            return AgentAction(result=response.model_dump(mode="json", by_alias=True),
+                               tool_calls=response.tool_calls)
+        outcome = run_agent_step(team.store, key, decide, lambda call, call_key:
+            execute_tool(gateway, call, view.task, allowed=allowed, context_key=call_key,
+                llm=team.llm, view=view, resources=resources, max_repairs=repairs), max_turns=legacy_limit)
+        candidates = []
+        for decision in [*outcome["decisions"], {"result": outcome["result"]}]:
+            candidates.extend(Candidate.model_validate(raw) for raw in decision["result"].get("candidates", []))
+        for result in outcome["results"]:
+            candidates.extend(Candidate.model_validate(raw) for raw in _candidate_payload(result) or [])
         descriptor = resources.sequences(candidates, producer="agent:B")
         return resources.get(descriptor["resource_id"])["data"]
 
     operations.register(Operation("agent:propose", object_schema({
         "question": {"type": "string"}, "reuse": ref_schema, "evidence": {"type": "object"}}, ["question"]),
-        SEQUENCES, propose, "typed-designer-v2" + knowledge_version, agent_reply_contract=proposal_contract(view), question_argument="question"))
+        SEQUENCES, propose, "typed-designer-v3" + knowledge_version, agent_reply_contract=proposal_contract(view), question_argument="question"))
 
     def rank(args, key):
         candidates = resources.candidates(args["candidates"])
@@ -132,7 +138,7 @@ def build_operations(team, view, resources, knowledge=None):
         if (not isinstance(checks, list) or not checks
                 or any(not isinstance(c, dict) or not isinstance(c.get("name"), str)
                        or c.get("passed") is not True for c in checks)):
-            raise ContractError("Panel contains failed or malformed scientific checks")
+            raise ContractError("Panel contains failed or malformed scientific checks", code="scientific_check_failed")
         if not set(args["required_checks"]) <= {c["name"] for c in checks}:
             raise ContractError("Panel result omitted a required check")
         return resources.get(args["candidates"], schema_ref=SEQUENCES)["data"]
@@ -167,6 +173,7 @@ def build_operations(team, view, resources, knowledge=None):
 
 def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = None):
     """Called from ResearchRunner for an explicit protocol_mode='typed' task snapshot."""
+    view = view.for_task()
     from proteinrsi.research.resources import ResourceSelector
     from .plan_repair import DraftRepair, apply_edits, REPAIR_INSTRUCTIONS
     profiles = default_profiles()
@@ -178,7 +185,7 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
     if view.task.candidates:
         inputs["supplied_candidates"] = resources.sequences(
             [Candidate(sequence=s) for s in view.task.candidates], producer="supplied-task-input")["resource_id"]
-    catalogue = team.tools.catalog(view.task, view.workflow.tool_names)
+    catalogue = team.tools.catalog(view.task, available_tools(team.tools, view, view.workflow.tool_names))
     selected = ResourceSelector(team.store, config, team.llm).select(view, catalogue)
     knowledge = selected.get("method_knowledge")
     operations = build_operations(team, view, resources, knowledge)
@@ -231,7 +238,7 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                 trial_resources = ResourceStore(team.store, trial_schemas, resources.scope)
                 trial_ops = build_operations(team, view, trial_resources, knowledge)
                 register_agent_operations(candidate, trial_ops, team.llm, trial_resources, agent_context,
-                                          max_repairs=config.max_format_repairs)
+                                          max_repairs=config.max_format_repairs, **trial_ops.agent_runtime)
                 checked = ProtocolExecutor(trial_resources, trial_ops, max_steps=config.max_plan_steps).preflight(candidate, inputs)
                 for port, schema in contract.required_outputs.items():
                     binding = candidate.final_outputs.get(port)
@@ -250,7 +257,7 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
         if protocol is None:
             raise ContractError("Protocol planning exhausted the format/preflight repair budget")
     register_agent_operations(protocol, operations, team.llm, resources, agent_context,
-                              max_repairs=config.max_format_repairs)
+                              max_repairs=config.max_format_repairs, **operations.agent_runtime)
     checked = ProtocolExecutor(resources, operations).preflight(protocol, inputs)
     for name, schema in contract.required_outputs.items():
         binding = protocol.final_outputs.get(name)
@@ -264,7 +271,7 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
         cloned_ops = OperationRegistry(cloned_schemas)
         cloned_ops._operations = dict(operations._operations)
         register_agent_operations(revised, cloned_ops, team.llm, cloned_resources, agent_context,
-                                  max_repairs=config.max_format_repairs)
+                                  max_repairs=config.max_format_repairs, **operations.agent_runtime)
         checked = ProtocolExecutor(cloned_resources, cloned_ops, max_steps=config.max_plan_steps).preflight(revised, inputs)
         for port, schema in contract.required_outputs.items():
             binding = revised.final_outputs.get(port)
@@ -272,6 +279,8 @@ def run_campaign_protocol(team, view, config, *, protocol: Protocol | None = Non
                 raise ContractError("Revision changed the task's final output contract")
         resources.registry._schemas = cloned_schemas._schemas
         resources.registry._input_only = cloned_schemas._input_only
+        resources.registry._custom_work = cloned_schemas._custom_work
+        resources.registry._custom_unique = cloned_schemas._custom_unique
         operations._operations = cloned_ops._operations
 
     def review(current, completed, refs, run_key, failure=None, repair_attempt=0):

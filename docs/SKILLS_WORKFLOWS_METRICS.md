@@ -63,9 +63,9 @@ Protenix 文件匹配针对当前适配器的原生 `proteinrsi_<seed>_sample_<n
 新增测试覆盖目录、元数据引用、快照、预算、有界修复与恢复、工具权限、真实收据来源检查、模型多样本配对、数值异常、重复调用缓存、打包，以及性质优化/Binder 两条 A 规划路径。
 
 ```bash
-pytest -q tests/test_skill_library.py tests/test_metric_extractors.py tests/dataflow/test_skill_planning.py
+pytest -q -m '' tests/test_skill_library.py tests/test_metric_extractors.py tests/dataflow/test_skill_planning.py
 pytest -q
 python -m build
 ```
 
-端到端测试使用真实本地 Protocol/Store/ToolGateway 和确定性解析器，但外部蛋白引擎结果及 LLM 角色是明确的人工测试数据，不证明 GPU 推理或生物学改进。真实模型、PyRosetta 和湿实验需在部署环境另行验证。GitHub Actions 的 skill-package 工作流检查 wheel 内两个 Skill 的完整性；主 CI 保留原完整回归和真实受限内核验收。
+端到端测试使用真实本地 Protocol/Store/ToolGateway 和确定性解析器，但外部蛋白引擎结果及 LLM 角色是明确的人工测试数据，不证明 GPU 推理或生物学改进。真实模型、PyRosetta 和湿实验需在部署环境另行验证。GitHub Actions 的 skill-package 工作流检查 wheel 内两个 Skill 的完整性；主 CI 默认运行核心测试及真实受限内核验收，完整回归按需启动。

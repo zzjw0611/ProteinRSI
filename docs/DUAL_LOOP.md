@@ -74,21 +74,21 @@ proteinrsi evaluate-workflow --campaign runs/mutation-dual \
 ```
 
 `methods.fixed_meta.json` 仅允许 W 修改，适用于第一阶段；默认治理仍支持 W/M。
-`--protein-model none` 只关闭可选 PLM，不关闭 LLM。LLM/tool 总次数仍可设置为
-`unlimited`，超时、重试和单次执行限制保持；独立比较案例须给出有限计算上限。
+`--protein-model none` 只关闭可选 PLM，不关闭 LLM。新研究的 LLM、工具和 PLM
+调用默认不限次数，但记录实际消耗；超时、重试和单次执行保护保持。主实验与对照
+分别保留有限查询额度，对照默认不占主实验名额。
 
 案例采用现有 `MetaCase` JSON 列表格式：case_id、group_id、split、task、initial、
 labels、query_budget（history 为空）。完整 labels 文件仅由 Controller 读取；
 Worker 只获得初始证据和任务契约。相关种子应使用同一 group_id，不冒充独立蛋白。
 同一蛋白中，已被提案过程看到的标签必须列入 initial，不能重新宣称为保留证据。
 
-每个 W 在独立子存储运行同一案例，起始证据、工具、查询与计算上限相同，不调用
-Improver，不继承当前研究的经验或另一组的结果。所有初始标签披露与新查询都按
-现有离线评估协议计入共同账本；不会给每个分支凭空发一笔新预算。
+每个 W 在隔离子存储运行同一案例，起始证据、工具、查询额度与初始记忆相同，不调用
+Improver，不读取另一组的结果。合法初始证据复制免费，新查询各占本组的对照额度。
 
-**当前 H 比较是一组从初始证据出发的候选决策案例，不是完整多轮研究评测。**
-它适用于生成/排序/程序使用等方法改动。长期记忆、恢复或多轮规划的能力主张，
-还需相应行为测试或更长回放，不能用此单步指标自动代替。
+当前 `method-loop-v1` 复用完整多轮 Task Loop；固定 M 的比较还允许本分支通过
+独立验收修改 W。旧 `decision-v1` 只比较初始证据上的候选决策，不代表完整研究。
+协议、账本与经验复用细节见 [METHOD_EVALUATION.md](METHOD_EVALUATION.md)。
 
 LLM 模式复用 E-plan → 冻结指标程序 → 受控结果 → E-verdict，另提供每组实际
 成本。原显式数值 gate 仅按其冻结协议执行。`accepted` 不是通用能力证明。

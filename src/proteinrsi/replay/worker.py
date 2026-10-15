@@ -12,6 +12,15 @@ def rpc(operation, **arguments):
         raise RuntimeError("Controller disconnected")
     response = json.loads(line)
     if "error" in response:
+        detail = response.get("error_detail")
+        if detail:
+            from proteinrsi.dataflow.schema import ContractError
+            if response["error"] == "ExecutionFailure":
+                from proteinrsi.execution import ExecutionFailure
+                raise ExecutionFailure(detail["tool"], detail["failure"],
+                    recoverable=detail.get("recovery") == "repair_current_call")
+            raise ContractError(detail["message"], path=detail.get("path", ""),
+                                code=detail.get("code", "contract_mismatch"))
         if operation == "llm" and response["error"] == "ProviderPaused":
             from proteinrsi.llm import ProviderPaused
             raise ProviderPaused("Provider paused; inspect controller LLM/preflight audit before resuming")
@@ -60,6 +69,7 @@ def main():
         def fork(self):
             clone = RemoteGateway(self.store, allow_egress=self.allow_egress)
             clone._tools = dict(self._tools)
+            clone.context_role = self.context_role
             return clone
         def catalog(self, task, allowed):
             # The controller already checked all configured workflow bindings and

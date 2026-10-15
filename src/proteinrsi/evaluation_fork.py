@@ -1,33 +1,77 @@
 # SPDX-License-Identifier: MIT
 """Controller-only frozen inputs and private, sponsored Campaign forks."""
 from copy import deepcopy
+import re
 
 from proteinrsi.contracts import GatePolicy, MetaPolicy, TaskSpec, Workflow, digest
 from proteinrsi.governance import GovernancePolicy
 from proteinrsi.runtime import Campaign
-from proteinrsi.storage import Conflict, SponsoredStore
+from proteinrsi.storage import Conflict, SponsoredStore, Store
 
-CONFIGURATION = ("research", "know_how", "prompt_bundle", "protein_model", "local_tools", "skill_library")
+CONFIGURATION = ("research", "know_how", "prompt_bundle", "protein_model", "local_tools", "skill_library",
+                 "execution_authorization")
+
+
+def evaluation_budget_store(parent, evaluation_id, spec):
+    """One durable query ledger per independent comparison; audit stays in parent."""
+    if spec.budget_scope == "shared_campaign":
+        return parent
+    caps = [c.resource_limits for c in spec.cases for _ in ("baseline", "challenger")]
+    caps.append(spec.evaluator_limits)
+    limits = {}
+    for resource in {r for cap in caps for r in cap}:
+        amounts = [cap.get(resource, 0) for cap in caps]
+        limits[resource] = None if None in amounts else sum(amounts)
+    ledger = Store(parent.root / "harness-validation" / ("budget-" + digest(evaluation_id)))
+    ledger.configure_budget(limits)
+    parent.put("evaluation_budget_ledgers", evaluation_id,
+               {"scope": spec.budget_scope, "directory": str(ledger.root.relative_to(parent.root)),
+                "limits": limits}, immutable=True)
+    return ledger
+
+
+class ModelRevisionUnavailable(ValueError):
+    """An optional model lacks the immutable identity needed for a fair comparison."""
+
+
+def _protein_pin(store, config):
+    if not config:
+        return None
+    pin = store.get("protein_backend", "snapshot")
+    if pin is None:
+        revision = config["revision"]
+        if not re.fullmatch(r"[0-9a-f]{40}", revision):
+            raise ModelRevisionUnavailable("Pin the optional protein model to an immutable revision before comparison")
+        # A declared commit freezes identity without downloading or running a model.
+        return {"model_id": config["model_id"], "revision": revision}
+    if (pin["model_id"] != config["model_id"] or not re.fullmatch(r"[0-9a-f]{40}", pin["revision"])
+            or (re.fullmatch(r"[0-9a-f]{40}", config["revision"]) and pin["revision"] != config["revision"])):
+        raise Conflict("Protein snapshot differs from the declared model identity")
+    return pin
 
 
 def provider_identity(team):
     llm = team.llm
     from proteinrsi.audit import redact
     return redact({"model": getattr(llm, "model", None), "url": getattr(llm, "base_url", None),
-        "settings": getattr(llm, "cache_settings", {}), "max_tokens": getattr(llm, "max_tokens", None)},
+        "settings": getattr(llm, "cache_settings", {}), "max_tokens": getattr(llm, "max_tokens", None),
+        "capacity": getattr(llm, "capacity_settings", {})},
         (getattr(llm, "api_key", ""),))
 
 
 def freeze_resources(campaign):
     llm = campaign.team.llm
     resources = {"configuration": {k: campaign.store.get("configuration", k) for k in CONFIGURATION},
-        "protein_pin": campaign.store.get("protein_backend", "snapshot"),
         "artifacts": list(campaign.store.all("artifacts").values()),
         "provider": provider_identity(campaign.team),
         "allow_egress": campaign.team.tools.allow_egress,
         "guarded": bool(getattr(campaign.team, "guarded", False))}
+    resources["protein_pin"] = _protein_pin(campaign.store, resources["configuration"]["protein_model"])
     if (resources["configuration"]["research"] or {}).get("evaluation_protocol") == "method-loop-v1":
         resources["governance"] = campaign.methods.policy.model_dump(mode="json")
+    visibility = campaign.store.all("artifact_visibility")
+    if visibility:
+        resources["artifact_visibility"] = visibility
     # Persist only provider identity, not keys or headers.
     from proteinrsi.audit import redact
     resources = redact(resources, (getattr(llm, "api_key", ""),))
@@ -40,7 +84,7 @@ def freeze_resources(campaign):
     return resources, memory, refs
 
 
-def freeze_start(store, case, *, history=None, round_index=0, initialization_done=None, first_round_spent=0):
+def freeze_start(store, case, *, history=None, round_index=0, initialization_done=None, first_round_spent=0, research_state=None):
     start = {"task": case.task.model_dump(mode="json"),
         "observations": [o.model_dump(mode="json") for o in case.initial],
         "history": deepcopy(history if history is not None else case.history),
@@ -48,6 +92,8 @@ def freeze_start(store, case, *, history=None, round_index=0, initialization_don
         "initialization_done": initialization_done if initialization_done is not None else
             (case.task.initial_observation_policy != "parent_once" or
              any(o.sequence == case.task.reference_sequence for o in case.initial))}
+    if research_state is not None:
+        start["research_state"] = deepcopy(research_state)
     ref = digest(start)
     store.put("evaluation_starts", ref, start, immutable=True)
     return ref
@@ -64,7 +110,8 @@ def fork_for_evaluation(campaign, spec, case_spec, workflow, meta, *, arm, team_
     branch = attempt["evaluation_id"] + "/" + case_spec.case_id + "/" + arm
     # IDs may be user-supplied; directories always use a digest, never raw paths.
     directory = store.root / "harness-validation" / digest(branch)
-    child_store = SponsoredStore(directory, store, branch, allocation_id=branch)
+    budget_store = evaluation_budget_store(store, attempt["evaluation_id"], spec)
+    child_store = SponsoredStore(directory, store, branch, allocation_id=branch, budget_store=budget_store)
     start = store.get("evaluation_starts", case_spec.start_ref)
     resources = store.get("evaluation_resources", spec.resource_snapshot_ref)
     memory = store.get("evaluation_memory", spec.memory_snapshot_ref)
@@ -82,7 +129,12 @@ def fork_for_evaluation(campaign, spec, case_spec, workflow, meta, *, arm, team_
     child_store.put("configuration", "evaluation_branch", binding, immutable=True)
     current = child_store.get("campaign", "state")
     if current is None:
-        configuration = resources["configuration"]
+        configuration = deepcopy(resources["configuration"])
+        if spec.target == "meta" and configuration.get("research"):
+            # A nested W trial belongs to its outer M comparison, never to a new quota.
+            research = configuration["research"]
+            research["auto_evaluation"] = {**(research.get("auto_evaluation") or {}),
+                                          "budget_scope": "shared_campaign"}
         for name, value in configuration.items():
             if value is not None:
                 child_store.put("configuration", name, value, immutable=True)
@@ -108,13 +160,19 @@ def fork_for_evaluation(campaign, spec, case_spec, workflow, meta, *, arm, team_
                     round_index=start["round_index"], initialization_done=start["initialization_done"],
                     first_round_spent=start["first_round_spent"], considered_round=start["round_index"], last_patch_round=-100)
                 child_store.put("campaign", "state", state)
+                if "research_state" in start:
+                    ref = digest(start["research_state"])
+                    child_store.put("research_states", ref, start["research_state"], immutable=True)
+                    child_store.put("research_state", "active", {"ref": ref})
                 for key, value in memory.items():
                     child_store.put("experience", key, value, immutable=True)
                 child_store.event("evaluation_branch_created", {**binding, "charged_initial_queries": 0})
             from proteinrsi.localtools.artifacts import ArtifactStore
             source, target = ArtifactStore(store), ArtifactStore(child_store)
             for item in resources["artifacts"]:
-                target.put(source.resolve(item["ref"]), item["kind"], origin="frozen-evaluation-context")
+                visible = resources.get("artifact_visibility", {}).get(item["ref"].removeprefix("artifact:"), {"task": True})
+                target.put(source.resolve(item["ref"]), item["kind"], origin="frozen-evaluation-context",
+                           task_visible=visible["task"])
     child = Campaign(child_store, team=team_factory(child_store))
     if provider_identity(child.team) != resources["provider"]:
         raise Conflict("Task provider settings differ from the frozen comparison")

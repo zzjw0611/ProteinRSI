@@ -4,6 +4,7 @@ import json
 import httpx
 import pytest
 
+from proteinrsi.agents import Team
 from proteinrsi.contracts import Candidate, MetaPolicy, TaskSpec, Workflow
 from proteinrsi.goal import prepare_research_goal
 from proteinrsi.llm import JSONLLM
@@ -98,13 +99,15 @@ def call_code(campaign, code, **extra):
         campaign.view().task, allowed=[CODE_TOOL], context_key='synthetic-code-test')
 
 
+@pytest.mark.core
 def test_python_computes_metrics_and_repairs_errors(code_campaign):
     first = call_code(code_campaign, "result = {'metric': unknown_name}")
     assert first['status'] == 'failed' and first['error_type'] == 'NameError'
-    code = "import numpy as np\nprint('computed')\nresult = {'metric': float(np.mean(inputs['values']))}"
+    code = "import numpy as np\nprint('computed')\nresult = {'metric': float(np.mean(inputs['values'])), 'meta': context['meta']}"
     second = call_code(code_campaign, code, inputs={'values': [2, 4]})
     assert second['status'] == 'ok', second
     assert second['output']['metric'] == 3
+    assert second['output']['meta'] == {'version': code_campaign.view().meta.version}
     assert second['measurement_authority'] is False
     assert second['stdout'] == 'computed\n'
     assert call_code(code_campaign, code, inputs={'values': [2, 4]}) == second
@@ -144,11 +147,11 @@ def test_code_artifacts_are_registered_and_traceable(code_campaign):
 
 def test_computational_iterations_share_history_without_experimental_queries(code_campaign):
     from proteinrsi.computational import run_computational
-    class Scripted:
+    class Scripted(Team):
         def run(self, view):
             assert len(view.history) == view.round_index
             return [Candidate(sequence='AVDE'), Candidate(sequence='ACDE')]
-    code_campaign.team = Scripted()
+    code_campaign.team = Scripted(code_campaign.store)
     report = run_computational(code_campaign, guarded=False)
     assert report['completed_rounds'] == 2 and report['status'] == 'complete'
     assert report['best_measured_value'] is None
@@ -156,10 +159,10 @@ def test_computational_iterations_share_history_without_experimental_queries(cod
     assert len(report['final_computational_candidates']) == 2
     assert report['budget']['experimental_wells']['committed'] == 0
     assert not code_campaign.store.all('batches')
+    assert all(h['analyst_feedback'] for h in code_campaign.state['history'])
 
 
 def test_guarded_ranking_uses_generated_program_without_design_and_revises(code_campaign):
-    from proteinrsi.agents import Team
     from proteinrsi.computational import run_computational
     from proteinrsi.research.contracts import ResearchPlan, ResearchStep
     class ProgramLLM:
@@ -187,6 +190,8 @@ def test_guarded_ranking_uses_generated_program_without_design_and_revises(code_
                 return {'rationale': 'Continue after inspecting actual result', 'pending_steps': None}
             if role in {'C', 'A-selection'}:
                 return {'summary': 'Synthetic ranking fixture', 'ranking': ['AVDE', 'ACDE']}
+            if role == 'C-feedback':
+                return {'summary': 'Computed results reviewed; no experimental fitness was measured'}
             raise AssertionError('Unexpected role or mandatory design: '+role)
     llm = ProgramLLM(code_campaign.store)
     code_campaign.team = Team(code_campaign.store, llm)
@@ -198,6 +203,7 @@ def test_guarded_ranking_uses_generated_program_without_design_and_revises(code_
     assert not any(s['operation'] == 'design' for r in runs for s in r['completed'])
     assert report['budget']['tool_calls']['committed'] == 4
     assert report['budget']['experimental_wells']['committed'] == 0
+    assert all(h['analyst_feedback'] for h in code_campaign.state['history'])
 
 
 def test_binder_intake_uses_fasta_target_without_placeholder_scaffold(tmp_path):
@@ -287,8 +293,8 @@ def test_generated_code_has_no_unbounded_scratch_writes(code_campaign):
     assert output['error_type'] == 'PermissionError'
 
 
+@pytest.mark.core
 def test_new_goal_runs_typed_ranking_feedback_loop_in_guarded_worker(tmp_path):
-    from proteinrsi.agents import Team
     from proteinrsi.computational import run_computational
     from proteinrsi.replay.sandbox import probe
     if not probe()['available']:
@@ -297,7 +303,7 @@ def test_new_goal_runs_typed_ranking_feedback_loop_in_guarded_worker(tmp_path):
         out=tmp_path/'typed-ranking', data_root=tmp_path, llm_factory=factory(rank_intent(), []))
     c = prepared['campaign']
     assert c.store.get('configuration', 'research')['protocol_mode'] == 'typed'
-    assert c.store.get('configuration', 'research')['context_policy'] == 'evidence-v1'
+    assert c.store.get('configuration', 'research')['context_policy'] == 'state-v1'
     seen = []
     knowledge_attempts = []
     def respond(request):
@@ -311,19 +317,22 @@ def test_new_goal_runs_typed_ranking_feedback_loop_in_guarded_worker(tmp_path):
                       'rationale': 'Ranking-only exploration of supplied candidates'}
         elif 'Select resources relevant' in instructions:
             result = {}
-        elif '# A — resource protocol planner' in instructions:
+        elif '# Planner — research protocol' in instructions:
             assert ctx['resources']['method_knowledge']['template_ids'] == []
             round_index = ctx['view']['round_index']
             seen.append(round_index)
             if round_index == 1:
-                assert ctx['view']['history'][0]['protocol_results']
-                assert ctx['view']['observations'] == []
+                assert ctx['view']['history']['count'] == 1
+                assert ctx['view']['observations']['coverage']['total_rows'] == 0
+                assert ctx['view']['research_context']['research_state']['facts']['round'] == 1
             result = {'hypothesis': 'Rank supplied candidates without a design stage', 'steps': [
                 {'step_id': 'rank', 'operation': 'agent:rank', 'question': 'Rank visible inputs',
                  'bindings': {'candidates': {'source': 'input:supplied_candidates',
                     'schema_ref': 'protein.sequence_set/v1', 'delivery': 'ref'}}}],
                 'final_outputs': {'ranking': {'source': 'step:rank.result',
                                              'schema_ref': 'protein.ranking/v1'}}}
+        elif '# Analyst — task feedback' in instructions:
+            result = {'summary': 'Review computed ranking before the next iteration'}
         elif 'candidates' in ctx:
             result = {'ranking': [x['candidate_id'] for x in reversed(ctx['candidates'])],
                       'summary': 'Artificial preference, no numerical phenotype claim'}
@@ -339,16 +348,19 @@ def test_new_goal_runs_typed_ranking_feedback_loop_in_guarded_worker(tmp_path):
     assert report['budget']['experimental_wells']['committed'] == 0
     assert report['budget']['tool_calls']['committed'] == 0
     assert c.state['observations'] == []
+    assert all(h['analyst_feedback'] for h in c.state['history'])
     assert all(r['runner'] == 'resource-protocol-v1' for r in c.store.all('research_runs').values())
 
 
 def test_legacy_intake_mode_is_explicit_and_survives_clarification(tmp_path):
     out = tmp_path/'legacy'
     prepare_research_goal('比较 ACDE 和 AVDE', out=out, data_root=tmp_path, protocol_mode='legacy',
+        method_policy='validate',
         llm_factory=factory({'rationale': 'Need objective', 'questions': ['需要排序吗？']}, []))
     prepared = prepare_research_goal('以 ACDE 为母本排序2轮，只改第2位，计算反馈', out=out,
         data_root=tmp_path, continue_from=True, llm_factory=factory(rank_intent(), []))
     assert prepared['campaign'].store.get('configuration', 'research')['protocol_mode'] == 'legacy'
+    assert prepared['campaign'].store.get('configuration', 'research')['method_policy'] == 'validate'
 
 
 def test_unlimited_goal_compute_limits_survive_intake_and_report(tmp_path):

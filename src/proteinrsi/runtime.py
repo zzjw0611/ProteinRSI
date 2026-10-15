@@ -90,7 +90,12 @@ class Campaign:
                 from proteinrsi.memory import attach_library
                 attach_library(store, memory_library, task)
             campaign = cls(store)
+            from proteinrsi.permissions import freeze_authorization
+            freeze_authorization(campaign)
             campaign.methods.bootstrap(state)
+            from proteinrsi.research.state import enabled, checkpoint_state
+            if enabled(store):
+                checkpoint_state(store, state, source_ref="campaign_initialized")
             store.event("campaign_initialized", {"campaign_id": state["campaign_id"],
                                                   "source": task.feedback_source})
         snapshot(store, "initialized", campaign.view())
@@ -110,6 +115,9 @@ class Campaign:
     def view(self, state: dict | None = None, workflow: Workflow | None = None) -> TaskView:
         state = state or self.state
         task = TaskSpec.model_validate(state["task"])
+        from proteinrsi.research.state import enabled, current_state, execution_summary
+        progress = ({"research_state": current_state(self.store, state),
+                     "execution_summary": execution_summary(self.store)} if enabled(self.store) else {})
         if (len(task.candidates) > task.proposal_pool_size and task.kind != TaskKind.RANKING
                 and task.batch_fill_policy != "full_plate"):
             observed = {o["sequence"] for o in state["observations"]}
@@ -126,7 +134,7 @@ class Campaign:
             workflow=workflow or Workflow.model_validate(state["workflow"]),
             meta=MetaPolicy.model_validate(state["meta"]), experience=self.memory.retrieve(task.kind, include_unvalidated=True),
             artifacts=list(self.store.all("artifacts").values()),
-            research_context={"task_progress": {"terminal": state["status"] == "complete",
+            research_context={**progress, "task_progress": {"terminal": state["status"] == "complete",
                 "completed_rounds": state["round_index"]}, "allowed_patch_targets": list(self.methods.allowed_targets), "workflow_validation_outcomes":
                 list(self.store.all("workflow_validation_outcomes").values()),
                 **({"method_history": self.methods.visible_history()} if self.methods.enabled else {}),
@@ -154,6 +162,11 @@ class Campaign:
                 return None
             if state["status"] != "ready":
                 raise Conflict("Campaign is not ready to plan")
+            config = self.store.get("configuration", "research", {})
+            if (config.get("context_policy") == "state-v1"
+                    and config.get("evaluation_execution") == "blocking"
+                    and (state["pending_patch"] or state["pending_meta"])):
+                raise Conflict("A method is awaiting publication; run the validation checkpoint before planning")
             self.methods.assert_plannable(state)
             view = self.view(state)
             task = view.task
@@ -593,6 +606,12 @@ class Campaign:
         result = {"identity": identity, "input_digest": digest(saved),
                   "feedback": feedback.model_dump(mode="json")}
         with self.store.transaction():
+            from proteinrsi.research.state import enabled, checkpoint_state
+            if enabled(self.store):
+                memory = (feedback.working_memory.model_dump(mode="json")
+                          if feedback.working_memory is not None else None)
+                result["research_state_ref"] = checkpoint_state(self.store, state,
+                    memory=memory, source_ref="feedback_results/" + key)
             self.store.put("feedback_results", key, result, immutable=True)
             state["history"][-1]["analyst_feedback"] = result["feedback"]
             self.store.put("campaign", "state", state)
@@ -608,9 +627,16 @@ class Campaign:
             raise ValueError("Patch scope does not match task")
         current = Workflow.model_validate(state["workflow"]) if patch.target == "workflow" else MetaPolicy.model_validate(state["meta"])
         candidate = apply_patch(current, patch)
+        for program in candidate.programs:
+            try:
+                compile(program.code, "<method-program>", "exec")
+            except SyntaxError as exc:
+                raise ValueError("Method program has invalid Python syntax") from exc
         if candidate.programs and not self.store.get("configuration", "research", {}).get("enable_generated_code", False):
             raise PermissionError("Method programs require operator-enabled generated code")
         if patch.target == "workflow":
+            from proteinrsi.permissions import require_tools
+            require_tools(self.store, candidate.tool_names)
             self.team.bind_tools(self.view(state, candidate))
             self.team.tools.catalog(task, candidate.tool_names)
             skill_text(candidate.skill_names)

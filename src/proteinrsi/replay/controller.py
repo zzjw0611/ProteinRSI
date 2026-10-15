@@ -61,17 +61,20 @@ def run_replay(campaign, dataset, *, guarded=True, validation_cases=None):
                     "reason": "No historical measurement; not a failed assay or low fitness"})
             return observations
 
+    from proteinrsi.evaluation_scheduler import EvaluationScheduler
+    from proteinrsi.execution_control import register_controller, unregister_controller
+    register_controller(campaign.store)
+    scheduler = EvaluationScheduler(campaign, oracle, cases=validation_cases)
+
     def checkpoint(current):
         config = current.store.get("configuration", "research", {})
         if config.get("workflow_validation") != "independent":
             return None
+        if config.get("evaluation_protocol") in {"task-loop-v1", "method-loop-v1"}:
+            return scheduler.checkpoint(current)
         current._optional_improvement()
         state = current.state
         if not (state["pending_patch"] or state["pending_meta"]) or state["status"] != "ready":
-            return None
-        if config.get("evaluation_protocol") in {"task-loop-v1", "method-loop-v1"}:
-            from proteinrsi.evaluation_scheduler import schedule_evaluation
-            schedule_evaluation(current, oracle, cases=validation_cases)
             return None
         # Historical decision-case protocol remains explicit and unchanged.
         if validation_cases is None:
@@ -84,8 +87,15 @@ def run_replay(campaign, dataset, *, guarded=True, validation_cases=None):
         evaluate_workflow(current, validation_cases, promote=True)
         return None
 
-    result = run_task_loop(campaign, ReplayFeedback(),
-        operator="explicit-guarded-replay" if guarded else "explicit-inprocess-replay",
-        on_checkpoint=checkpoint,
-        raise_on_pause=campaign.store.get("configuration", "research", {}).get("evaluation_protocol") != "task-loop-v1")
+    result = None
+    try:
+        result = run_task_loop(campaign, ReplayFeedback(),
+            operator="explicit-guarded-replay" if guarded else "explicit-inprocess-replay",
+            on_checkpoint=checkpoint,
+            raise_on_pause=campaign.store.get("configuration", "research", {}).get("evaluation_protocol") != "task-loop-v1")
+    finally:
+        try:
+            scheduler.close(publish=result is not None and result.status == "completed")
+        finally:
+            unregister_controller(campaign.store)
     return {**campaign.report(), "loop_result": result.model_dump(mode="json")}

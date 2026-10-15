@@ -11,16 +11,133 @@ from proteinrsi.research.context import ContextBuilder, MAX_CONTEXT_BYTES, compl
 from proteinrsi.storage import Store
 
 
-def make(tmp_path, handler):
+def make(tmp_path, handler, **kwargs):
     store = Store(tmp_path)
     store.configure_budget({'llm_calls': 50, 'experimental_wells': 500})
     store.put('configuration', 'research', {'context_policy': 'evidence-v1'})
     return JSONLLM(store, model='fixture', base_url='https://example.invalid', api_key='secret',
-                   transport=httpx.MockTransport(handler), max_attempts=1)
+                   transport=httpx.MockTransport(handler), max_attempts=1,
+                   **({'input_target_tokens': 24000} | kwargs))
 
 
 def response(value):
     return httpx.Response(200, json={'choices': [{'message': {'content': json.dumps(value)}}]})
+
+
+@pytest.mark.core
+def test_current_state_bounds_history_and_queries_early_evidence(tmp_path):
+    """Long histories stay available without inflating the default provider input."""
+    frames, sizes = [], []
+    def handler(request):
+        frame = json.loads(json.loads(request.content)['messages'][1]['content'])
+        frames.append(frame)
+        if frame['_context']['actions_used'] == 0:
+            assert isinstance(frame['view']['history'], dict)
+            assert frame['view']['current_measurements'][0]['batch_id'] == 'last'
+            assert frame['_context']['recent_notes'] == []
+            return response({'_context_action': {'kind': 'query',
+                'filters': {'variants': ['AAAA'], 'round': 0}}})
+        rows = frame['_context']['last_read']['value']['rows']
+        assert len(rows) == 1 and rows[0]['sample_id'] == 'early' and rows[0]['value'] == 1.25
+        return response({'ok': True})
+    llm = make(tmp_path, handler)
+    llm.store.put('configuration', 'research', {'context_policy': 'state-v1'})
+    for rounds in (5, 100):
+        rows = [{'sample_id': 'early', 'sequence': 'AAAA', 'value': 1.25, 'qc': 'valid', 'batch_id': 'early'},
+                *[{'sample_id': str(i), 'sequence': 'AAAC', 'value': 2.0, 'qc': 'valid', 'batch_id': 'old'}
+                  for i in range(rounds * 24)],
+                {'sample_id': 'latest', 'sequence': 'AAAD', 'value': 3.0, 'qc': 'valid', 'batch_id': 'last'}]
+        context = {'view': {'task': {'reference_sequence': 'AAAA', 'mutable_positions': [1, 2, 3, 4],
+            'metric': 'fitness', 'max_rounds': 1000, 'batch_size': 24}, 'round_index': rounds,
+            'observations': rows, 'history': [{'round': 0, 'batch_id': 'early'},
+                *[{'round': i, 'analysis': 'old explanation ' * 1000} for i in range(1, rounds)]]}}
+        assert llm.complete('A-plan', 'Plan', context, {}) == {'ok': True}
+        sizes.append(len(canonical(frames[-2]).encode()))
+        root = frames[-2]['_context']['source']['evidence_ref']
+        assert llm.store.get('context_evidence', root)['value'] == context
+    assert max(sizes) < 8000 and abs(sizes[0] - sizes[1]) < 200
+    assert llm.store.usage()['experimental_wells']['committed'] == 0
+    builder = ContextBuilder(llm.store, 'batch-dedup')
+    ref = builder.reference(list(range(150)), '$.rows')['evidence_ref']
+    pages = builder.read_many([{'ref': ref, 'offset': offset} for offset in (0, 50, 100)])
+    assert [item for page in pages['pages'] for item in page['value']] == list(range(150))
+    assert pages['remaining_reads'] == []
+
+
+@pytest.mark.core
+def test_empty_history_query_continues_design_with_unknown_fitness(tmp_path):
+    from proteinrsi.research.analysis import query_observations
+    task = {'reference_sequence': 'AAAA', 'mutable_positions': [1, 2, 3, 4]}
+    rows = [{'sample_id': 'known', 'sequence': 'AAAA', 'value': 1.25,
+             'qc': 'valid', 'batch_id': 'first'}]
+    history = [{'round': 0, 'batch_id': 'first'}]
+    known = query_observations(rows, task, history, {'variants': ['AAAA']})
+    assert known['status'] == 'matched' and known['rows'][0]['value'] == 1.25
+    filtered = query_observations(rows, task, history, {'variants': ['AAAA'], 'round': 9})
+    assert filtered['status'] == 'no_matching_observations' and not filtered['rows']
+    assert 'filters in the revealed snapshot' in filtered['message']
+    end = query_observations(rows, task, history, {'variants': ['AAAA'], 'offset': 1})
+    assert end['status'] == 'matched' and not end['rows'] and end['coverage']['complete']
+
+    proposal = {'candidates': [{'sequence': 'CCAA', 'predicted_score': None}]}
+    frames = []
+    def handler(request):
+        payload = json.loads(request.content)
+        frame = json.loads(payload['messages'][1]['content'])
+        frames.append(frame)
+        if len(frames) > 1:
+            page = frame['_context']['last_read']
+            assert page['action'] == {'kind': 'query', 'filters': {'variants': ['CCAA']}}
+            assert page['value']['status'] == 'no_matching_observations'
+            assert page['value']['rows'] == [] and page['next_offset'] is None
+        if frame['_context'].get('recovery'):
+            assert frame['_context']['recovery']['context_actions_available'] is False
+            assert 'Repeating it will not reveal new measurements' in page['notice']
+            # The completion contract drops the context-action alternative.
+            assert payload['messages'][0]['content'].endswith('\n{}')
+            return response(proposal)
+        return response({'_context_action': {'kind': 'query',
+                         'filters': {'variants': ['CCAA']}}})
+    llm = make(tmp_path, handler)
+    llm.store.put('configuration', 'research', {'context_policy': 'state-v1'})
+    context = {'view': {'task': task, 'round_index': 1, 'observations': rows, 'history': history}}
+    assert llm.complete('B', 'Propose candidates', context, {}) == proposal
+    assert len(frames) == 5
+    assert llm.complete('B', 'Propose candidates', context, {}) == proposal
+    assert len(frames) == 5  # Successful recovery is durable, not billed again.
+    assert llm.store.usage()['experimental_wells']['committed'] == 0
+
+
+@pytest.mark.core
+def test_stage_facts_and_complete_handoff_without_extra_turns(tmp_path):
+    sent = []
+    context = {'view': {'task': {'objective_description': '研究目标' * 250,
+        'batch_size': 24, 'max_rounds': 6, 'batch_fill_policy': 'full_plate',
+        'metric': 'fitness', 'unit': 'assay'}, 'round_index': 3, 'remaining_wells': 168,
+        'observations': [{'sequence': 'AA', 'value': 1.0, 'qc': 'valid', 'batch_id': 'first'},
+                         {'sequence': 'AC', 'value': None, 'qc': 'unavailable', 'batch_id': 'last'},
+                         {'sequence': 'AD', 'value': 2.0, 'qc': 'valid', 'batch_id': 'last'}]},
+        'tool_results': [{'payload': 'a' * 3000}, {'payload': 'b' * 3000}]}
+
+    def handler(request):
+        frame = json.loads(json.loads(request.content)['messages'][1]['content'])
+        sent.append(frame)
+        assert frame['view']['task']['objective_description'] == context['view']['task']['objective_description']
+        assert frame['execution_facts']['executable_task_queries'] == 72
+        assert frame['observation_summary']['coverage']['total_rows'] == 3
+        assert frame['observation_summary']['coverage']['valid_value_rows'] == 2
+        assert frame['observation_summary']['best_measured']['sequence'] == 'AD'
+        assert frame['current_measurements'] == context['view']['observations'][1:]
+        assert frame['_context']['mode'] == 'full'
+        for key, value in context.items():
+            assert frame[key] == value
+        return response({'ok': True})
+
+    llm = make(tmp_path, handler, input_target_tokens=128000)
+    assert llm.complete('A-plan', 'Plan', context, {}) == {'ok': True}
+    assert len(sent) == 1
+    assert llm.store.all('context_reads') == {}
+    assert llm.store.usage()['experimental_wells']['committed'] == 0
 
 
 def view(rounds):
@@ -135,8 +252,15 @@ def test_schema_definitions_and_model_notes(tmp_path):
     llm._complete = fake
     assert complete(llm, 'C-feedback', 'Analyze', view(5), schema) == {'ok': True}
     assert len(llm.store.all('research_notes')) == 2
+    meta_context = view(5)
+    meta_context['view']['meta'] = {'prompt': 'PRIVATE_M_STRATEGY'}
+    assert complete(llm, 'M', 'Improve', meta_context, schema) == {'ok': True}
+    assert seen[-1]['_context']['recent_notes']  # Improver retains access to Task analysis.
     assert complete(llm, 'A-plan', 'Plan', view(6), schema) == {'ok': True}
     assert seen[-1]['_context']['recent_notes']
+    task_session = [s for s in llm.store.all('context_sessions').values() if s['role'] == 'A-plan'][0]
+    assert all(note['role'] != 'M' for note in task_session['notes'])
+    assert 'PRIVATE_M_STRATEGY' not in canonical(seen[-1])
     assert 'model_claim_not_measurement' in canonical(llm.store.all('research_notes'))
 
 
@@ -212,28 +336,40 @@ def test_object_pages_stable_after_canonical_store_roundtrip(tmp_path):
     assert resumed.read({'ref': descriptor['evidence_ref'], 'offset': 0, 'limit': 2}) == page
 
 
-def test_read_loop_has_hard_cap_and_no_free_retries(tmp_path):
+@pytest.mark.core
+@pytest.mark.parametrize('kind', ['read', 'query'])
+def test_repeated_reads_pause_without_spending_again_on_resume(tmp_path, kind):
     calls = []
     def handler(request):
         frame = json.loads(json.loads(request.content)['messages'][1]['content'])
         calls.append(frame)
-        return response({'_context_action': {'kind': 'read',
-            'ref': frame['_context']['source']['evidence_ref'], 'limit': 1}})
+        action = ({'kind': 'read', 'ref': frame['_context']['source']['evidence_ref'], 'limit': 1}
+                  if kind == 'read' else {'kind': 'query', 'filters': {'variants': ['CCCC']}})
+        return response({'_context_action': action})
     llm = make(tmp_path, handler)
     args = ('A-plan', 'Read loop fixture', view(5), {})
-    with pytest.raises(ProviderPaused, match='action limit'):
+    with pytest.raises(ProviderPaused, match='no progress') as paused:
         llm.complete(*args)
-    assert len(calls) == 13
+    assert paused.value.reason == 'context_stalled'
+    event = next(e for e in llm.store.events() if e['kind'] == 'context_stalled')
+    assert event['payload']['reason'] == 'context_stalled'
+    session = llm.store.get('context_sessions', event['payload']['session'])
+    assert session['state'] == 'pending' and session['pause']['stalled_actions'] == 3
+    if kind == 'query':
+        assert 'notice' in calls[2]['_context']['last_read']
+    assert len(calls) == 5
+    assert calls[-1]['_context']['recovery']['context_actions_available'] is False
     assert max(len(canonical(frame).encode()) for frame in calls) <= MAX_CONTEXT_BYTES
-    with pytest.raises(ProviderPaused, match='action limit'):
+    with pytest.raises(ProviderPaused, match='no progress'):
         llm.complete(*args)
-    assert len(calls) == 13
+    assert len(calls) == 5
     assert llm.store.usage()['experimental_wells']['committed'] == 0
 
 
 def test_named_catalogue_reads_and_bounded_working_set(tmp_path):
     class LLM:
         model, base_url, cache_settings = 'fixture', 'fixture', {}
+        max_request_bytes = 16000
         def __init__(self):
             self.store = Store(tmp_path)
             self.frames = []
@@ -260,6 +396,7 @@ def test_named_catalogue_reads_and_bounded_working_set(tmp_path):
 def test_large_read_survives_followup_until_explicit_release(tmp_path):
     class LLM:
         model, base_url, cache_settings = 'fixture', 'fixture', {}
+        max_request_bytes = 20000
         def __init__(self):
             self.store = Store(tmp_path)
             self.calls = 0

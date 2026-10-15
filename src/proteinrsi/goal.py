@@ -129,7 +129,8 @@ def input_catalog(store, paths):
 
 
 def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), llm_calls=None,
-                          tool_calls=None, llm_factory=None, event_sink=None, continue_from=False, full_plate=False, protocol_mode=None, memory_library=None):
+                          tool_calls=None, llm_factory=None, event_sink=None, continue_from=False, full_plate=False, protocol_mode=None, memory_library=None,
+                          method_policy=None, method_execution=None, validation_rounds=None, validation_batch_size=None):
     if not goal.strip() or len(goal) > 12000 or (llm_calls is not None and llm_calls < 1) or (tool_calls is not None and tool_calls < 0):
         raise ValueError('Provide a nonempty goal and valid compute limits')
     out = Path(out).resolve()
@@ -153,6 +154,18 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
     if previous:
         full_plate = full_plate or previous.get("full_plate", False)
         goal = previous['goal']+'\n用户补充：'+goal
+    from proteinrsi.contracts import EvaluationPolicy
+    requested = {"method_policy": method_policy, "evaluation_execution": method_execution,
+                 "rounds": validation_rounds, "batch_size": validation_batch_size}
+    saved_methods = (previous or {}).get("method_settings")
+    if saved_methods and any(value is not None and value != saved_methods[key] for key, value in requested.items()):
+        raise ValueError("Cannot change method settings during intake continuation")
+    defaults = {"method_policy": "direct", "evaluation_execution": "blocking", "rounds": 1, "batch_size": 8}
+    method_settings = saved_methods or {key: value if value is not None else defaults[key]
+                                        for key, value in requested.items()}
+    evaluation = EvaluationPolicy(rounds=method_settings["rounds"], batch_size=method_settings["batch_size"], meta_rounds=2)
+    if method_settings["method_policy"] not in {"validate", "direct"} or method_settings["evaluation_execution"] not in {"blocking", "background"}:
+        raise ValueError("Unknown method policy or execution mode")
     protocol_mode = protocol_mode or (previous.get('protocol_mode', 'legacy') if previous else 'typed')
     if protocol_mode not in {'typed', 'legacy'}:
         raise ValueError('Unknown protocol mode')
@@ -256,7 +269,7 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
         except (ValueError, TypeError) as exc:
             questions.append(str(exc))
     if questions:
-        pending = {'protocol_mode': protocol_mode, 'full_plate': full_plate, 'goal': goal, 'intent': intent.model_dump(), 'questions': questions,
+        pending = {'protocol_mode': protocol_mode, 'method_settings': method_settings, 'full_plate': full_plate, 'goal': goal, 'intent': intent.model_dump(), 'questions': questions,
             'inputs': entries, 'data_root': str(Path(data_root).resolve()), 'local_tools': local.model_dump(mode='json'),
             'llm_calls': llm_calls, 'tool_calls': tool_calls}
         store.put('intake', 'pending', pending)
@@ -266,7 +279,7 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
     missing = [r for r in doctor(local) if r['status'] == 'missing_requirements']
     if missing:
         raise ValueError('Configured protein tool environments are missing: '+json.dumps(missing))
-    tool_names = ['research_python', 'research_fit_predict', *names]
+    tool_names = ['research_python', 'research_fit_predict', 'research_evidence_query', *names]
     skills = []
     # New typed studies opt into template-bound knowledge; legacy studies are unchanged.
     if protocol_mode == 'typed':
@@ -287,7 +300,9 @@ def prepare_research_goal(goal, *, out, data_root, local_tools=None, inputs=(), 
         gate=GatePolicy(criterion='llm_adjudicated_v1'),
         protein_config=local.esmc, local_tools=local, memory_library=memory_library,
         research_config=ResearchConfig(resource_selection='llm', enable_generated_code=True, protocol_mode=protocol_mode,
-            context_policy='evidence-v1', improvement_contract='capability-v1', workflow_validation='independent', evaluation_protocol='method-loop-v1', auto_evaluation={}))
+            context_policy='state-v1', improvement_contract='capability-v1', workflow_validation='independent',
+            evaluation_protocol='method-loop-v1', method_policy=method_settings['method_policy'],
+            evaluation_execution=method_settings['evaluation_execution'], auto_evaluation=evaluation))
     if protocol_mode == 'typed':
         from proteinrsi.research.skill_library import freeze_library
         freeze_library(campaign.store)

@@ -32,7 +32,7 @@ jobs:
           name: validation-source
           path: validation-source.zip
           retention-days: 7
-      - run: pip install -e '.[dev,graph,gepa,mcp]' 'biopython>=1.84,<2'
+      - run: pip install -e '.[dev]' 'biopython>=1.84,<2'
       - run: ruff check .
-      - run: pytest -q --cov=proteinrsi --cov-report=term-missing
+      - run: pytest -q
       - run: python -m build

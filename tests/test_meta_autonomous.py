@@ -37,6 +37,34 @@ class Script:
         return self.fn(context)
 
 
+@pytest.mark.core
+def test_guarded_improver_receives_controller_behavior_without_event_access(tmp_path, fixture_data):
+    from proteinrsi.replay.broker import GuardedMetaAgent, GuardedTeam
+    from proteinrsi.replay.sandbox import probe
+    from proteinrsi.runtime import Campaign
+    if not probe()['available']:
+        pytest.skip('Host isolation unavailable')
+    task, _ = fixture_data
+    c = Campaign.initialize(str(tmp_path / 'state-meta'), task,
+        research_config=ResearchConfig(context_policy='state-v1'))
+    c.store.event('meta_analysis_completed', {'round': 0, 'meta': c.view().meta.version,
+        'target': None, 'patch_id': None, 'tool_rounds_used': 0})
+    seen = []
+    def handler(request):
+        context = json.loads(json.loads(request.content)['messages'][1]['content'])
+        assert context['improvement_brief']['own_behavior'][0]['round'] == 0
+        assert context['view']['research_context']['research_state']['facts']['observations'] == 0
+        seen.append(context)
+        return httpx.Response(200, json={'choices': [{'message': {'content': json.dumps(
+            {'reason': 'Abstain using controller-provided execution evidence'})}}]})
+    llm = JSONLLM(c.store, model='fixture', base_url='https://example.invalid', api_key='fixture',
+                  transport=httpx.MockTransport(handler), max_attempts=1)
+    guarded = GuardedTeam.from_team(Team(c.store, llm))
+    result = GuardedMetaAgent(guarded).propose(c.view())
+    assert result.patch is None and len(seen) == 1
+    assert c.store.usage()['experimental_wells']['committed'] == 0
+
+
 def test_empty_programs_preserve_existing_method_hashes():
     workflow = Workflow()
     original = workflow.model_dump()
@@ -156,7 +184,8 @@ def test_failed_code_can_be_inspected_and_repaired(campaign, monkeypatch):
     import proteinrsi.research.code as code
     view = configure(campaign, code=True)
     calls = []
-    def execute(store, context, arguments):
+    def execute(store, context, arguments, *, role):
+        assert role == 'improver'
         calls.append(arguments['code'])
         return {'status': 'failed' if len(calls) == 1 else 'ok',
                 'code_sha256': digest(arguments['code']), 'evidence_kind': 'computed_unvalidated',
@@ -178,7 +207,8 @@ def test_successor_meta_reuses_own_program_and_proposes_descendant(campaign, mon
     import proteinrsi.research.code as code
     view = configure(campaign, code=True)
     seen = []
-    def execute(store, context, arguments):
+    def execute(store, context, arguments, *, role):
+        assert role == 'improver'
         seen.append((context.meta.version, arguments['code']))
         return {'status': 'ok', 'code_sha256': digest(arguments['code']),
                 'evidence_kind': 'computed_unvalidated', 'output': {'diagnostic': 'fixture'}}
@@ -221,11 +251,12 @@ def test_workflow_program_runs_before_task_and_outputs_are_visible(campaign, mon
     import proteinrsi.research.code as code
     view = configure(campaign, code=True)
     view.workflow.programs = [MethodProgram(name='learned', purpose='fixture', code='result = {}')]
-    monkeypatch.setattr(code, 'execute_code', lambda s, v, a: {
+    monkeypatch.setattr(code, 'execute_code', lambda s, v, a, *, role: {
         'status': 'ok', 'code_sha256': digest(a['code']), 'evidence_kind': 'computed_unvalidated',
         'output': {'computed': 1}})
     team = Team(campaign.store, register_tools=False)
     def run(context):
+        assert context.meta.model_dump() == {'version': view.meta.version}
         assert context.research_context['workflow_program_outputs'][0]['result']['output']['computed'] == 1
         return []
     monkeypatch.setattr(team, '_run_fixed', run)
@@ -290,15 +321,16 @@ def test_guarded_meta_computation_cannot_read_oracle_or_keys(campaign, tmp_path,
     hidden = tmp_path/'private-labels.txt'
     hidden.write_text('FIXTURE_HIDDEN_LABELS')
     monkeypatch.setenv('PROTEINRSI_API_KEY', 'FIXTURE_PRIVATE_KEY')
-    source = f'''import os
+    source = f'''import os, json
 from pathlib import Path
 try:
     Path({str(hidden)!r}).read_text()
     denied = False
 except PermissionError:
     denied = True
+a = write_artifact('m-policy.json', json.dumps(context['meta']), 'json')
 result = {{'denied': denied, 'key': os.environ.get('PROTEINRSI_API_KEY'),
-          'n': len(context['observations'])}}
+          'n': len(context['observations']), 'prompt': context['meta']['prompt'], 'artifacts': [a]}}
 '''
     def think(context):
         if not context['analysis_results']:
@@ -306,7 +338,9 @@ result = {{'denied': denied, 'key': os.environ.get('PROTEINRSI_API_KEY'),
                 'name': 'research_python', 'arguments': {'code': source}}}
         result = context['analysis_results'][0]['result']
         assert result['status'] == 'ok'
-        assert result['output'] == {'denied': True, 'key': None, 'n': 0}
+        assert result['output'] == {'denied': True, 'key': None, 'n': 0, 'prompt': view.meta.prompt}
+        from proteinrsi.localtools.artifacts import ArtifactStore
+        assert not ArtifactStore(campaign.store).is_task_visible(result['artifacts'][0]['ref'])
         return {'reason': 'No method change'}
     team = Team(campaign.store, Script(think), register_tools=False)
     result = GuardedMetaAgent(team).propose(view)

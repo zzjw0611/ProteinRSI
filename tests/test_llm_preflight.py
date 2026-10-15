@@ -43,10 +43,10 @@ def expected_payload(protocol, args=ARGS):
         {"role": "user", "content": canonical(context)}]
     if protocol == "responses":
         messages[0]["role"] = "developer"
-        return {"model": "fixture", "input": messages, "max_output_tokens": 4096,
+        return {"model": "fixture", "input": messages, "max_output_tokens": 16384,
                 "text": {"format": {"type": "json_object"}}, "store": False,
                 "reasoning": {"effort": "medium"}}
-    return {"model": "fixture", "messages": messages, "max_tokens": 4096,
+    return {"model": "fixture", "messages": messages, "max_tokens": 16384,
             "response_format": {"type": "json_object"}, "reasoning_effort": "medium"}
 
 
@@ -83,6 +83,7 @@ def test_exact_wire_body_inclusive_budget_and_envelope(tmp_path, protocol, margi
 
 
 @pytest.mark.parametrize("protocol", ["chat_completions", "responses"])
+@pytest.mark.core
 def test_schema_overhead_alone_can_reject_small_context(tmp_path, protocol):
     args = ("B", "test", {}, {"description": "schema" * 10000})
     llm = make_client(tmp_path, api_protocol=protocol, max_request_bytes=1024,
@@ -108,7 +109,7 @@ def test_twenty_round_history_rejects_without_truncation_network_or_spend(tmp_pa
         with pytest.raises(ProviderPaused, match="No network call or LLM budget charge"):
             llm.complete(role, "Synthetic long history", context, {})
     assert context == before
-    assert llm.max_request_bytes == DEFAULT_MAX_REQUEST_BYTES == 262144
+    assert llm.max_request_bytes == DEFAULT_MAX_REQUEST_BYTES == 1048576
     records = llm.store.all("llm_preflights")
     assert len(records) == 1  # Repeated explicit resumes don't rewrite or duplicate full evidence.
     ref, audit = next(iter(records.items()))
@@ -229,12 +230,28 @@ def test_env_limit_default_override_and_invalid_values(tmp_path, monkeypatch):
     monkeypatch.delenv("PROTEINRSI_LLM_MAX_REQUEST_BYTES", raising=False)
     store = Store(tmp_path / "env")
     assert JSONLLM.from_env(store).max_request_bytes == DEFAULT_MAX_REQUEST_BYTES
+    assert JSONLLM.from_env(store).input_target_tokens == 128000
+    assert JSONLLM.from_env(store).max_tokens == 16384
     monkeypatch.setenv("PROTEINRSI_LLM_MAX_REQUEST_BYTES", "12345")
     assert JSONLLM.from_env(store).max_request_bytes == 12345
     for value in ("0", "-1", "none", "1.5", ""):
         monkeypatch.setenv("PROTEINRSI_LLM_MAX_REQUEST_BYTES", value)
         with pytest.raises(ValueError):
             JSONLLM.from_env(store)
+
+
+@pytest.mark.core
+def test_input_target_includes_schema_and_rejects_before_spending(tmp_path):
+    llm = make_client(tmp_path, input_target_tokens=9000,
+                      handler=lambda _: pytest.fail("must not send"))
+    context, schema = {}, {"description": "scientific contract " * 3000}
+    assert llm.request_capacity("Plan", context, schema)["request_bytes"] < llm.max_request_bytes
+    with pytest.raises(ProviderPaused, match="estimated input"):
+        llm.complete("A-plan", "Plan", context, schema)
+    audit = next(iter(llm.store.all("llm_preflights").values()))
+    assert audit["reason"] == "input_target_exceeded"
+    assert audit["input_preflight"]["reserved_output_tokens"] == 16384
+    assert llm.store.usage()["llm_calls"]["committed"] == 0
 
 
 def test_sponsored_rejection_exports_complete_evidence_and_preserves_visibility(tmp_path):
@@ -371,13 +388,13 @@ def test_plate_preflight_resume_keeps_same_scientific_request(tmp_path, guarded)
         payload = json.loads(request.content)
         calls.append(payload)
         instructions = payload["messages"][0]["content"]
-        if "# A — resource protocol planner" in instructions:
+        if "# Planner — research protocol" in instructions:
             value = {"hypothesis": "Synthetic preflight recovery", "steps": [
                 {"step_id": "design", "operation": "agent:propose", "question": "design",
                  "arguments": {"question": "Generate four variants"}}],
                 "final_outputs": {"candidates": {"source": "step:design.result",
                                                 "schema_ref": "protein.sequence_set/v1"}}}
-        elif "# B — protein design" in instructions:
+        elif "# Executor — protein design" in instructions:
             value = {"edits": [[{"position": 1, "from": "A", "to": aa}] for aa in "CDEF"]}
         else:
             raise AssertionError(instructions[:100])

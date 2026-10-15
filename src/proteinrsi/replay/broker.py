@@ -16,10 +16,20 @@ from proteinrsi.tools import ToolCall
 from .sandbox import SandboxUnavailable, probe
 
 READ_NAMESPACES = {"research_runs", "research_step_outputs", "resource_selections", "research_analysis",
-    "team_outputs", "artifacts", "task_predictions", "embedding_artifacts", "batches"}
+    "team_outputs", "artifacts", "artifact_visibility", "task_predictions", "embedding_artifacts", "batches"}
 WRITE_NAMESPACES = {"research_runs", "research_step_outputs", "resource_selections", "research_analysis", "team_outputs"}
-CONFIG_KEYS = {"research", "know_how", "prompt_bundle", "protein_model", "local_tools", "method_governance"}
-ROLES = {"A", "A-plan", "A-review", "A-selection", "B", "C", "C-tools", "C-feedback", "M", "resource-selector", "A-resources"}
+CONFIG_KEYS = {"research", "know_how", "prompt_bundle", "protein_model", "local_tools", "method_governance",
+               "execution_authorization"}
+ROLES = {
+    "team": {"A", "A-plan", "A-review", "A-selection", "B", "C", "C-tools", "resource-selector", "A-resources", "B-repair"},
+    "feedback": {"C-feedback"},
+    "meta": {"M"},
+}
+
+
+def _improver_record(key, value):
+    return key.startswith(("meta-analysis:", "meta-request:")) or (
+        isinstance(value, dict) and value.get("owner") == "M")
 
 
 class WorkerExecutionError(RuntimeError):
@@ -65,6 +75,13 @@ def _readline(process, timeout, limit=32*1024*1024):
 
 
 def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
+    if operation not in ROLES:
+        raise ValueError("Unknown worker operation")
+    if operation != "meta":
+        view = view.for_task()
+        from proteinrsi.localtools.artifacts import ArtifactStore
+        artifacts = ArtifactStore(team.store)
+        view.artifacts = [r for r in view.artifacts if artifacts.is_task_visible(r["ref"])]
     state = probe()
     if not state["available"]:
         raise SandboxUnavailable(state["reason"])
@@ -72,14 +89,16 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
     from proteinrsi.research.prediction import register_prediction_tool
     from proteinrsi.research.library import register_library_tools
     gateway = team.tools.fork()
+    gateway.context_role = "improver" if operation == "meta" else "task"
     core = register_analysis_tools(gateway, view)
     register_prediction_tool(gateway, view, team.protein_model)
     register_library_tools(gateway, view)
     from proteinrsi.research.code import register_code_tool
-    register_code_tool(gateway, view)
+    register_code_tool(gateway, view, role=gateway.context_role)
     code_enabled = team.store.get("configuration", "research", {}).get("enable_generated_code", False)
     method_code = ["research_python"] if code_enabled and (operation == "meta" or view.workflow.programs) else []
-    allowed = list(dict.fromkeys([*view.workflow.tool_names, *core, *method_code]))
+    from proteinrsi.permissions import available_tools
+    allowed = available_tools(gateway, view, [*view.workflow.tool_names, *core, *method_code])
     catalogue = [t for t in gateway.catalog(view.task, allowed) if not t["data_egress"] or gateway.allow_egress]
     allowed = [t["name"] for t in catalogue]
     llm = team.llm
@@ -126,15 +145,22 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
                     try:
                         if provider_pause is not None and msg.get("rpc") in {"llm", "tool"}:
                             raise provider_pause
-                        result = dispatch(team, gateway, view, allowed, msg)
+                        result = dispatch(team, gateway, view, allowed, msg, operation=operation)
                         send({"result": result})
                     except Exception as exc:
-                        send({"error": type(exc).__name__})
+                        from proteinrsi.dataflow.schema import ContractError
+                        from proteinrsi.execution import ExecutionFailure
+                        detail = exc.detail() if isinstance(exc, ContractError) else None
+                        send({"error": type(exc).__name__, **({"error_detail": detail} if detail else {})})
                         from proteinrsi.llm import ProviderPaused
                         if isinstance(exc, ProviderPaused):
                             # Let the worker persist its continuation before exiting.
                             # No further model/tool work is allowed during this drain.
                             provider_pause = exc
+                            continue
+                        if isinstance(exc, (ExecutionFailure, ContractError)):
+                            # A known failed call is handled by the worker's durable
+                            # local attempt; do not kill its protocol continuation.
                             continue
                         raise
                 raise RuntimeError("Worker RPC count exceeded")
@@ -147,13 +173,15 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
                 proc.stdout.close()
 
 
-def dispatch(team, gateway, view, allowed, msg):
+def dispatch(team, gateway, view, allowed, msg, *, operation="team"):
+    if operation not in ROLES:
+        raise PermissionError("Unapproved worker operation")
     store, op = team.store, msg.get("rpc")
     if op == "tool":
         return gateway.call(ToolCall.model_validate(msg["call"]), view.task,
                             allowed=allowed, context_key=msg["context_key"])
     if op == "llm":
-        if team.llm is None or msg["role"] not in ROLES:
+        if team.llm is None or msg["role"] not in ROLES[operation]:
             raise PermissionError("Unapproved LLM operation")
         # Destination/credentials/accounting are fixed in the trusted controller.
         return team.llm.complete(msg["role"],msg["instructions"],msg["context"],msg["schema"])
@@ -170,10 +198,26 @@ def dispatch(team, gateway, view, allowed, msg):
         if op == "put":
             if ns not in WRITE_NAMESPACES:
                 raise PermissionError("Protected namespace")
+            existing = store.get(ns, msg["key"])
+            private = ns == "research_step_outputs" and (
+                _improver_record(msg["key"], msg["value"]) or _improver_record(msg["key"], existing))
+            if operation == "feedback" or (operation == "meta") != private:
+                raise PermissionError("Write outside worker role")
             return store.put(ns,msg["key"],msg["value"],immutable=msg.get("immutable",False))
         if ns not in READ_NAMESPACES:
             raise PermissionError("Unapproved namespace")
-        return store.all(ns) if op == "all" else store.get(ns,msg["key"],msg.get("default"))
+        records = store.all(ns) if op == "all" else {msg["key"]: store.get(ns,msg["key"],msg.get("default"))}
+        if operation != "meta" and ns == "research_step_outputs":
+            records = {key: value for key, value in records.items() if not _improver_record(key, value)}
+        if operation != "meta" and ns in {"artifacts", "artifact_visibility"}:
+            from proteinrsi.localtools.artifacts import ArtifactStore
+            artifacts = ArtifactStore(store)
+            records = {key: value for key, value in records.items() if artifacts.is_task_visible("artifact:" + key)}
+        if op == "all":
+            return records
+        if msg["key"] not in records:
+            raise PermissionError("Record is unavailable to this worker role")
+        return records[msg["key"]]
     if op == "event":
         # Worker records cannot impersonate experiment/budget/promotion events.
         safe = {"resources_selected","research_plan_created","research_plan_revised","research_step_started",
@@ -181,8 +225,13 @@ def dispatch(team, gateway, view, allowed, msg):
                 "design_tool_result","candidate_validation_feedback","ranking_repair_requested",
                 "meta_analysis_started", "meta_analysis_completed", "meta_analysis_tool_completed",
                 "method_program_executed", "task_harness_invoked"}
+        safe.update({"execution_call_repaired", "execution_attempt_failed"})
         if msg["kind"] not in safe:
             raise PermissionError("Unapproved audit event kind")
+        meta_event = msg["kind"].startswith("meta_analysis_") or (
+            msg["kind"] == "method_program_executed" and msg["payload"].get("owner") == "M")
+        if meta_event != (operation == "meta"):
+            raise PermissionError("Audit event outside worker role")
         if msg["kind"] == "task_harness_invoked":
             payload = msg["payload"]
             if (payload.get("workflow") != view.workflow.version or payload.get("meta") != view.meta.version

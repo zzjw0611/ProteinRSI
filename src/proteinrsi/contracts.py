@@ -10,6 +10,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator, model_serializer
 
 AMINO_ACIDS = frozenset("ACDEFGHIKLMNPQRSTVWY")
+COMPUTE_RESOURCES = frozenset({"llm_calls", "tool_calls", "plm_inputs"})
 
 
 def canonical(value: Any) -> str:
@@ -48,8 +49,8 @@ class TaskKind(str, Enum):
 
 class BudgetSpec(Model):
     experimental_wells: int = Field(default=96, ge=0)
-    llm_calls: int | None = Field(default=200, ge=0, description="null means unlimited total calls; usage is still recorded")
-    tool_calls: int | None = Field(default=200, ge=0, description="null means unlimited total calls; usage is still recorded")
+    llm_calls: int | None = Field(default=None, ge=0, description="null means unlimited total calls; usage is still recorded")
+    tool_calls: int | None = Field(default=None, ge=0, description="null means unlimited total calls; usage is still recorded")
 
 
 class InitialParentMeasurement(Model):
@@ -509,20 +510,35 @@ class GateResult(Model):
         return data
 
 
+class MetaIdentity(Model):
+    """Trace identity, without the Improver's executable policy or instructions."""
+    version: str
+
+
 class TaskView(Model):
-    """The only task context handed to LLMs/agents; no dataset path or hidden labels."""
+    """Revealed controller context; task roles receive its for_task() projection."""
     task: TaskSpec
     round_index: int
     observations: list[Observation]
     history: list[dict[str, Any]]
     remaining_wells: int
     workflow: Workflow
-    meta: MetaPolicy
+    meta: MetaPolicy | MetaIdentity
     experience: list[dict[str, Any]] = Field(default_factory=list)
     artifacts: list[dict[str, Any]] = Field(default_factory=list)
     research_context: dict[str, Any] = Field(default_factory=dict)
 
     capacity: dict[str, Any] = Field(default_factory=dict)
+
+    def for_task(self) -> TaskView:
+        """Keep task evidence and W, excluding M definitions and M proposal memory."""
+        result = self.model_copy(deep=True)
+        result.meta = MetaIdentity(version=self.meta.version)
+        result.experience = [r for r in result.experience if r.get("patch", {}).get("target") != "meta"]
+        if "method_history" in result.research_context:
+            result.research_context["method_history"] = [r for r in result.research_context["method_history"]
+                                                        if r.get("target") != "meta"]
+        return result
 
     @model_validator(mode="after")
     def resource_horizon(self):
@@ -547,16 +563,19 @@ class TaskView(Model):
 class EvaluationPolicy(Model):
     """Operator-authorized scheduling limits, never an evolvable method field."""
     enabled: bool = True
+    budget_scope: Literal["independent", "shared_campaign"] = "independent"
     rounds: int = Field(default=2, ge=1, le=100)
+    batch_size: int | None = Field(default=None, ge=2, le=384)
+    # M must execute between Task rounds before its W changes can be observed.
     meta_rounds: int = Field(default=4, ge=2, le=100)
     meta_query_budget_per_arm: int | None = Field(default=None, ge=1)
-    meta_llm_calls_per_arm: int = Field(default=256, ge=0)
-    meta_tool_calls_per_arm: int = Field(default=512, ge=0)
+    meta_llm_calls_per_arm: int | None = Field(default=None, ge=0)
+    meta_tool_calls_per_arm: int | None = Field(default=None, ge=0)
     query_budget_per_arm: int | None = Field(default=None, ge=1)
-    llm_calls_per_arm: int = Field(default=64, ge=0)
-    tool_calls_per_arm: int = Field(default=128, ge=0)
-    evaluator_llm_calls: int = Field(default=6, ge=0)
-    evaluator_tool_calls: int = Field(default=16, ge=0)
+    llm_calls_per_arm: int | None = Field(default=None, ge=0)
+    tool_calls_per_arm: int | None = Field(default=None, ge=0)
+    evaluator_llm_calls: int | None = Field(default=None, ge=0)
+    evaluator_tool_calls: int | None = Field(default=None, ge=0)
     main_reserve_wells: int | None = Field(default=None, ge=0)
 
 
@@ -565,15 +584,16 @@ class EvaluationCaseSpec(Model):
     group_id: str
     start_ref: str
     rounds: int = Field(ge=1)
-    resource_limits: dict[str, int]
+    resource_limits: dict[str, int | None]
 
     @field_validator("resource_limits")
     @classmethod
-    def finite_limits(cls, value):
+    def validate_limits(cls, value):
         if not {"experimental_wells", "llm_calls", "tool_calls"} <= value.keys():
-            raise ValueError("A comparison requires explicit experimental and compute caps")
-        if any(type(n) is not int or n < 0 for n in value.values()):
-            raise ValueError("Comparison resource caps must be finite nonnegative integers")
+            raise ValueError("A comparison requires explicit query and compute limits")
+        if any(not (n is None and r in COMPUTE_RESOURCES) and (type(n) is not int or n < 0)
+               for r, n in value.items()):
+            raise ValueError("Query caps must be finite; compute limits may be null")
         return value
 
 
@@ -585,6 +605,8 @@ class EvaluationSpec(Model):
     initial_workflow_ref: str | None = None
     purpose: Literal["selection", "confirmation"]
     scope: Literal["same_snapshot", "declared_cases"]
+    # Absent in historical specs; serialization preserves their content identity.
+    budget_scope: Literal["independent", "shared_campaign"] = "shared_campaign"
     patch_id: str
     baseline_version: str
     candidate_version: str
@@ -594,12 +616,20 @@ class EvaluationSpec(Model):
     cases: list[EvaluationCaseSpec] = Field(min_length=1)
     gate: dict[str, Any]
     metric_plan_ref: str | None = None
-    evaluator_limits: dict[str, int]
+    evaluator_limits: dict[str, int | None]
     main_reserve_wells: int = Field(ge=0)
     stopping_conditions: list[str] = Field(default_factory=lambda: [
         "round_limit", "query_budget", "compute_budget", "declared_space_exhausted",
         "provider_pause", "external_feedback_pending"])
     promotion_requested: bool = False
+
+    @field_validator("evaluator_limits")
+    @classmethod
+    def validate_evaluator_limits(cls, value):
+        if any(not (n is None and r in COMPUTE_RESOURCES) and (type(n) is not int or n < 0)
+               for r, n in value.items()):
+            raise ValueError("Evaluator query caps must be finite; compute limits may be null")
+        return value
 
     @model_validator(mode="after")
     def validate_target(self):
@@ -610,6 +640,8 @@ class EvaluationSpec(Model):
     @model_serializer(mode="wrap")
     def preserve_legacy_identity(self, handler):
         data = handler(self)
+        if self.budget_scope == "shared_campaign":
+            data.pop("budget_scope", None)
         if self.protocol == "task-loop-v1":
             data.pop("target", None)
             data.pop("initial_workflow_ref", None)

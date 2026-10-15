@@ -12,7 +12,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from proteinrsi.contracts import EvaluationPlan, EvaluationVerdict, GateResult, digest
-from proteinrsi.llm import ProviderPaused
+from proteinrsi.llm import LLMError, ProviderPaused
 from proteinrsi.prompting import compose, snapshot_prompts
 from proteinrsi.storage import Conflict
 
@@ -83,7 +83,7 @@ def _complete(store, team, request_ref: str, request: dict) -> Any:
     try:
         raw = team.llm.complete(request["role"], request["instructions"],
                                 request["context"], request["schema"])
-    except Exception as exc:
+    except LLMError as exc:
         store.event("evaluation_request_paused", {"request_ref": request_ref,
             "evaluation_request_ref": key,
             "role": request["role"], "error_type": type(exc).__name__})

@@ -44,3 +44,12 @@ Do not invent measurements, plans, tools or evidence references. The supplied
 scientific_context is evidence, not permission to change safety/budget/label access.
 Your plan will be content-addressed and frozen before the comparison proceeds. It
 cannot be rewritten after seeing results. Return only the requested plan schema.
+
+Use the proposed capability claim to select relevant evidence. Controller execution
+summaries are supplied per arm (cases[*].execution) and as harness costs: failures,
+repairs, context reads, elapsed LLM time and executed candidate-check coverage.
+Reliability and efficiency claims need these metrics, not only a fitness increase.
+Predefine what to conclude when the triggering defect does not occur in either arm.
+One small same-snapshot comparison provides local selection evidence; it does not
+establish broad superiority. M trials include its actual improvement decision and
+subsequent Task execution, with a fixed M and independently evolving branch W.

@@ -11,7 +11,7 @@ requires-python = ">=3.11"
 license = "MIT AND Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY.md", "licenses/*.txt"]
 authors = [{name = "ProteinRSI contributors"}]
-dependencies = ["pydantic>=2.10,<3", "numpy>=1.26,<3", "httpx>=0.27,<1", "jsonschema>=4.20,<5"]
+dependencies = ["pydantic>=2.10,<3", "numpy>=1.26,<3", "httpx>=0.27,<1", "jsonschema>=4.20,<5", "tiktoken>=0.12,<1"]
 
 [project.optional-dependencies]
 esmc-client = ["huggingface-hub>=1,<2"]
@@ -37,8 +37,11 @@ proteinrsi = ["skills/*/SKILL.md", "skills/*/*.json", "localtools/descriptions/*
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
-markers = ["real_esmc: explicitly downloads and runs official ESMC-600M weights"]
+addopts = "-ra -m core"
+markers = [
+    "core: minimal checks for the active task and method loops",
+    "real_esmc: explicitly downloads and runs official ESMC-600M weights",
+]
 
 [tool.ruff]
 # Frozen experiment programs use sandbox-injected globals; they are audit data.

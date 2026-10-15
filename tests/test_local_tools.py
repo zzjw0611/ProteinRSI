@@ -126,11 +126,14 @@ def test_normalization_preserves_explicit_mapping(tmp_path):
     write_normalized(chains, destination, rename={'B': 'A'})
     assert read_pdb(destination)['A']['sequence'] == 'ACDE'
 
+@pytest.mark.core
 def test_fake_mpnn_end_to_end_real_subprocess(local_campaign, fake_mpnn, tmp_path, monkeypatch):
     monkeypatch.setenv('PROTEINRSI_API_KEY', 'MUST_NOT_REACH_WORKER')
     monkeypatch.setenv('HTTP_PROXY', 'MUST_NOT_REACH_WORKER')
-    artifact = ArtifactStore(local_campaign.store).put(pdb_fixture(tmp_path / 'x.pdb'), 'pdb')['ref']
     config = LocalToolsConfig(engines={'proteinmpnn': fake_mpnn})
+    local_campaign = Campaign.initialize(str(tmp_path/'engine-campaign'),
+        local_campaign.view().task, local_tools=config)
+    artifact = ArtifactStore(local_campaign.store).put(pdb_fixture(tmp_path / 'x.pdb'), 'pdb')['ref']
     gateway = ToolGateway(local_campaign.store)
     register_local_tools(gateway, local_campaign.store, config)
     args = {'backbone_ref': artifact, 'reference': 'ACDE', 'mutable_positions': [2], 'design_chain': 'B', 'num_sequences': 2, 'temperature': 0.1, 'seed': 17}

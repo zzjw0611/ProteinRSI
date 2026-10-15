@@ -62,6 +62,40 @@ def test_esmc_config_fixes_model_and_rejects_bad_options():
             ESMCConfig(**kwargs)
 
 
+@pytest.mark.core
+def test_optional_model_identity_and_explicit_cache_need_no_inference(tmp_path, monkeypatch):
+    import sys
+    from types import SimpleNamespace
+    from proteinrsi.evaluation_fork import freeze_resources, ModelRevisionUnavailable
+    revision = 'a'*40
+    cache = str(tmp_path/'installed-cache')
+    config = ESMCConfig(revision=revision, cache_dir=cache)
+    campaign = Campaign.initialize(str(tmp_path/'pinned'), TaskSpec(name='fixture',
+        reference_sequence='ACDE', mutable_positions=[2]), protein_config=config)
+    before = campaign.store.usage()
+    resources, _, _ = freeze_resources(campaign)
+    assert resources['protein_pin'] == {'model_id': config.model_id, 'revision': revision}
+    assert campaign.store.get('protein_backend', 'snapshot') is None
+    calls = []
+    def snapshot_download(model_id, **kwargs):
+        calls.append(kwargs)
+        assert kwargs['cache_dir'] == cache and kwargs['local_files_only']
+        return str(tmp_path/revision)
+    monkeypatch.setitem(sys.modules, 'huggingface_hub', SimpleNamespace(snapshot_download=snapshot_download))
+    monkeypatch.setenv('HF_HOME', str(tmp_path/'unrelated-cache'))
+    backend = TransformersBackend(campaign.store, config)
+    assert backend.resolve() == (str(tmp_path/revision), revision)
+    assert backend.model is None and backend.tokenizer is None
+    assert campaign.store.usage() == before and len(calls) == 1
+    assert freeze_resources(campaign)[0]['protein_pin'] == resources['protein_pin']
+    unpinned = Campaign.initialize(str(tmp_path/'unpinned'), campaign.view().task,
+                                   protein_config=ESMCConfig())
+    with pytest.raises(ModelRevisionUnavailable, match='immutable'):
+        freeze_resources(unpinned)
+    with pytest.raises(ValueError, match='absolute'):
+        ESMCConfig(cache_dir='relative/cache')
+
+
 def test_masked_prior_positions_sign_and_cache(esmc_campaign):
     campaign, model, backend = esmc_campaign
     values = model.score_variants("ACDE", ["ACDE", "AVDE", "ACAE", "AVAE"])

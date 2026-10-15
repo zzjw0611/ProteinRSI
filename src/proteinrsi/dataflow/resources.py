@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pydantic import Field, ValidationError, field_validator, model_validator
 
 from proteinrsi.contracts import Candidate, Model, canonical, digest, sequence_hash
-from .schema import ContractError, SchemaRegistry
+from .schema import ContractError, SchemaRegistry, describe_shape
 
 NAMESPACE = "research_step_outputs"  # Already exposed by the bounded research-worker RPC.
 SEQUENCES = "protein.sequence_set/v1"
@@ -115,9 +115,13 @@ def standard_registry() -> SchemaRegistry:
 
 
 def scope_for(view) -> str:
+    # Program outputs are derived from the same authorized evidence and methods.
+    # Adding them to a worker's presentation must not change its input authority.
+    context = {key: value for key, value in view.research_context.items()
+               if key != "workflow_program_outputs"}
     return digest({"task": view.task.model_dump(mode="json"), "round": view.round_index,
                    "evidence": view.evidence_version, "workflow": view.workflow.version,
-                   "meta": view.meta.version, "request_context": view.research_context})
+                   "meta": view.meta.version, "request_context": context})
 
 
 def _preview(value, depth=0):
@@ -193,28 +197,51 @@ class ResourceStore:
         if annotations:
             payload["prediction_refs"] = annotations
         ref = "resource:" + digest(payload)
+        # A controller resolving a worker-created reference needs the exact
+        # nominal schema, not a guess from its preview or an LLM conversion.
+        schema_key = "resource-schema:" + digest({"name": schema_ref, "hash": payload["schema_sha256"]})
+        self.store.put(NAMESPACE, schema_key, {
+            "schema_ref": schema_ref, "schema": self.registry.schema(schema_ref),
+            "input_only": schema_ref in self.registry._input_only}, immutable=True)
         self.store.put(NAMESPACE, ref, payload, immutable=True)
         return self.describe(ref)
 
     def get(self, ref: str, *, schema_ref: str | None = None) -> dict:
         if not isinstance(ref, str) or not ref.startswith("resource:"):
-            raise ContractError("Expected a resource reference")
+            raise ContractError("Expected a resource reference", code="resource_integrity")
         payload = self.store.get(NAMESPACE, ref)
         if not isinstance(payload, dict) or "resource:" + digest(payload) != ref:
-            raise ContractError("Unknown or modified resource reference")
+            raise ContractError("Unknown or modified resource reference", code="resource_integrity")
         if payload["scope"] != self.scope:
-            raise ContractError("Resource belongs to another task/evidence/workflow scope")
+            raise ContractError("Resource belongs to another task/evidence/workflow scope", code="resource_scope")
         actual = payload["schema_ref"]
+        if actual not in self.registry._schemas:
+            schema_key = "resource-schema:" + digest({"name": actual, "hash": payload["schema_sha256"]})
+            record = self.store.get(NAMESPACE, schema_key)
+            if (not record or record["schema_ref"] != actual
+                    or digest(record["schema"]) != payload["schema_sha256"]):
+                raise ContractError("Resource schema is unavailable or changed", code="resource_integrity")
+            self.registry.register(actual, record["schema"], custom=actual.startswith("custom."),
+                                   input_only=record["input_only"])
         if schema_ref is not None and not self.registry.compatible(actual, schema_ref):
             raise ContractError(f"Expected {schema_ref}, received {actual}; use an explicit adapter")
         if payload["schema_sha256"] != self.registry.fingerprint(actual):
-            raise ContractError("Stored resource schema has changed")
+            raise ContractError("Stored resource schema has changed", code="resource_integrity")
         self.validate(actual, payload["data"])
         if actual == SEQUENCES:
             self._prediction_fields(payload["data"], payload.get("prediction_refs", {}))
         elif payload.get("prediction_refs"):
             raise ContractError("Prediction annotations require a sequence resource")
         return deepcopy(payload)
+
+    def hydrate(self, references: dict[str, str], literals: dict | None = None) -> dict:
+        """Resolve only named reference inputs; never scan arbitrary strings or paths."""
+        values = deepcopy(literals or {})
+        if set(values) & set(references):
+            raise ContractError("An input cannot be both literal and hydrated", code="input_collision")
+        for name, ref in references.items():
+            values[name] = self.get(ref)["data"]
+        return values
 
     def _check_structure_artifacts(self, data):
         # Registry lookup works through the worker RPC. Native tools resolve and
@@ -231,6 +258,8 @@ class ResourceStore:
                   "schema_sha256": payload["schema_sha256"], "producer": payload["producer"],
                   "measurement_authority": False}
         data = payload["data"]
+        if payload["schema_ref"] != "context.task/v1":
+            result["shape"] = describe_shape(data)
         if isinstance(data, dict) and isinstance(data.get("items"), list):
             result["count"] = len(data["items"])
             result["preview"] = data["items"][:3]

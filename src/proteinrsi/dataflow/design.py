@@ -86,21 +86,31 @@ def proposal_contract(view) -> dict:
 def _candidate_payload(result: dict):
     if result.get("status") == "failed":
         return None
-    for key in ("candidates", "current_candidates"):
-        if key in result:
-            return result[key]
     output = result.get("output")
     if isinstance(output, dict) and "candidates" in output:
         return output["candidates"]
+    for key in ("candidates", "current_candidates"):
+        if key in result:
+            return result[key]
     return None
 
 
-def prepare_handoff(resources: ResourceStore, tool_results: list[dict]) -> tuple[list, dict]:
+def prepare_handoff(resources: ResourceStore, tool_results: list[dict], *, view=None) -> tuple[list, dict]:
     """Keep native results in storage; present only bounded candidate descriptors to B."""
     compact, allowed = [], {}
     for index, original in enumerate(tool_results):
         result = deepcopy(original)
         payload = _candidate_payload(result)
+        output = result.get("output")
+        if (payload is None and view is not None and result.get("status") == "ok"
+                and isinstance(output, dict) and output.get("status") != "failed" and "edits" in output):
+            try:
+                resolved = resolve_design(Design(edits=output["edits"]), resources, set(), view)
+                payload = [c.model_dump(mode="json") for c in resolved.candidates]
+                output.pop("edits")
+            except (ValueError, ContractError) as exc:
+                # Keep invalid native output available for repair, without offering it for adoption.
+                result["candidate_handoff_error"] = _issues(exc)
         if payload is not None:
             if not isinstance(payload, list):
                 raise ContractError("Candidate output must be an array")
@@ -186,9 +196,12 @@ def _issues(exc) -> list[dict]:
 
 def request_design(llm, store, instructions, view, plan, tool_results, catalog, *,
                    tool_rounds_remaining: int | None = None) -> Design:
+    # Collapse exact duplicate context before projecting; never rewrite scientific tool results.
+    _, evidence = prepare_evidence(view.model_dump(mode="json"), tool_results)
+    view = view.for_task()
     resources = ResourceStore(store, standard_registry(), scope_for(view))
-    presented_view, evidence = prepare_evidence(view.model_dump(mode="json"), tool_results)
-    compact, allowed = prepare_handoff(resources, evidence)
+    presented_view, evidence = prepare_evidence(view.model_dump(mode="json"), evidence)
+    compact, allowed = prepare_handoff(resources, evidence, view=view)
     context = {"view": presented_view, "plan": plan.model_dump(mode="json"),
                "tool_results": compact, "available_tools": catalog,
                "available_candidate_sets": list(allowed.values()), "proposal_contract": proposal_contract(view)}

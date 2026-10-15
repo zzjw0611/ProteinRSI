@@ -112,7 +112,8 @@ def prepare_meta_trial(campaign, state, view, slots, *, team_factory=None):
             store.put("campaign", "state", {"task": full_task.model_dump(mode="json")})
             target_artifacts = ArtifactStore(store)
             for item in artifacts:
-                target_artifacts.put(original_artifacts.resolve(item["ref"]), item["kind"], origin="frozen-parent-context")
+                target_artifacts.put(original_artifacts.resolve(item["ref"]), item["kind"], origin="frozen-parent-context",
+                                     task_visible=original_artifacts.is_task_visible(item["ref"]))
             team = team_factory(store) if team_factory else make_validation_team(campaign, store)
             child_view = view.model_copy(deep=True, update={"meta": policy, "artifacts": artifacts})
             snapshot(store, "frozen_improver_input", child_view, branch=arm)

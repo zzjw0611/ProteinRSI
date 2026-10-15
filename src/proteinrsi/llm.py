@@ -6,6 +6,7 @@ import json
 import hashlib
 import os
 import random
+from functools import lru_cache
 from email.utils import parsedate_to_datetime
 import time
 from pathlib import Path
@@ -23,21 +24,40 @@ class LLMError(RuntimeError):
 
 
 class ProviderPaused(LLMError):
-    """A provider preflight or retry limit paused work; retain its continuation."""
+    """An audited provider or context pause; retain its cause and continuation."""
+
+    def __init__(self, message: str, *, reason: str = "provider_paused"):
+        super().__init__(message)
+        self.reason = reason
 
 
 # An administrative byte budget, NOT a model token/window claim. Operators must
 # validate their own provider's input/output contract before raising this limit.
-DEFAULT_MAX_REQUEST_BYTES = 256 * 1024
+DEFAULT_MAX_REQUEST_BYTES = 1024 * 1024
+DEFAULT_INPUT_TOKENS = 128000
+DEFAULT_OUTPUT_TOKENS = 16384
+
+
+@lru_cache(maxsize=1)
+def _encoding():
+    import tiktoken
+    return tiktoken.get_encoding("o200k_base")
+
+
+def estimate_tokens(text: str) -> int:
+    """An explicit surrogate estimate, never a provider tokenizer guarantee."""
+    return len(_encoding().encode(text, disallowed_special=()))
 
 
 class JSONLLM:
     def __init__(self, store: Store, *, model: str, base_url: str,
-                 api_key: str, max_tokens: int = 4096, timeout: float = 90,
+                 api_key: str, max_tokens: int = DEFAULT_OUTPUT_TOKENS, timeout: float = 90,
                  api_protocol: str = "chat_completions", reasoning_effort: str | None = None,
                  allow_http: bool = False, max_attempts: int = 4,
                  transport: httpx.BaseTransport | None = None, connect_timeout: float = 15,
-                 max_request_bytes: int = DEFAULT_MAX_REQUEST_BYTES):
+                 max_request_bytes: int = DEFAULT_MAX_REQUEST_BYTES,
+                 input_target_tokens: int = DEFAULT_INPUT_TOKENS,
+                 context_window: int | None = None):
         parsed = urlsplit(base_url)
         if parsed.scheme != "https" and not (parsed.scheme == "http" and
                 (allow_http or parsed.hostname in ("localhost", "127.0.0.1"))):
@@ -59,6 +79,11 @@ class JSONLLM:
             raise ValueError("LLM max_tokens must be a positive integer")
         if type(max_request_bytes) is not int or max_request_bytes < 1:
             raise ValueError("LLM max_request_bytes must be a positive integer; unbounded input is unsupported")
+        if type(input_target_tokens) is not int or input_target_tokens < 1:
+            raise ValueError("LLM input_target_tokens must be a positive integer")
+        if context_window is not None and (type(context_window) is not int or context_window <= max_tokens + 8192):
+            raise ValueError("LLM context_window must leave room for input, output and gateway overhead")
+        self.input_target_tokens, self.context_window = input_target_tokens, context_window
         self.max_request_bytes = max_request_bytes
         self.max_attempts = max_attempts
         self.store, self.model = store, model
@@ -94,7 +119,7 @@ class JSONLLM:
         return cls(store, model=os.environ.get("PROTEINRSI_MODEL", ""),
                    base_url=os.environ.get("PROTEINRSI_BASE_URL", ""),
                    api_key=api_key,
-                   max_tokens=int(os.environ.get("PROTEINRSI_LLM_MAX_OUTPUT_TOKENS", "4096")),
+                   max_tokens=int(os.environ.get("PROTEINRSI_LLM_MAX_OUTPUT_TOKENS", str(DEFAULT_OUTPUT_TOKENS))),
                    api_protocol=os.environ.get("PROTEINRSI_API_PROTOCOL", "chat_completions"),
                    reasoning_effort=os.environ.get("PROTEINRSI_REASONING_EFFORT") or None,
                    allow_http=os.environ.get("PROTEINRSI_ALLOW_HTTP", "").lower() == "true",
@@ -102,7 +127,34 @@ class JSONLLM:
                    max_attempts=int(os.environ.get("PROTEINRSI_LLM_MAX_ATTEMPTS", "4")),
                    connect_timeout=float(os.environ.get("PROTEINRSI_LLM_CONNECT_TIMEOUT", "15")),
                    max_request_bytes=int(os.environ.get("PROTEINRSI_LLM_MAX_REQUEST_BYTES",
-                                                       str(DEFAULT_MAX_REQUEST_BYTES))))
+                                                       str(DEFAULT_MAX_REQUEST_BYTES))),
+                   input_target_tokens=int(os.environ.get("PROTEINRSI_LLM_INPUT_TOKENS", str(DEFAULT_INPUT_TOKENS))),
+                   context_window=int(os.environ["PROTEINRSI_LLM_CONTEXT_WINDOW"])
+                       if os.environ.get("PROTEINRSI_LLM_CONTEXT_WINDOW") else None)
+
+    @property
+    def capacity_settings(self) -> dict:
+        return {"input_target_tokens": self.input_target_tokens,
+                "context_window": self.context_window, "max_request_bytes": self.max_request_bytes}
+
+    def request_capacity(self, instructions: str, context: dict, schema: dict) -> dict:
+        """Use the complete native request, including instructions and schema."""
+        endpoint, payload = self._payload(instructions, context, schema)
+        body = httpx.Request("POST", self.base_url + endpoint, json=payload).content
+        return self._capacity(payload, body)
+
+    def _capacity(self, payload: dict, body: bytes) -> dict:
+        messages = payload.get("input", payload.get("messages", []))
+        tokens = sum(estimate_tokens(m["content"]) + 8 for m in messages) + 8192
+        token_limit = self.input_target_tokens
+        if self.context_window is not None:
+            token_limit = min(token_limit, self.context_window - self.max_tokens)
+        return {"request_bytes": len(body), "max_request_bytes": self.max_request_bytes,
+                "estimated_input_tokens": tokens, "input_target_tokens": token_limit,
+                "reserved_output_tokens": self.max_tokens, "gateway_reserve_tokens": 8192,
+                "tokenizer": "o200k_base_surrogate", "input_tokens": None,
+                "context_window": self.context_window, "context_window_verified": False,
+                "fits": len(body) <= self.max_request_bytes and tokens <= token_limit}
 
     def complete(self, role: str, instructions: str, context: dict[str, Any], schema: dict) -> dict:
         from proteinrsi.research.context import complete, enabled
@@ -110,7 +162,7 @@ class JSONLLM:
             return complete(self, role, instructions, context, schema)
         return self._complete(role, instructions, context, schema)
 
-    def _complete(self, role: str, instructions: str, context: dict[str, Any], schema: dict) -> dict:
+    def _payload(self, instructions: str, context: dict, schema: dict) -> tuple[str, dict]:
         # JSON mode is widely supported; independently validate every response at the caller.
         messages = [{"role": "system", "content": instructions +
                      "\nReturn exactly one JSON object matching this schema:\n" + canonical(schema)},
@@ -129,6 +181,10 @@ class JSONLLM:
                        "response_format": {"type": "json_object"}}
             if self.reasoning_effort is not None:
                 payload["reasoning_effort"] = self.reasoning_effort
+        return endpoint, payload
+
+    def _complete(self, role: str, instructions: str, context: dict[str, Any], schema: dict) -> dict:
+        endpoint, payload = self._payload(instructions, context, schema)
         cache_url = self.base_url if self.api_protocol == "chat_completions" else self.base_url + endpoint
         key = "llm-" + digest({"role": role, "url": cache_url,
                               "request": payload})
@@ -178,17 +234,16 @@ class JSONLLM:
         changing the request, resetting paid attempts, or rewriting old evidence.
         """
         from proteinrsi.audit import redact
-        preflight = {"version": 1, "request_bytes": len(request_body),
-            "max_request_bytes": self.max_request_bytes,
-            "request_body_sha256": hashlib.sha256(request_body).hexdigest(),
-            "input_tokens": None, "context_window_verified": False}
-        if len(request_body) <= self.max_request_bytes:
+        preflight = {"version": 2, **self._capacity(payload, request_body),
+            "request_body_sha256": hashlib.sha256(request_body).hexdigest()}
+        if preflight["fits"]:
             return preflight
         # Repeated rejection of the same bytes and cap has one immutable receipt,
         # separate from paid attempts. Keep the complete request, never a preview.
         preflight_key = key + "/preflight-" + digest(preflight)
         request = redact(payload, (self.api_key,))
-        audit = {"state": "rejected", "reason": "request_bytes_exceeded",
+        reason = "request_bytes_exceeded" if len(request_body) > self.max_request_bytes else "input_target_exceeded"
+        audit = {"state": "rejected", "reason": reason,
             "request_key": key, "role": role, "model": self.model,
             "api_protocol": self.api_protocol, "base_url": self.base_url,
             "round": context.get("view", {}).get("round_index"),
@@ -200,7 +255,9 @@ class JSONLLM:
             "role": audit["role"], "round": audit["round"], "reason": audit["reason"], **preflight})
         raise ProviderPaused(
             f"Native request preflight rejected {key}: {len(request_body)} serialized UTF-8 JSON bytes "
-            f"exceed max_request_bytes={self.max_request_bytes}. No network call or LLM budget charge. "
+            f"(max_request_bytes={self.max_request_bytes}), estimated input "
+            f"{preflight['estimated_input_tokens']} tokens (target={preflight['input_target_tokens']}). "
+            "No network call or LLM budget charge. "
             "Check the provider model's tokenizer/context window and output allowance before adjusting "
             "PROTEINRSI_LLM_MAX_REQUEST_BYTES (or max_request_bytes), then resume the same request. "
             "A byte limit is not token-window verification; do not truncate evidence or authorize retries "
@@ -290,10 +347,11 @@ class JSONLLM:
         audit.update(state="done", result=result, raw_output=content, usage=body.get("usage", {}),
                      ended_at=time.time(), duration_seconds=time.time()-started)
         audit = redact(audit, (self.api_key,))
-        self.store.put("llm_attempts", attempt_key, audit, immutable=True)
-        self.store.put("llm", key, audit)
-        self.store.event("llm_completed", {"role": role, "key": key, "model": self.model,
-                                          "usage": body.get("usage", {}), "attempt": attempt, "attempt_key": attempt_key})
+        with self.store.transaction():
+            self.store.put("llm_attempts", attempt_key, audit, immutable=True)
+            self.store.put("llm", key, audit)
+            self.store.event("llm_completed", {"role": role, "key": key, "model": self.model,
+                                              "usage": body.get("usage", {}), "attempt": attempt, "attempt_key": attempt_key})
         return result
 
 

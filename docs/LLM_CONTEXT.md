@@ -1,46 +1,94 @@
 # LLM input context and native-provider preflight
 
-## Native HTTP request budget
+## Current state first, scoped history on demand
 
-`JSONLLM` applies an inclusive **262,144-byte (256 KiB)** default budget to each
-new native HTTP request before opening a networking client, reserving/committing
-an LLM call, or sleeping for a provider retry. Configure it with
-`PROTEINRSI_LLM_MAX_REQUEST_BYTES` or the Python constructor's `max_request_bytes`.
-The value must be a positive integer; zero, negative values and an unbounded mode
-are unsupported. This is an administrative safety default, not a model-specific
-capacity estimate. It applies to all native roles and sponsored validation calls.
+New `start`/default `init` studies freeze context policy `state-v1`. Controller-owned
+facts (round, budget, QC counts, best measured, evidence identity) and the Analyst's
+bounded working memory form the current research state. Working memory replaces
+the previous focus/hypotheses/questions; it is not an accumulating conversation.
+State versions and source feedback receipts commit in the same transaction. Resume
+cannot update the same feedback twice. Comparison arms clone the same state and
+then update their own memory independently.
 
-The measured bytes are the complete HTTPX-serialized UTF-8 JSON body: instructions,
-schema, context, model name, API envelope, requested output allowance and reasoning
-settings. Both Chat Completions and Responses are covered. The client transmits
-those **same bytes**, rather than separately estimating context size and encoding
-another body. HTTP headers are outside this input-body budget. Input construction
-and serialization still materialize the complete request in memory; this is not a
-streaming-memory bound or a prompt compression mechanism.
+Stage inputs contain current task constraints, state, latest feedback/measurements,
+step arguments and relevant contracts. Full history, experience, old verdicts and
+raw artifacts are scoped references even when the model has room for them. There
+is no automatic injection of the last three complete decisions. Original TaskViews
+and records remain intact for audit and sandbox Python. Stage schema catalogues
+use named references; compact operation input contracts stay directly available.
 
-**Passing this byte preflight does not verify token/context-window fit.** No bundled
-tokenizer, bytes-to-token ratio, model-name heuristic or remote token-count endpoint
-is used. Audit fields explicitly record `input_tokens: null` and
-`context_window_verified: false`. Output-token settings and the assistant bridge's
-32 MiB transport envelope are independent limits. The provider may reject a request
-below the byte cap because of token/window, output, protocol or other restrictions.
-Provider-reported usage after a real call remains separate from local admission.
+The state remains at `view.research_context.research_state` in model inputs and
+`context['research_context']['research_state']` in sandbox Python. Only the explicit
+stage `view` receives the scientific state projection; dictionaries inside tool
+results or input-shape descriptions are not inferred to be TaskViews.
+`research_python.execution_contract`, derived from the runtime TaskView model,
+is supplied in tool and operation catalogues and in local repair inputs. Python
+receives original lists and full sequences, never the model's compact tables or
+reference descriptors. `B-repair` preserves code, errors, and type descriptions
+without scientific projection; normal provider capacity, audit, and scoped
+reference controls still apply.
 
-The native output allowance independently defaults to **4,096 tokens**, configurable
-through `PROTEINRSI_LLM_MAX_OUTPUT_TOKENS` / `max_tokens`. That may be insufficient
-for 100 complex candidate JSON entries, depending on the schema, sequence-versus-edit
-representation and model. This repair does not increase that setting or the possible
-cost of each call. Validate expected output size and reserve the appropriate output
-allowance within the provider's total context contract separately. No whole
-100-well native loop or live native endpoint was verified by these mocked tests.
+Generated-code operations advertise both the execution receipt (`result`) and its
+business object (`payload`, at `/output`) in the compact operation contract. Named
+reference bindings hydrate precisely the selected port; the runtime never guesses
+which `output` fields to flatten. Resource descriptions also include bounded `shape`
+metadata with observed field names/types and array counts, without evidence values.
+Array shapes describe only the first item and truncated branches are explicit;
+the registered schema remains authoritative. These descriptions support field mapping
+without asking agents to reload or reproduce complete result tables.
 
-Before raising the byte cap, an operator must check the selected provider/model's
-actual tokenizer and full message/schema overhead, context-window contract,
-requested output/reasoning allowance, and provider-specific limits. Do not derive
-a token count from this byte count. This patch does not establish that any completed
-20-round bridge study can fit a native model's input window. There is no automatic
-truncation, history summarization, prompt editing, model switching or hidden-label
-access to make an oversized request fit.
+`research_evidence_query` and the context `query` action retrieve only previously
+revealed rows by full sequence, mutable-site variant, batch, original zero-based
+batch round, or a specified residue background. Each result reports its snapshot
+identity, coverage and continuation cursor. No matches return
+`status=no_matching_observations`, empty rows and a short explanation. This means
+no record matches the filters in this revealed snapshot, not that the candidate
+was never measured elsewhere, is invalid, or has zero fitness. Agents continue
+their step with unknown values; only experimental submission reveals new labels.
+Repeating the same query receives explicit feedback. Persistent lack of progress
+pauses with `reason=context_stalled`, retained through nested comparisons and in
+the context session audit; resume does not repeat paid calls.
+`read_many` combines overlapping starts for the same reference;
+it streams each selected reference once, retaining continuation cursors.
+
+## One capacity policy
+
+`JSONLLM` uses one policy for every native role: a **128,000-token working input
+target**, **16,384-token output allowance**, and **1,048,576-byte (1 MiB)** native
+request safeguard. Configure these with `PROTEINRSI_LLM_INPUT_TOKENS`,
+`PROTEINRSI_LLM_MAX_OUTPUT_TOKENS`, and `PROTEINRSI_LLM_MAX_REQUEST_BYTES`.
+If the provider declares a total context window, set
+`PROTEINRSI_LLM_CONTEXT_WINDOW`; output allowance is reserved within that window.
+All limits must be positive. These are request capacities, not campaign call budgets.
+
+Context policy `evidence-v1` first supplies the **complete stage input**, including
+the task, observed evidence, current protocol, completed steps and tool contracts.
+It uses the same native-request capacity check as the provider client, including
+instructions and response schema. Small handoffs require no reference-reading turn.
+For oversized inputs, the existing scoped references retain the complete originals;
+reads return whole records in batches up to 16K estimated tokens / 64 KiB. Successfully
+read pages remain available until explicitly released. There is no fixed 12-read
+limit: repeated actions without new evidence pause rather than looping indefinitely.
+No hidden landscape labels are admitted, sampled or summarized into agent context.
+
+The local token counter uses **o200k_base as a surrogate**, with an 8K-token reserve
+for message framing and gateway instructions. The third-party model's tokenizer and
+full window cannot be established from its model name. Audit records therefore
+separate `estimated_input_tokens` from `input_tokens: null` and keep
+`context_window_verified: false`. Provider-reported usage is recorded after each
+call. A provider may still reject requests within local capacities. Install project
+dependencies and initialize the tokenizer cache in the trusted controller; guarded
+research workers do not download tokenizer assets or access the API directly.
+
+The byte check covers the exact HTTPX-serialized UTF-8 JSON body, including schema,
+instructions, context, model and output settings, for Chat Completions and Responses.
+Those same bytes are sent. Exceeding either capacity pauses locally before a network
+call or charge. Evidence is retained; raising a cap does not reset paid attempts.
+
+Local context snapshot writes are batched into short transactions. Identical stored
+values do not generate duplicate updates. Evaluation treats actual LLM failures as
+provider pauses; local persistence and programming errors propagate as local failures
+with a redacted diagnostic traceback in the background job record.
 
 ## Rejection evidence and safe resume
 

@@ -110,6 +110,7 @@ def test_replay_rejects_incorrect_provided_parent_before_any_query(tmp_path, gb1
     assert not campaign.store.all("batches")
 
 
+@pytest.mark.core
 def test_invalid_data_is_rejected_before_goal_api(tmp_path, gb1_data):
     dataset = gb1_data/"processed"/"GB1"/"measurements.csv"
     dataset.write_text(dataset.read_text()+"tampered\n")
@@ -154,6 +155,7 @@ def test_free_parent_requires_a_real_input_value_and_source(gb1_data):
 
 
 @pytest.mark.parametrize("full_plate", [False, True])
+@pytest.mark.core
 def test_cli_prepare_only_uses_natural_goal_without_queries(tmp_path, gb1_data, monkeypatch, capsys, full_plate):
     from proteinrsi.cli import main
     requests = []
@@ -175,6 +177,7 @@ def test_cli_prepare_only_uses_natural_goal_without_queries(tmp_path, gb1_data, 
     report = json.loads((out/"report.json").read_text())
     assert report["completed_rounds"] == 0
     assert report["research_config"]["protocol_mode"] == "typed"
+    assert report["research_config"]["method_policy"] == "direct"
     saved_task = json.loads((out/"task.json").read_text())
     assert saved_task["candidate_access"] == "open" and saved_task["candidates"] == []
     assert saved_task["batch_fill_policy"] == ("full_plate" if full_plate else "flexible")

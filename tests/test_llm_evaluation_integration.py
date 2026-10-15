@@ -57,6 +57,7 @@ class EvaluationHTTP:
         payload = json.loads(request.content)
         system = payload["messages"][0]["content"]
         schema = json.loads(system.split("matching this schema:\n", 1)[1])
+        schema = schema.get("anyOf", [schema])[0]  # Context actions wrap the unchanged E decision schema.
         phase = "verdict" if "supporting_evidence_refs" in schema["properties"] else "plan"
         assert phase == "verdict" or "criteria" in schema["properties"], system
         context = json.loads(payload["messages"][1]["content"])

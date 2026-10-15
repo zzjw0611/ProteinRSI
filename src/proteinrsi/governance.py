@@ -16,21 +16,22 @@ from jsonschema import ValidationError as SchemaError
 from pydantic import Field
 
 from proteinrsi.audit import redact
-from proteinrsi.contracts import GatePolicy, MetaPolicy, Model, Patch, TaskSpec, Workflow, digest
+from proteinrsi.contracts import (EvaluationPolicy, GatePolicy, MetaPolicy, Model, Patch, TaskSpec,
+    Workflow, digest)
 from proteinrsi.storage import BudgetExceeded, Conflict
 
 Target = Literal["workflow", "meta"]
 TYPES = {"workflow": Workflow, "meta": MetaPolicy}
 PENDING = {"workflow": "pending_patch", "meta": "pending_meta"}
-TERMINAL = {"accepted", "rejected", "inconclusive", "failed", "cancelled"}
+TERMINAL = {"accepted", "adopted_unvalidated", "rejected", "inconclusive", "failed", "cancelled"}
 TRANSITIONS = {
-    "staged": {"validating", "awaiting_approval", "failed", "blocked", "inconclusive", "cancelled"},
+    "staged": {"validating", "adopted_unvalidated", "awaiting_approval", "failed", "blocked", "inconclusive", "cancelled"},
     "validating": {"staged", "awaiting_approval", "accepted", "rejected", "inconclusive", "failed", "blocked", "cancelled"},
     "awaiting_approval": {"staged", "awaiting_results", "cancelled"},
     "awaiting_results": {"accepted", "rejected", "inconclusive"},
     "blocked": {"cancelled"},
 }
-CONFIG_KEYS = ("prompt_bundle", "research", "know_how", "protein_model", "local_tools")
+CONFIG_KEYS = ("prompt_bundle", "research", "know_how", "protein_model", "local_tools", "execution_authorization")
 CALL_NAMESPACES = ("llm", "tool_jobs", "validation_llm", "validation_tool_jobs")
 
 
@@ -174,6 +175,10 @@ class MethodGovernance:
                 record = self.store.get("method_candidate_states", patch.patch_id, {})
                 offline_running = any(attempt.get("state") in {"started", "paused_provider", "measurements_committed", "blocked"}
                     and attempt.get("patch_id") == patch.patch_id
+                    and not (namespace == "harness_attempts"
+                             and attempt.get("defer_publication")
+                             and attempt.get("budget_scope") == "independent"
+                             and attempt.get("state") in {"started", "paused_provider", "completed"})
                     for namespace in ("meta_attempts", "harness_attempts")
                     for attempt in self.store.all(namespace).values())
                 if record.get("status") == "blocked" or offline_running:
@@ -193,6 +198,10 @@ class MethodGovernance:
         current = TYPES[patch.target].model_validate(state[patch.target])
         base_ref = self._snapshot(patch.target, current)
         candidate_ref = self._snapshot(patch.target, candidate)
+        research = self.store.get("configuration", "research", {})
+        budget_scope = (EvaluationPolicy.model_validate(research.get("auto_evaluation") or {}).budget_scope
+                        if research.get("evaluation_protocol") in {"task-loop-v1", "method-loop-v1"}
+                        else "shared_campaign")
         record = {"patch": patch.model_dump(mode="json"), "parent_version": current.version,
             "base_snapshot_ref": base_ref, "candidate_snapshot_ref": candidate_ref,
             "evidence_version": self.campaign.view(state).evidence_version,
@@ -201,7 +210,7 @@ class MethodGovernance:
                 "gate": state["gate"], "metric": ("direction_adjusted_best_topN_avg"
                     if state["gate"].get("criterion") in {"observed_pareto_v1", "llm_adjudicated_v1"} else "mean_signed_outcome"),
                 "task_metric": state["task"]["metric"], "direction": state["task"]["direction"],
-                "budget_scope": "shared_campaign", "transfer_validated": False}}
+                "budget_scope": budget_scope, "transfer_validated": False}}
         self.store.put("method_candidates", patch.patch_id, record, immutable=True)
         self.transition(state, patch, "staged", {"candidate_snapshot_ref": candidate_ref})
 
@@ -262,7 +271,7 @@ class MethodGovernance:
                 previous = self.store.get("method_candidate_states", patch.patch_id, {})
                 self.transition(state, patch, status, detail)
                 if previous.get("status") not in TERMINAL:
-                    if status == "accepted":
+                    if status in {"accepted", "adopted_unvalidated"}:
                         state["method_governance"]["consecutive_failures"] = 0
                     elif status != "cancelled":
                         self._count_failure(state, status)
@@ -306,6 +315,31 @@ class MethodGovernance:
                 self.store.put(patch.target+"_versions", candidate.version, candidate.model_dump(), immutable=True)
             self.finish(state, patch, result.decision,
                         detail={"evaluation_ref": evaluation_ref, "result": result.model_dump()})
+
+    def adopt_unvalidated(self, state: dict, patch: Patch) -> None:
+        """Explicit operator policy; never forge an Evaluator acceptance receipt."""
+        if self.store.get("configuration", "research", {}).get("method_policy", "validate") != "direct":
+            raise PermissionError("Direct adoption is not authorized by this study")
+        self._require_enabled()
+        self.assert_idle({**state, PENDING[patch.target]: None})
+        self.assert_plannable(state)
+        self.require_target(patch.target)
+        self.policy.validate_patch(patch)
+        if (state[PENDING[patch.target]] != patch.model_dump(mode="json") or
+                TYPES[patch.target].model_validate(state[patch.target]).version != patch.base_version):
+            raise Conflict("Direct adoption must use the staged candidate and its current parent")
+        record = self.store.get("method_candidates", patch.patch_id)
+        candidate = TYPES[patch.target].model_validate(
+            self._validated_snapshot(patch.target, record["candidate_snapshot_ref"])["definition"])
+        for program in candidate.programs:
+            compile(program.code, "<method-program>", "exec")
+        with self.store.transaction():
+            self._switch(state, patch.target, record["candidate_snapshot_ref"],
+                reason="Operator-authorized direct adoption; capability improvement unvalidated",
+                operator="frozen-study-policy", action="adopt_unvalidated")
+            self.store.put(patch.target + "_versions", candidate.version, candidate.model_dump(), immutable=True)
+            self.finish(state, patch, "adopted_unvalidated", detail={"validated": False,
+                "candidate_snapshot_ref": record["candidate_snapshot_ref"], "evaluation_ref": None})
 
     def _validated_snapshot(self, target: Target, ref: str) -> dict:
         record = self.store.get("method_snapshots", ref)

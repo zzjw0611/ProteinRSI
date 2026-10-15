@@ -36,13 +36,19 @@ class LearningTeam(Team):
 
 
 @pytest.fixture
-def root(tmp_path):
+def root(tmp_path, request):
+    param = getattr(request, "param", None)
+    scope, protein = param if isinstance(param, tuple) else ("shared_campaign", param)
+    compute = 200 if scope == "shared_campaign" else None
     task = TaskSpec(name="mechanism", reference_sequence="AAAA", mutable_positions=[1],
         max_mutations=1, candidates=SEQUENCES, controls_per_batch=0, batch_size=2,
-        max_rounds=3, budget=BudgetSpec(experimental_wells=64, llm_calls=200, tool_calls=200))
+        max_rounds=3, budget=BudgetSpec(experimental_wells=64, llm_calls=compute, tool_calls=compute))
     c = Campaign.initialize(str(tmp_path / "root"), task, gate=GatePolicy(min_per_arm=2),
+        protein_config=protein,
         research_config=ResearchConfig(enabled=False, workflow_validation="independent",
-            evaluation_protocol="task-loop-v1", auto_evaluation={"main_reserve_wells": 2, "llm_calls_per_arm": 8, "tool_calls_per_arm": 8}))
+            evaluation_protocol="task-loop-v1", auto_evaluation={"budget_scope": scope, "main_reserve_wells": 2,
+                "llm_calls_per_arm": None if compute is None else 8,
+                "tool_calls_per_arm": None if compute is None else 8}))
     LearningTeam.seen = []
     LearningTeam.pause_once = False
     c.team = LearningTeam(c.store)
@@ -57,12 +63,61 @@ def stage(c):
     return p
 
 
+@pytest.mark.core
+@pytest.mark.parametrize('root', [('independent', None)], indirect=True)
+def test_background_pair_runs_concurrently_and_publishes_at_boundary(root):
+    from threading import Barrier, Event
+    from proteinrsi.evaluation_scheduler import EvaluationScheduler
+    from proteinrsi.loop_evaluation import CaseFeedback
+
+    barrier, entered, release = Barrier(2), Event(), Event()
+
+    class WaitingTeam(LearningTeam):
+        def run(self, view):
+            if self.store.get('configuration', 'evaluation_branch') and view.round_index == 0:
+                barrier.wait(timeout=10)
+                entered.set()
+                assert release.wait(timeout=10)
+            return super().run(view)
+
+    patch = stage(root)
+    original = root.view().workflow.version
+    validation_cases = cases(root)
+    scheduler = EvaluationScheduler(root, None, cases=validation_cases, team_factory=WaitingTeam)
+    try:
+        scheduler.checkpoint(root)
+        assert entered.wait(timeout=10), 'Both arms must start before either is released'
+        batch = root.prepare()
+        assert all(sample.workflow_version == original for sample in batch.samples)
+        root.approve(batch.batch_id, operator='fixture')
+        root.ingest(CaseFeedback(validation_cases[0]).measure(batch))
+        assert root.view().workflow.version == original
+        assert len(root.state['observations']) == 2
+    finally:
+        release.set()
+        scheduler.close(publish=False)
+    report = next(iter(root.store.all('harness_evaluations').values()))
+    assert report['gate']['decision'] == 'accepted'
+    assert not report['promoted'] and report['publication_deferred']
+    assert root.view().workflow.version == original
+    scheduler.poll()
+    assert root.view().workflow.version == report['challenger']
+    assert root.state['pending_patch'] is None
+    assert root.store.usage()['experimental_wells']['committed'] == 2
+    assert report['budget_after']['experimental_wells']['committed'] == 16
+    before = deepcopy(root.store.usage())
+    scheduler.poll()
+    assert root.store.usage() == before
+    assert root.store.get('evaluation_publications', report['evaluation_id'])['patch_id'] == patch.patch_id
+
+
 def cases(c, split="validation"):
     labels = {s: float(i) for i, s in enumerate(sorted(SEQUENCES))}
     result = []
     for i in range(2):
         task = c.view().task.model_copy(deep=True)
-        task.budget = BudgetSpec(experimental_wells=4, llm_calls=8, tool_calls=8)
+        compute = None if task.budget.llm_calls is None else 8
+        task.budget = BudgetSpec(experimental_wells=4, llm_calls=compute, tool_calls=compute)
         task.max_rounds = 2
         seq = SEQUENCES[5+i]
         initial = [Observation(sample_id="initial", batch_id="prestudy", sequence=seq,
@@ -73,13 +128,29 @@ def cases(c, split="validation"):
     return result
 
 
+@pytest.mark.core
+@pytest.mark.parametrize("root", [None, {"revision": "a"*40, "max_model_inputs": 4},
+    ("independent", {"revision": "a"*40})], indirect=True)
 def test_full_feedback_replanning_free_initial_and_frozen_methods(root, monkeypatch):
     p = stage(root)
     monkeypatch.setattr("proteinrsi.agents.MetaAgent.propose", lambda *a, **k: pytest.fail("Improver invoked in fixed-H branch"))
     report = evaluate_workflow(root, cases(root), promote=True, team_factory=LearningTeam)
     assert report["promoted"]
-    assert root.store.usage()["experimental_wells"]["committed"] == 16
-    assert root.store.remaining("experimental_wells") == 48
+    independent = report["budget_scope"] == "independent"
+    spec = root.store.get("evaluation_specs", report["spec_ref"])
+    if root.store.get("configuration", "protein_model"):
+        assert root.store.usage()["plm_inputs"]["committed"] == 0
+        assert root.store.get("protein_backend", "snapshot") is None
+        assert all(c["resource_limits"]["plm_inputs"] == (None if independent else 1) for c in spec["cases"])
+    assert root.store.usage()["experimental_wells"]["committed"] == (0 if independent else 16)
+    assert root.store.remaining("experimental_wells") == (64 if independent else 48)
+    if independent:
+        assert report["main_budget_before"] == report["main_budget_after"]
+        assert report["budget_after"]["experimental_wells"]["committed"] == 16
+        assert all(c["resource_limits"][r] is None for c in spec["cases"]
+                   for r in ("llm_calls", "tool_calls", "plm_inputs"))
+        assert "compute_budget" not in spec["stopping_conditions"]
+        assert root.store.all("validation_measurements")  # Independent funding keeps the audit trail.
     assert not root.state["observations"]
     for pair in report["traces"]:
         for trace in pair.values():
@@ -118,6 +189,7 @@ def test_pause_resume_does_not_repeat_completed_round_or_charge(root):
     assert LearningTeam.seen.count(("additive", 0, 1)) == 2  # One per case, not repeated on resume.
 
 
+@pytest.mark.core
 def test_branch_memory_and_evidence_are_private(root):
     stage(root)
     root.store.put("experience", "shared", {"scope": {"task_kind": "variant_design"}, "status": "local_support", "text": "same initial memory"})
@@ -198,16 +270,30 @@ def test_automatic_same_snapshot_comparison_needs_no_case_json(root):
     assert root.state["pending_patch"] is None
 
 
-def test_known_budget_shortage_defers_and_main_keeps_running(root):
+@pytest.mark.core
+@pytest.mark.parametrize("root,exhaust_budget", [
+    (None, True), ({"revision": "main", "max_model_inputs": 4}, True),
+    ({"revision": "main", "max_model_inputs": 4}, False)], indirect=["root"])
+def test_prestart_validation_defers_and_main_keeps_running(root, monkeypatch, exhaust_budget):
     from proteinrsi.evaluation_scheduler import schedule_evaluation
+    if exhaust_budget:
+        monkeypatch.setattr("proteinrsi.loop_evaluation.freeze_resources",
+                            lambda *_: pytest.fail("Optional resources checked before budget preflight"))
     stage(root)
-    root.store.reserve("prior-work", "experimental_wells", 58, {"operator": "fixture"})
-    root.store.settle("prior-work")
+    if exhaust_budget:
+        root.store.reserve("prior-work", "experimental_wells", 58, {"operator": "fixture"})
+        root.store.settle("prior-work")
+    before = root.store.usage()
     class Oracle:
         _labels = {s: (float(i), "valid") for i, s in enumerate(sorted(SEQUENCES))}
     assert schedule_evaluation(root, Oracle(), team_factory=LearningTeam) is None
     assert root.state["pending_patch"] and root.store.all("evaluation_deferrals")
     assert not root.store.all("harness_attempts")
+    assert not root.store.all("budget_allocation_groups")
+    assert root.store.get("protein_backend", "snapshot") is None
+    assert root.store.usage() == before
+    if not exhaust_budget:
+        assert 'immutable revision' in next(iter(root.store.all('evaluation_deferrals').values()))['reason']
     assert root.prepare() is not None
 
 
@@ -231,6 +317,7 @@ def test_complete_replay_uses_shared_loop_and_analysis_when_meta_disabled(root, 
     assert cost == root.store.usage()
 
 
+@pytest.mark.core
 def test_manual_feedback_boundary_and_resume(root):
     from proteinrsi.task_loop import run_task_loop
     result = run_task_loop(root)
@@ -266,7 +353,7 @@ def test_generated_metric_plan_and_llm_verdict_use_reserved_e_budget(root, monke
     campaign = Campaign.initialize(str(root.store.root / "llm"), root.view().task,
         gate=GatePolicy(criterion="llm_adjudicated_v1"),
         research_config=ResearchConfig(enabled=False, workflow_validation="independent",
-            evaluation_protocol="task-loop-v1", auto_evaluation={"main_reserve_wells": 2}))
+            evaluation_protocol="task-loop-v1", auto_evaluation={"budget_scope": "shared_campaign", "main_reserve_wells": 2}))
     provider = EvaluationHTTP(campaign.store, plan=custom_plan())
     campaign.team = provider.team(campaign.store)
     def metric_worker(store, view, args, *, pure=False):

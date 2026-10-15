@@ -24,6 +24,7 @@ def success():
                                    'usage': {'total_tokens': 12}})
 
 
+@pytest.mark.core
 def test_gateway_retry_preserves_attempts_cost_and_trace(tmp_path, monkeypatch):
     calls = []
     def handler(request):

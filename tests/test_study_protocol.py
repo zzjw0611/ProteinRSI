@@ -165,7 +165,7 @@ def test_worker_rpc_protocol_with_explicit_test_only_security_double(campaign, m
              "tools": gateway.catalog(view.task, allowed), "allow_egress": False,
              "llm": {"model": llm.model, "base_url": llm.base_url, "cache_settings": {}}}
     monkeypatch.setattr("proteinrsi.replay.sandbox.restrict", lambda *a: {"TEST_ONLY_SECURITY_DOUBLE": True})
-    monkeypatch.setattr(worker, "rpc", lambda op, **kw: dispatch(team, gateway, view, allowed, {"rpc": op, **kw}))
+    monkeypatch.setattr(worker, "rpc", lambda op, **kw: dispatch(team, gateway, view, allowed, {"rpc": op, **kw}, operation=operation))
     monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps(start) + "\n"))
     output = io.StringIO()
     monkeypatch.setattr(sys, "stdout", output)

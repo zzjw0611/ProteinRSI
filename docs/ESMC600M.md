@@ -53,8 +53,21 @@ cache (HF_HOME), then run `esmc-check` without `--download`. HF_TOKEN, when need
 is read by Hugging Face tooling and must not be committed. Treat the cache as
 trusted, immutable model storage.
 
+For a shared server, set `cache_dir` to the absolute Hugging Face **hub cache**
+directory in the ESMC configuration, or in `esmc.cache_dir` of the local-tools
+configuration. For example, `/home/user/models/huggingface/hub`. This explicit
+path takes precedence over inherited `HF_HOME` and is also passed to the isolated
+model worker. Omitting it retains Hugging Face's environment-based defaults.
+
+Method comparisons freeze a configured full commit without loading weights.
+If only a mutable revision such as `main` is available and has never been
+resolved, automatic validation remains pending while the original method
+continues. Pin the revision when configuring a new study; `esmc-check` is an
+explicit inference check, not a required side effect of making a tool optional.
+
 `examples/esmc600m.json` controls device, dtype, batching, context, masked-position
-limit and `max_model_inputs`. These operator settings are saved at initialization;
+limit and `max_model_inputs`. `max_model_inputs` defaults to `null` (unlimited),
+with actual inputs still recorded. These operator settings are saved at initialization;
 editing the example later does not mutate an existing experiment. Explicit full
 HF commit revisions are preferable for published research; `main` is resolved only
 once per campaign. We do not automatically upgrade old campaigns or their weights.

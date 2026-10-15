@@ -21,6 +21,14 @@ The controller enforces evidence identity, budgets, permissions, schemas and dur
 exactly-once adoption. E-plan/E-verdict are evaluation calls, not another protein
 prediction capability. Missing or invalid replies pause; they never approve a method.
 Existing studies and historical gates are not reclassified or silently migrated.
+New studies use a bounded current research state and query historical revealed
+evidence on demand. New CLI studies default to `--method-policy direct`: statically
+admitted changes are adopted at a round boundary as `adopted_unvalidated`.
+Use `--method-policy validate` for parallel W comparisons (one round of eight
+candidates per arm) and a round-boundary wait. Adding `--method-execution background`
+allows the parent to continue with its published version. M comparisons retain two small Task rounds
+so the fixed Improver actually runs before its subsequent effect is assessed.
+Versions, rollback, exact receipts and a readable `trajectory.txt` remain available.
 See [evaluation](docs/EVALUATION.md) and `configs/gate.llm_adjudicated.json`.
 
 ## Four logical roles and one campaign controller
@@ -100,7 +108,8 @@ proteinrsi demo --adaptive --out runs/research-demo --rounds 3
 proteinrsi research plans --campaign runs/research-demo/campaign
 proteinrsi research resources --campaign runs/research-demo/campaign
 proteinrsi research analyze --campaign runs/research-demo/campaign
-pytest -q
+pytest -q                         # Minimal core checks
+pytest -q -m 'not real_esmc'      # Optional full regression
 ```
 
 The demo uses synthetic numerical labels and scripted roles, not real LLM reasoning,
@@ -131,11 +140,12 @@ without case-scoped artifact/evaluation support. See [TESTING](docs/TESTING.md).
 
 ### Automatic task-local Meta trials and trajectory
 
-New campaigns validate pending MetaPolicy changes in the next batch. Frozen old/new
-improvers share revealed evidence and symmetric compute caps, propose descendant
-workflows, and submit equal disjoint candidate sets. All queries and computation
-charge the campaign ledger. Acceptance promotes only the MetaPolicy. Identical
-descendants or failed/inconclusive trials do not promote; insufficient slots defer.
+New campaigns validate W/M changes through the same multi-round Task Loop. Frozen
+old/new methods share revealed evidence, tools and initial memory. Main experiments
+and comparisons have separate query ledgers; compute calls are unlimited by default
+but remain accounted. Nested W trials consume their enclosing M arm's query quota.
+Acceptance promotes only the evaluated method; branch-local W successors stay local.
+Failed/inconclusive trials do not promote; insufficient comparison slots defer.
 This is exploratory current-task evidence, not cross-protein generalization.
 Configured local engines and registered artifacts are available in isolated branches.
 The separate multi-case `evaluate-meta` protocol retains its existing restrictions.

@@ -24,6 +24,7 @@ def test_mutation_reference_and_numbering():
             apply_mutations("ACDE", edits)
 
 
+@pytest.mark.core
 def test_fixed_positions_and_mutation_limit():
     task = TaskSpec(name="test", reference_sequence="ACDE", mutable_positions=[2], max_mutations=1)
     validate_candidate(task, Candidate(sequence="AFDE"))

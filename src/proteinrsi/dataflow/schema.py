@@ -26,6 +26,40 @@ class ContractError(ValueError):
         return {"path": self.path, "code": self.code, "message": str(self)}
 
 
+def describe_shape(value: Any) -> dict:
+    """Bounded observed structure, not a validator or a copy of evidence values.
+
+    Array elements may differ: only the first item's shape is described. The
+    registered schema remains authoritative; truncated branches are explicit.
+    """
+    remaining = 160
+
+    def visit(item, depth):
+        nonlocal remaining
+        remaining -= 1
+        kind = ("object" if isinstance(item, dict) else "array" if isinstance(item, list)
+                else "null" if item is None else "boolean" if isinstance(item, bool)
+                else "integer" if isinstance(item, int) else "number" if isinstance(item, float)
+                else "string" if isinstance(item, str) else "unknown")
+        result = {"type": kind}
+        if isinstance(item, dict):
+            result.update(field_count=len(item), properties={})
+            for key, child in item.items():
+                if depth >= 4 or remaining <= 0 or len(result["properties"]) >= 24:
+                    break
+                result["properties"][key] = visit(child, depth + 1)
+            result["complete"] = len(result["properties"]) == len(item)
+        elif isinstance(item, list):
+            result["count"] = len(item)
+            if item and depth < 4 and remaining > 0:
+                result["first_item_shape"] = visit(item[0], depth + 1)
+            elif item:
+                result["complete"] = False
+        return result
+
+    return visit(value, 0)
+
+
 def pointer(value: Any, path: str) -> Any:
     """Small RFC 6901 reader: no expressions, attributes, files or implicit conversion."""
     if path == "":

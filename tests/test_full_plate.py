@@ -58,7 +58,7 @@ def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded, 
         assert 'proposal_pool_size' not in view['task']
         terminal = view['research_context'].get('task_progress', {}).get('terminal', False)
         assert view['capacity']['required_plate_wells'] == (0 if terminal else 384)
-        if '# A — resource protocol planner' in instructions:
+        if '# Planner — research protocol' in instructions:
             result = {'hypothesis': 'Generate a new panel for the requested plate', 'steps': [
                 {'step_id': 'design', 'operation': 'agent:propose', 'question': 'Generate new candidates',
                  'arguments': {'question': 'Complete the requested panel'}}],
@@ -68,7 +68,7 @@ def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded, 
             result = {'hypothesis': 'Complete the plate with generated designs', 'steps': [
                 {'step_id': op, 'operation': op, 'question': op, 'expected_output': op}
                 for op in ('design', 'rank', 'finalize')]}
-        elif '# B — protein design' in instructions:
+        elif '# Executor — protein design' in instructions:
             fill = view['research_context']['plate_completion']
             excluded = set(fill['exclude_sequences'])
             # Act as a consumer of the documented prompt encoding. The mock
@@ -113,6 +113,7 @@ def test_two_complete_384_plates_from_multiple_design_panels(tmp_path, guarded, 
     assert run_replay(c, path, guarded=guarded)['budget']['experimental_wells']['committed'] == 768
 
 
+@pytest.mark.core
 def test_incomplete_plate_stays_in_same_round_and_never_reserves_experiments(tmp_path):
     c = plate_campaign(tmp_path, size=8)
     calls = []

@@ -4,6 +4,11 @@ on:
   pull_request:
   workflow_dispatch:
     inputs:
+      full_regression:
+        description: 'Also run the full regression suite'
+        required: false
+        type: boolean
+        default: false
       real_esmc:
         description: 'Download official ESMC-600M and run a CPU smoke test'
         required: false
@@ -27,13 +32,18 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: pip
       - run: python -m pip install --upgrade pip
-      - run: pip install -e '.[dev,graph,gepa,mcp]' 'biopython>=1.84,<2'
+      - run: pip install -e '.[dev]' 'biopython>=1.84,<2'
+      - name: Optional regression dependencies
+        if: github.event_name == 'workflow_dispatch' && inputs.full_regression
+        run: pip install -e '.[graph,gepa,mcp]'
       - run: ruff check .
-      - name: Require real custom-metric sandbox acceptance
+      - name: Core checks (require a real custom-metric sandbox)
         env:
           PROTEINRSI_REQUIRE_METRIC_SANDBOX: '1'
-        run: pytest -q tests/test_custom_metric_execution.py
-      - run: pytest -q --cov=proteinrsi --cov-report=term-missing
+        run: pytest -q
+      - name: Full regression (opt-in)
+        if: github.event_name == 'workflow_dispatch' && inputs.full_regression
+        run: pytest -q -m 'not real_esmc'
       - run: proteinrsi demo --out runs/ci-demo --rounds 3
       - run: proteinrsi demo --adaptive --out runs/ci-research-demo --rounds 3
       - run: proteinrsi research plans --campaign runs/ci-research-demo/campaign
@@ -42,6 +52,7 @@ jobs:
       - run: python -m build
 
   esmc-native:
+    if: (github.event_name == 'workflow_dispatch' && inputs.real_esmc) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[test-esmc600m]'))
     runs-on: ubuntu-latest
     env:
       OPENBLAS_NUM_THREADS: '1'

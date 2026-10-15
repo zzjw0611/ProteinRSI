@@ -10,6 +10,7 @@ from .knowledge import KnowHow
 
 
 def build_catalog(view: TaskView, tool_catalog: list[dict], store) -> dict:
+    view = view.for_task()
     # tool_catalog must already be constrained by gateway, workflow and deployment configuration.
     tools = [{"id": "tool:" + t["name"], "name": t["name"],
               "description": (t.get("description") or t["capability"]) + " " + t.get("limitations", ""),
@@ -74,6 +75,7 @@ class ResourceSelector:
         self.store, self.config, self.llm = store, config, llm
 
     def select(self, view: TaskView, tool_catalog: list[dict], *, query: str | None = None) -> dict:
+        view = view.for_task()
         from .skill_library import select_knowledge
         knowledge = select_knowledge(self.store, view, tool_catalog, self.config, self.llm, query=query)
         resources = build_catalog(view, tool_catalog, self.store)

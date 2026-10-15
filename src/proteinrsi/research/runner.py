@@ -7,6 +7,7 @@ runs only through the isolated research_python tool; no controller-side exec or 
 from __future__ import annotations
 
 from proteinrsi.contracts import Candidate, digest
+from proteinrsi.dataflow.design import _candidate_payload
 from proteinrsi.storage import Conflict
 from proteinrsi.tasks import apply_mutations, validate_candidate
 from proteinrsi.tools import ToolCall
@@ -42,7 +43,8 @@ class ResearchRunner:
                 raise ValueError("Final selection requires ranking after the last design")
 
     def _context(self, view, record):
-        artifacts = list(self.store.all("artifacts").values())
+        from proteinrsi.localtools.artifacts import ArtifactStore
+        artifacts = ArtifactStore(self.store).catalog(task_only=True)
         return view.model_copy(update={"artifacts": artifacts, "research_context": {
             **view.research_context, "run_id": record["run_id"], "plan": record["plan"],
             "completed": record["completed"], "selected_resources": record["resources"],
@@ -110,7 +112,7 @@ class ResearchRunner:
     def _call(self, call, view, state, gateway, allowed, run_id):
         result = gateway.call(call, view.task, allowed=allowed, context_key=run_id)
         state["tool_results"].append(result)
-        self._merge_candidates(view, state, result.get("candidates", []))
+        self._merge_candidates(view, state, _candidate_payload(result) or [])
         return result
 
     def _execute(self, step, view, state, record, gateway, catalog, allowed):
@@ -167,7 +169,7 @@ class ResearchRunner:
                         raise ValueError("Analysis tool-round limit reached")
                     for call in request.tool_calls:
                         result = self._call(call, context, state, gateway, analysis_allowed, run_id)
-                        if result.get("candidates"):
+                        if _candidate_payload(result):
                             raise ValueError("An analysis tool cannot introduce new candidates")
             ranked = self.team.analyst.rank(context, candidates, state["tool_results"])
             state["ranked"] = [c.model_dump(mode="json") for c in ranked]
@@ -181,12 +183,14 @@ class ResearchRunner:
         raise ValueError("Unknown research operation")
 
     def run(self, view):
+        view = view.for_task()
         if self.config.protocol_mode == "typed":
             from proteinrsi.dataflow.integration import run_campaign_protocol
             return run_campaign_protocol(self.team, view, self.config)
         gateway = self.team.tools.fork()
         core = register_analysis_tools(gateway, view)
-        allowed = list(dict.fromkeys([*view.workflow.tool_names, *core]))
+        from proteinrsi.permissions import available_tools
+        allowed = available_tools(gateway, view, [*view.workflow.tool_names, *core])
         catalog = gateway.catalog(view.task, allowed)
         # Outbound restrictions apply before retrieval as well as at execution.
         catalog = [t for t in catalog if not t["data_egress"] or gateway.allow_egress]

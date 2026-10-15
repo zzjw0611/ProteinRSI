@@ -117,6 +117,65 @@ def test_failed_output_does_not_create_candidate_resource(resources, view):
     assert allowed == {}
 
 
+@pytest.mark.core
+def test_tool_edits_visible_and_adopted_after_large_knowledge(store, view):
+    """Exercise the real bounded client and typed tool/Agent continuation."""
+    import httpx
+    from proteinrsi.agents import Team
+    from proteinrsi.dataflow.integration import build_operations
+    from proteinrsi.dataflow.resources import scope_for
+    from proteinrsi.llm import JSONLLM
+    from proteinrsi.tools import ToolSpec
+    calls, sent = [], []
+    name = 'fixture_edits'
+    raw = {'status': 'ok', 'evidence_kind': 'computed_unvalidated', 'output': {
+        'edits': [[{'position': 39, 'from': 'V', 'to': 'A'}]], 'validation': {'unique': True}}}
+    store.put('configuration', 'research', {'context_policy': 'evidence-v1'})
+    def handler(request):
+        context = json.loads(json.loads(request.content)['messages'][1]['content'])
+        sent.append(context)
+        if len(sent) == 1:
+            reply = {'tool_calls': [{'name': name, 'arguments': {}, 'purpose': 'fixture construction'}]}
+        else:
+            assert isinstance(context['tool_results'], list)
+            completed = context['tool_results'][-1]
+            assert completed['status'] == 'ok'
+            assert completed['output']['validation']['unique'] is True
+            ref = completed['candidate_set']['resource_id']
+            assert context['available_candidate_sets'][0]['resource_id'] == ref
+            reply = {'candidate_refs': [ref], 'tool_calls': []}
+        return httpx.Response(200, json={'choices': [{'message': {'content': json.dumps(reply)}}]})
+    llm = JSONLLM(store, model='fixture', base_url='https://example.invalid', api_key='test',
+                  transport=httpx.MockTransport(handler))
+    team = Team(store, llm=llm)
+    team.tools.register(ToolSpec(name=name, capability='sequence.generate', implementation_version='fixture',
+        task_kinds=[view.task.kind], input_schema={'type': 'object', 'additionalProperties': False},
+        output_schema={'type': 'object', 'required': ['status', 'output']}),
+        lambda args: calls.append(args) or raw)
+    view.workflow.tool_names = [name]
+    resources = ResourceStore(store, standard_registry(), scope_for(view))
+    operations = build_operations(team, view, resources, knowledge={'large_reference': 'fixture '*2000})
+    result = operations.get('agent:propose').invoke({'question': 'Construct and reuse one legal edit'}, 'fixture-step')
+    assert [entry['sequence'] for entry in result['items']] == [variant(view)]
+    assert raw['output']['edits']  # The adapter never mutates the native receipt.
+    assert len(calls) == 1 and len(sent) == 2
+    assert store.usage()['tool_calls']['committed'] == 1
+    assert store.usage()['experimental_wells']['committed'] == 0
+
+
+def test_invalid_or_failed_tool_edits_are_not_offered(resources, view):
+    for raw in (
+        {'status': 'failed', 'output': {'edits': [[{'position': 39, 'from': 'V', 'to': 'A'}]]}},
+        {'status': 'ok', 'output': {'edits': [[{'position': 1, 'from': 'M', 'to': 'A'}]]}},
+        {'status': 'ok', 'output': {'edits': [[{'position': 39, 'from': 'V', 'to': 'Т'}]]}},
+    ):
+        compact, allowed = prepare_handoff(resources, [raw], view=view)
+        assert allowed == {}
+        assert compact[0]['output'] == raw['output']
+        if raw['status'] == 'ok':
+            assert compact[0]['candidate_handoff_error']
+
+
 def test_no_implicit_models_in_real_llm_route(store, view):
     class Bomb:
         def __getattr__(self, name):

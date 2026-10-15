@@ -125,7 +125,7 @@ proteinrsi methods resume --campaign runs/YOUR_RUN \
 ## 验证
 
 ```bash
-pytest -q tests/test_governance.py tests/test_method_transactions.py tests/test_gepa_archive.py
+pytest -q -m '' tests/test_governance.py tests/test_method_transactions.py tests/test_gepa_archive.py
 pytest -q
 ruff check .
 python -m build

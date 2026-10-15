@@ -46,7 +46,7 @@ class ScriptedTeam(Team):
         if (type(self).pause and binding and binding.get('target') == 'workflow'
                 and view.workflow.strategy == 'pairwise'):
             type(self).pause = False
-            raise ProviderPaused('synthetic nested pause')
+            raise ProviderPaused('synthetic nested context stall', reason='context_stalled')
         key = 'scripted-tool-' + digest({'evidence': view.evidence_version, 'w': view.workflow.version})
         self.store.reserve(key, 'tool_calls', 1, {'operation': 'deterministic-fixture'})
         self.store.settle(key)
@@ -71,18 +71,26 @@ def scripted_improver(self, view, last_patch_round):
     return MetaResponse(reason='Synthetic method proposal', patch=patch)
 
 
-def campaign(tmp_path, *, library=None, gate=None, protocol='method-loop-v1', name='root', governance=None):
+def campaign(tmp_path, *, library=None, gate=None, protocol='method-loop-v1', name='root', governance=None,
+             budget_scope='shared_campaign', context_policy='legacy', method_policy='validate', small=False):
+    independent = budget_scope == 'independent'
     task = TaskSpec(name='mechanism', reference_sequence='AAAA', mutable_positions=[1],
         max_mutations=1, candidates=SEQUENCES, controls_per_batch=0, batch_size=2,
         feedback_source='measured_replay', max_rounds=4,
-        budget=BudgetSpec(experimental_wells=128, llm_calls=512, tool_calls=512))
+        budget=BudgetSpec(experimental_wells=128, llm_calls=None if independent else 512,
+                          tool_calls=None if independent else 512))
     c = Campaign.initialize(str(tmp_path / name), task, gate=gate or GatePolicy(criterion='llm_adjudicated_v1'),
         memory_library=library, governance_config=governance,
         research_config=ResearchConfig(enabled=False, workflow_validation='independent',
-            evaluation_protocol=protocol, auto_evaluation={'rounds': 1,
-                'llm_calls_per_arm': 8, 'tool_calls_per_arm': 8, 'main_reserve_wells': 2,
+            context_policy=context_policy, method_policy=method_policy,
+            evaluation_execution='blocking' if context_policy == 'state-v1' else 'background',
+            evaluation_protocol=protocol, auto_evaluation={'rounds': 1, 'budget_scope': budget_scope,
+                'llm_calls_per_arm': None if independent else 8,
+                'tool_calls_per_arm': None if independent else 8, 'main_reserve_wells': 2,
                 'meta_rounds': 3, 'meta_query_budget_per_arm': 10,
-                'meta_llm_calls_per_arm': 64, 'meta_tool_calls_per_arm': 64}))
+                'meta_llm_calls_per_arm': None if independent else 64,
+                'meta_tool_calls_per_arm': None if independent else 64,
+                **({'rounds': 1, 'batch_size': 2, 'meta_rounds': 2, 'meta_query_budget_per_arm': 8} if small else {})}))
     from test_llm_evaluation_integration import EvaluationHTTP
     from test_custom_metric_integration import custom_plan
     c.transport = EvaluationHTTP(c.store, plan=custom_plan())
@@ -103,7 +111,8 @@ def fork_team(c, store):
 def case(c, *, split='validation', initial_index=8, rounds=3, query_budget=10):
     t = c.view().task.model_copy(deep=True)
     t.max_rounds = rounds
-    t.budget = BudgetSpec(experimental_wells=query_budget, llm_calls=64, tool_calls=64)
+    compute = None if t.budget.llm_calls is None else 64
+    t.budget = BudgetSpec(experimental_wells=query_budget, llm_calls=compute, tool_calls=compute)
     seq = SEQUENCES[initial_index]
     initial = [Observation(sample_id='initial', batch_id='initial', sequence=seq,
         value=LABELS[seq], metric=t.metric, unit=t.unit, assay_protocol=t.assay_protocol,
@@ -119,6 +128,85 @@ def stage(c, target='meta'):
         hypothesis='Synthetic controlled candidate')
     c.stage_patch(p)
     return p
+
+
+@pytest.mark.core
+@pytest.mark.parametrize('policy', ['direct', 'validate'])
+def test_publication_policy_is_explicit_and_rolls_back(tmp_path, policy):
+    from proteinrsi.evaluation_scheduler import EvaluationScheduler
+    c = campaign(tmp_path, budget_scope='independent', context_policy='state-v1', method_policy=policy, small=True)
+    p = stage(c, 'workflow')
+    base = c.view().workflow.version
+    before = deepcopy(c.store.usage())
+    with pytest.raises(Conflict, match='awaiting publication'):
+        c.prepare()  # Bypassing the boundary checkpoint cannot run a stale method.
+    scheduler = EvaluationScheduler(c, None, cases=[case(c, rounds=1, query_budget=2)],
+        team_factory=lambda store: fork_team(c, store))
+    try:
+        scheduler.checkpoint(c)
+    finally:
+        scheduler.close()
+    assert c.view().workflow.version != base and c.state['round_index'] == 0
+    candidate = c.store.get('method_candidate_states', p.patch_id)
+    assert candidate['status'] == ('adopted_unvalidated' if policy == 'direct' else 'accepted')
+    if policy == 'direct':
+        assert not c.store.all('evaluation_verdicts') and c.store.usage() == before
+        assert not c.memory.retrieve(c.view().task.kind)
+    else:
+        assert c.store.all('evaluation_verdicts') and c.store.usage() == before
+        report = next(iter(c.store.all('harness_evaluations').values()))
+        assert all(trace['completed_new_rounds'] == 1 for trace in report['traces'][0].values())
+    c.methods.rollback('workflow', base, operator='fixture', reason='Policy rollback preserves evidence')
+    assert c.view().workflow.version == base and c.store.usage() == before
+
+
+@pytest.mark.core
+def test_small_meta_cycle_clones_state_and_feedback_resume_is_idempotent(tmp_path, monkeypatch):
+    from proteinrsi.agents import FeedbackAnalysis
+    from proteinrsi.loop_evaluation import CaseFeedback
+    from proteinrsi.research.state import checkpoint_state
+    c = campaign(tmp_path, budget_scope='independent', context_policy='state-v1', small=True)
+    with c.store.transaction():
+        checkpoint_state(c.store, c.state, memory={'focus': 'Frozen initial hypothesis'}, source_ref='fixture')
+    snapshot = deepcopy(c.view().research_context['research_state'])
+    calls = []
+    def improver(agent, view, last_patch_round):
+        calls.append((view.meta.version, view.round_index))
+        return scripted_improver(agent, view, last_patch_round)
+    monkeypatch.setattr(MetaAgent, 'propose', improver)
+    stage(c)
+    starts = []
+    def factory(store):
+        team = fork_team(c, store)
+        branch = store.get('configuration', 'evaluation_branch')
+        if branch['target'] == 'meta':
+            initial = store.get('research_states', store.get('research_state', 'active')['ref'])
+            assert initial == snapshot
+            starts.append(branch['arm'])
+        def feedback(view):
+            if branch['target'] != 'meta':
+                return FeedbackAnalysis(summary='Nested fixture feedback')
+            focus = branch['arm'] + ' private hypothesis'
+            assert not view.research_context['research_state']['working_memory']['focus'].startswith(
+                ('challenger' if branch['arm'] == 'baseline' else 'baseline') + ' private')
+            return FeedbackAnalysis(summary='Fixture feedback', working_memory={'focus': focus})
+        team.analyst.feedback = feedback
+        return team
+    oracle = CaseFeedback(case(c, rounds=2, query_budget=8))
+    report = schedule_evaluation(c, oracle, team_factory=factory)
+    assert sorted(starts) == ['baseline', 'challenger']
+    assert len(calls) == 2  # Both fixed-M arms actually invoke their M between Task rounds.
+    assert all(t['completed_new_rounds'] == 2 and t['meta_decisions'] for t in report['traces'][0].values())
+    assert c.view().research_context['research_state']['working_memory']['focus'] == 'Frozen initial hypothesis'
+    # A crash after committed feedback cannot create another state version or charge.
+    c.meta_agent.propose = lambda *args: MetaResponse(reason='Fixture abstention')
+    batch = c.prepare()
+    c.approve(batch.batch_id, operator='fixture')
+    c.ingest(oracle.measure(batch))
+    c.analyze_feedback()
+    before = (deepcopy(c.store.usage()), c.store.all('research_states'), c.store.get('research_state', 'active'))
+    Campaign(c.store, team=c.team).analyze_feedback()
+    assert before == (c.store.usage(), c.store.all('research_states'), c.store.get('research_state', 'active'))
 
 
 @pytest.mark.parametrize('target,allowed', [(None, ('workflow', 'meta')),
@@ -139,6 +227,7 @@ def test_authority_matrix(tmp_path, target, allowed):
 
 
 @pytest.mark.parametrize('targets', [['workflow', 'meta'], ['meta']])
+@pytest.mark.core
 def test_meta_comparison_keeps_operator_limits_and_permissions(tmp_path, monkeypatch, targets):
     monkeypatch.setattr(MetaAgent, 'propose', scripted_improver)
     c = campaign(tmp_path, governance={'allowed_patch_targets': targets,
@@ -173,9 +262,11 @@ def test_meta_comparison_keeps_operator_limits_and_permissions(tmp_path, monkeyp
     assert resources['governance'] == c.methods.policy.model_dump(mode='json')
 
 
-def test_meta_comparison_nested_w_publication_stays_local(tmp_path, monkeypatch):
+@pytest.mark.core
+@pytest.mark.parametrize('budget_scope', ['shared_campaign', 'independent'])
+def test_meta_comparison_nested_w_publication_stays_local(tmp_path, monkeypatch, budget_scope):
     monkeypatch.setattr(MetaAgent, 'propose', scripted_improver)
-    c = campaign(tmp_path)
+    c = campaign(tmp_path, budget_scope=budget_scope)
     p = stage(c)
     initial_w, initial_m = c.view().workflow.version, c.view().meta.version
     report = evaluate_method(c, [case(c)], target='meta', promote=True, team_factory=lambda s: fork_team(c, s))
@@ -189,11 +280,17 @@ def test_meta_comparison_nested_w_publication_stays_local(tmp_path, monkeypatch)
     assert all(t['completed_new_rounds'] == 3 for t in (base, child))
     assert all(t['nested_evaluations'] for t in (base, child))
     assert all(h.get('analyst_feedback') for t in (base, child) for h in t['history'])
-    assert c.store.usage()['experimental_wells']['committed'] == 20
+    assert c.store.usage()['experimental_wells']['committed'] == (0 if budget_scope == 'independent' else 20)
+    assert report['budget_after']['experimental_wells']['committed'] == 20
     assert sum(t['usage']['experimental_wells']['committed'] for t in (base, child)) == 20
     assert sum(t['total_submitted_wells'] for t in (base, child)) == 12
     assert report['replay_experiment_cost']['amount'] == 0
-    assert c.store.usage()['tool_calls']['committed'] >= 10
+    assert report['budget_after']['tool_calls']['committed'] >= 10
+    if budget_scope == 'independent':
+        assert report['main_budget_before'] == report['main_budget_after']
+        assert report['budget_after']['llm_calls']['limit'] is None
+        assert report['budget_after']['tool_calls']['limit'] is None
+        assert all(t['usage']['experimental_wells']['committed'] <= t['query_cap'] for t in (base, child))
     assert len(c.transport.requests['verdict']) == 3
     assert not any(v.get('allocated_unspent') for v in c.store.usage().values())
     assert not c.state['observations']
@@ -215,20 +312,30 @@ def test_meta_comparison_nested_w_publication_stays_local(tmp_path, monkeypatch)
     assert c.store.get('patches', p.patch_id)
 
 
-def test_nested_provider_pause_resumes_without_double_spend(tmp_path, monkeypatch):
+@pytest.mark.core
+def test_nested_context_pause_resumes_without_double_spend(tmp_path, monkeypatch):
     monkeypatch.setattr(MetaAgent, 'propose', scripted_improver)
-    c = campaign(tmp_path)
+    c = campaign(tmp_path, budget_scope='independent')
     stage(c)
     data = [case(c)]
     ScriptedTeam.pause = True
-    with pytest.raises(ProviderPaused):
+    with pytest.raises(ProviderPaused, match='synthetic nested context stall') as paused:
         evaluate_method(c, data, target='meta', promote=True, team_factory=lambda s: fork_team(c, s))
+    assert paused.value.reason == 'context_stalled'
+    assert any(a.get('pause_reason') == 'context_stalled'
+               for a in c.store.all('harness_attempts').values())
     assert c.state['pending_meta']
-    spent = c.store.usage()['experimental_wells']['committed']
+    from proteinrsi.evaluation_fork import evaluation_budget_store
+    eid = next(iter(c.store.all('harness_attempts')))
+    spec = EvaluationSpec.model_validate(c.store.get('evaluation_drafts', eid)['spec'])
+    ledger = evaluation_budget_store(c.store, eid, spec)
+    spent = ledger.usage()['experimental_wells']['committed']
     assert spent > 0
+    assert c.store.usage()['experimental_wells']['committed'] == 0
     assert any(a['state'] == 'paused_provider' for a in c.store.all('harness_attempts').values())
     report = evaluate_method(c, data, target='meta', promote=True, team_factory=lambda s: fork_team(c, s))
-    assert report['promoted'] and c.store.usage()['experimental_wells']['committed'] == 20
+    assert report['promoted'] and ledger.usage()['experimental_wells']['committed'] == 20
+    assert c.store.usage()['experimental_wells']['committed'] == 0
 
 
 def test_forbidden_self_proposal_is_not_adopted_in_m_arm(tmp_path, monkeypatch):
@@ -291,6 +398,7 @@ def test_nested_allocations_are_idempotent_at_every_ancestor(tmp_path):
     assert root.remaining('experimental_wells') == 18
 
 
+@pytest.mark.core
 def test_capability_library_is_opt_in_frozen_and_controller_derived(tmp_path, monkeypatch):
     monkeypatch.setattr(MetaAgent, 'propose', scripted_improver)
     library = tmp_path/'memory'
@@ -409,6 +517,7 @@ def test_export_cli_writes_definition_and_provenance_without_overwrite(tmp_path)
         run(args)
 
 
+@pytest.mark.core
 def test_history_and_trace_distinguish_adopted_from_used(tmp_path):
     from proteinrsi.trace_export import snapshot, summary
     c = campaign(tmp_path)

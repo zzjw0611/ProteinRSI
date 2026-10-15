@@ -5,6 +5,7 @@ import pytest
 from proteinrsi.storage import BudgetExceeded, Conflict, Store
 
 
+@pytest.mark.core
 def test_budget_idempotency_and_no_refund(tmp_path):
     store = Store(tmp_path)
     store.configure_budget({"experimental_wells": 10})
@@ -32,6 +33,7 @@ def test_release_uncommitted_only(tmp_path):
         store.reserve("one", "x", 3, {})
 
 
+@pytest.mark.core
 def test_concurrent_reservations_do_not_overdraw(tmp_path):
     store = Store(tmp_path)
     store.configure_budget({"x": 10})
@@ -56,12 +58,24 @@ def test_budget_cannot_reset_and_immutable_data(tmp_path):
         store.put("raw", "r1", {"value": 2}, immutable=True)
 
 
-@pytest.mark.parametrize('resource', ['llm_calls', 'tool_calls'])
+@pytest.mark.parametrize('resource', ['llm_calls', 'tool_calls', 'plm_inputs'])
+@pytest.mark.core
 def test_unlimited_compute_still_accounts_and_freezes_budget(tmp_path, resource):
+    import sqlite3
+    with sqlite3.connect(tmp_path/'state.sqlite3') as con:
+        con.execute('''CREATE TABLE allocations (allocation_id TEXT, resource TEXT,
+            amount INTEGER NOT NULL, state TEXT NOT NULL, fingerprint TEXT NOT NULL,
+            PRIMARY KEY(allocation_id, resource))''')
+        con.execute("INSERT INTO allocations VALUES ('legacy', 'experimental_wells', 0, 'released', 'old')")
     store = Store(tmp_path)
+    with store.connect() as con:
+        assert con.execute("SELECT fingerprint FROM allocations WHERE allocation_id='legacy'").fetchone()[0] == 'old'
     store.configure_budget({resource: None, 'experimental_wells': 1})
+    caps = {'arm': {resource: None, 'experimental_wells': 1}}
+    store.reserve_allocations('comparison', caps)
+    store.reserve_allocations('comparison', caps)
     for i in range(3):
-        store.reserve(str(i), resource, 1000000, {'i': i})
+        store.reserve_allocated('arm', str(i), resource, 1000000, {'i': i})
         store.settle(str(i))
     assert store.remaining(resource) is None
     assert store.usage()[resource] == {'limit': None, 'committed': 3000000, 'reserved': 0}
@@ -70,6 +84,9 @@ def test_unlimited_compute_still_accounts_and_freezes_budget(tmp_path, resource)
         store.configure_budget({resource: 100, 'experimental_wells': 1})
     with pytest.raises(BudgetExceeded):
         store.reserve('experiment', 'experimental_wells', 2, {})
+    store.release_allocations('comparison')
+    with pytest.raises(Conflict):
+        store.reserve_allocated('arm', 'after-release', resource, 0, {})
     with pytest.raises(ValueError):
         Store(tmp_path/'invalid').configure_budget({'experimental_wells': None})
 

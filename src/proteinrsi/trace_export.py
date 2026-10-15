@@ -23,6 +23,7 @@ from urllib.parse import quote
 
 
 TRACE_NAMESPACES = frozenset({
+    "research_states", "research_state",
     "context_evidence", "context_sessions", "context_frames", "context_reads", "research_notes",
     "validation_context_evidence", "validation_context_sessions", "validation_context_frames",
     "validation_context_reads", "validation_research_notes",
@@ -42,6 +43,7 @@ TRACE_NAMESPACES = frozenset({
     "trials", "trial_results", "meta_evaluations", "meta_online_attempts", "research_runs",
     "research_step_outputs", "batches", "measurements", "validation_research_runs",
     "validation_research_step_outputs", "computational_iterations", "code_programs",
+    "artifact_visibility", "validation_artifact_visibility",
     "validation_code_programs", "plate_plans", "workflow_validation_outcomes",
     "method_candidates", "method_candidate_states", "method_transitions", "method_switches",
     "method_snapshots", "method_activations", "method_deferrals", "method_proposal_failures",
@@ -52,12 +54,19 @@ TRACE_NAMESPACES = frozenset({
     "validation_harness_evaluations", "validation_method_switches", "validation_evaluation_specs",
     "experience", "task_reports", "harness_attempts", "harness_evaluations", "harness_protocols", "harness_case_bindings",
     "batch_method_bindings", "gepa_attempts", "gepa_results", "gepa_failures",
+    "evaluation_jobs", "evaluation_publications", "execution_control",
 })
+# Fixed-M validation can contain one fixed-W comparison. Export those operator
+# receipts too; never broaden the agent's read permissions or oracle access.
+_BASE_NAMESPACES = frozenset(name.removeprefix("validation_") for name in TRACE_NAMESPACES)
+TRACE_NAMESPACES |= frozenset("validation_" * depth + name
+                            for depth in (1, 2) for name in _BASE_NAMESPACES)
 DETAIL_FIELDS = (
     ("context_frame_ref", "context_frames"), ("context_read_ref", "context_reads"),
     ("attempt_key", "llm_attempts"), ("key", "llm"), ("key", "tool_jobs"),
     ("preflight_key", "llm_preflights"),
     ("feedback_input_ref", "feedback_inputs"), ("feedback_ref", "feedback_results"),
+    ("research_state_ref", "research_states"),
     ("evaluation_request_ref", "evaluation_requests"), ("evaluation_plan_ref", "evaluation_plans"),
     ("evaluation_evidence_ref", "evaluation_evidence"), ("evaluation_verdict_ref", "evaluation_verdicts"),
     ("evaluation_metric_validation_ref", "evaluation_metric_validations"),
@@ -66,6 +75,7 @@ DETAIL_FIELDS = (
     ("evaluation_metric_attempt_ref", "evaluation_metric_attempts"),
     ("snapshot_ref", "agent_snapshots"), ("run_id", "research_runs"),
     ("output_id", "research_step_outputs"), ("snapshot_ref", "method_snapshots"),
+    ("call_ref", "research_step_outputs"),
     ("patch_id", "method_candidates"), ("archive_ref", "gepa_results"),
 )
 TRACE_NOTE = ("Model-returned text and decision summaries only; unavailable hidden "
@@ -99,11 +109,20 @@ def summary(con, path):
     totals = dict(con.execute("SELECT resource,SUM(amount) FROM charges "
                               "WHERE state='committed' GROUP BY resource"))
     improvement_count = con.execute("SELECT COUNT(*) FROM kv WHERE namespace='method_candidates'").fetchone()[0]
-    return {"campaign": str(path.parent), "status": status, "execution": execution_status(con, status), "rounds": rounds,
+    execution = execution_status(con, status)
+    pause_file = path.parent / "operator_pause.json"
+    if pause_file.is_file():
+        paused = json.loads(pause_file.read_text())
+        if paused.get("status") == "paused":
+            execution = {"state": "paused", "pause_record": str(pause_file), "liveness": "not_checked"}
+    jobs = [json.loads(row[0]) for row in con.execute(
+        "SELECT value FROM kv WHERE namespace='evaluation_jobs'")]
+    return {"campaign": str(path.parent), "status": status, "execution": execution, "rounds": rounds,
             "source": "computational" if mode == "computational" else source,
             "limits": limits, "spent": {key: totals.get(key, 0) for key in limits},
             "replay_experiment_cost": {"amount": 0, "basis": "historical_replay_no_new_wetlab"}
                 if source == "measured_replay" else None,
+            "validation_jobs": jobs,
             "improvements": improvement_summary(con), "improvement_count": improvement_count,
             "improvements_truncated": improvement_count > 100, "note": TRACE_NOTE}
 
@@ -149,16 +168,29 @@ def _refs(con, event_id):
     fields = ["branch"] + list(dict.fromkeys(field for field, _ in DETAIL_FIELDS))
     expr = ",".join("json_extract(payload,?)" for _ in fields)
     kind = con.execute("SELECT kind FROM events WHERE id=?", (event_id,)).fetchone()[0]
-    validation = kind == "validation_event"
-    paths = ["$.branch"] + [("$.payload." if validation else "$.") + f for f in fields[1:]]
+    path, branches = "$", []
+    while kind == "validation_event":
+        branch, kind = con.execute("SELECT json_extract(payload,?),json_extract(payload,?) "
+            "FROM events WHERE id=?", (path + ".branch", path + ".kind", event_id)).fetchone()
+        branches.append(branch)
+        path += ".payload"
+    paths = ["$.branch"] + [path + "." + f for f in fields[1:]]
     row = con.execute(f"SELECT {expr} FROM events WHERE id=?", (*paths, event_id)).fetchone()
     values = dict(zip(fields, row))
-    prefix = "validation_" if validation else ""
-    branch = values["branch"] + "/" if validation else ""
+    prefix = "validation_" * len(branches)
+    branch = "/".join(branches) + "/" if branches else ""
     for field, namespace in DETAIL_FIELDS:
         ref = values[field]
         if isinstance(ref, str):
             yield namespace, prefix + namespace, branch + ref
+
+
+def unwrap_event(event):
+    kind, payload, branches = event["kind"], event["payload"], []
+    while kind == "validation_event":
+        branches.append(payload["branch"])
+        kind, payload = payload["kind"], payload["payload"]
+    return kind, payload, branches
 
 
 def iter_events(directory):

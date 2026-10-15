@@ -3,12 +3,12 @@ from copy import deepcopy
 import json
 
 import pytest
-from jsonschema import ValidationError
 
 from proteinrsi.contracts import MetaPolicy, Observation, TaskSpec, TaskView, Workflow, digest
 from proteinrsi.dataflow.protocol import Protocol, ProtocolExecutor, OperationRegistry, register_tool_operations
 from proteinrsi.dataflow.resources import ResourceStore, standard_registry, scope_for, METRICS
 from proteinrsi.dataflow.schema import ContractError
+from proteinrsi.execution import ExecutionFailure
 from proteinrsi.localtools.artifacts import ArtifactStore
 from proteinrsi.localtools.metric_extractors import extract_provider, parse_mpnn, protenix_samples
 from proteinrsi.research.metric_tools import TOOL, register_metric_tool, verified_source
@@ -163,7 +163,7 @@ def test_observed_summary_uses_bound_evidence_only(tmp_path):
     assert result["summary"]["metrics"] == {"best": 5, "top2mean": 4, "top3mean": None, "avg": 4}
     assert result["summary"]["denominators"]["unique_valid"] == 2
     assert gateway.call(call, view.task, allowed=[TOOL], context_key="observed-fixture") == result
-    with pytest.raises(ValidationError):
+    with pytest.raises(ExecutionFailure, match='input validation'):
         gateway.call(ToolCall(name=TOOL, arguments={**call.arguments, "observations": [{"value": 100}]}),
                      view.task, allowed=[TOOL], context_key="forged-input")
 

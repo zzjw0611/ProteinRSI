@@ -12,6 +12,22 @@ from proteinrsi.llm_evaluation import (MAX_RESPONSE_REPAIRS, adjudicate_evaluati
 from proteinrsi.storage import Conflict, Store
 
 
+@pytest.mark.core
+def test_local_errors_are_not_mislabeled_as_provider_pauses(tmp_path):
+    import sqlite3
+    from proteinrsi.llm_evaluation import _complete
+
+    class LocalFailure:
+        def complete(self, *args):
+            raise sqlite3.OperationalError("synthetic local write failure")
+
+    store = Store(tmp_path)
+    request = {"role": "E-plan", "instructions": "test", "context": {}, "schema": {}}
+    with pytest.raises(sqlite3.OperationalError, match="local write"):
+        _complete(store, SimpleNamespace(llm=LocalFailure()), "evaluation_requests/test", request)
+    assert not any(e["kind"] == "evaluation_request_paused" for e in store.events())
+
+
 @pytest.fixture(autouse=True)
 def historical_pending_evaluations(monkeypatch):
     """Keep historical plan/summary behavior as an explicit migration regression."""

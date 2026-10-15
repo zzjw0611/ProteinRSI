@@ -9,7 +9,62 @@ import numpy as np
 from proteinrsi.contracts import TaskView, digest
 from proteinrsi.tools import ToolSpec
 
-ANALYSIS_TOOLS = ["research_evidence_summary", "research_prediction_errors", "research_combination_effects"]
+ANALYSIS_TOOLS = ["research_evidence_summary", "research_prediction_errors", "research_combination_effects", "research_evidence_query"]
+QUERY_PROPERTIES = {
+    "sequences": {"type": "array", "items": {"type": "string"}, "maxItems": 50},
+    "variants": {"type": "array", "items": {"type": "string"}, "maxItems": 50},
+    "round": {"type": "integer", "minimum": 0},
+    "batch_id": {"type": "string"},
+    "background": {"type": "object", "properties": {
+        "positions": {"type": "array", "items": {"type": "integer", "minimum": 1}},
+        "residues": {"type": "string"}}, "required": ["positions", "residues"], "additionalProperties": False},
+    "offset": {"type": "integer", "minimum": 0},
+    "limit": {"type": "integer", "minimum": 1, "maximum": 50}}
+
+
+def query_observations(rows, task, history, filters):
+    """Query the captured revealed snapshot, never a Store path or replay index."""
+    from jsonschema import Draft202012Validator
+    errors = list(Draft202012Validator({"type": "object", "properties": QUERY_PROPERTIES,
+                                      "additionalProperties": False}).iter_errors(filters))
+    if errors:
+        raise ValueError(errors[0].message)
+    positions = task.get("mutable_positions", [])
+    batches = {entry.get("batch_id") for entry in history if entry.get("round") == filters.get("round")}
+    background = filters.get("background", {"positions": [], "residues": ""})
+    if (len(background["positions"]) != len(background["residues"])
+            or any(position > len(task.get("reference_sequence", "")) for position in background["positions"])):
+        raise ValueError("Background positions and residues must match the protein coordinates")
+    selected = []
+    for row in rows:
+        sequence = row.get("sequence", "")
+        if "sequences" in filters and sequence not in filters["sequences"]:
+            continue
+        variant = "".join(sequence[p - 1] for p in positions) if positions and sequence else sequence
+        if "variants" in filters and variant not in filters["variants"]:
+            continue
+        if "round" in filters and row.get("batch_id") not in batches:
+            continue
+        if "batch_id" in filters and row.get("batch_id") != filters["batch_id"]:
+            continue
+        if any(sequence[p - 1:p] != residue for p, residue in zip(background["positions"], background["residues"])):
+            continue
+        selected.append({**row, "variant": variant})
+    offset, limit = filters.get("offset", 0), filters.get("limit", 20)
+    if offset > len(selected):
+        raise ValueError("Query offset exceeds the filtered evidence")
+    end = min(len(selected), offset + limit)
+    result = {"status": "matched" if selected else "no_matching_observations",
+        "authority": "revealed_measurements", "evidence_version": digest(rows),
+        "coverage": {"snapshot_rows": len(rows), "matched_rows": len(selected), "offset": offset,
+                     "returned_rows": end - offset, "complete": end == len(selected)},
+        "rows": selected[offset:end], "next_offset": end if end < len(selected) else None}
+    if not selected:
+        result["message"] = (
+            "No measurements match these filters in the revealed snapshot. "
+            "This is a history lookup, not a new experiment; "
+            "fitness for unobserved candidates remains unknown.")
+    return result
 
 
 def _validate(view: TaskView) -> None:
@@ -168,6 +223,8 @@ def register_analysis_tools(gateway, view: TaskView) -> list[str]:
     """Context-bound functions: an LLM cannot supply observations, SQL, paths or labels."""
     if getattr(gateway, "remote_context_tools", False):
         return list(ANALYSIS_TOOLS)
+    for name in ANALYSIS_TOOLS:
+        gateway._tools.pop(name, None)  # Context-bound bindings must use this exact snapshot.
     from proteinrsi.contracts import TaskKind
     def register(name, properties, required, fn, description):
         spec = ToolSpec(name=name, capability="evidence.analyze", description=description,
@@ -188,4 +245,8 @@ def register_analysis_tools(gateway, view: TaskView) -> list[str]:
     register(ANALYSIS_TOOLS[2], {"scale": {"enum": ["linear", "log"]},
              "pooling": {"enum": ["within_batch", "pooled"]}}, ["scale"],
              lambda a: combination_effects(view, **a), "Inspect measured combinations versus measured constituent singles on an explicit scale.")
+    register(ANALYSIS_TOOLS[3], QUERY_PROPERTIES, [],
+             lambda a: query_observations([row.model_dump(mode="json") for row in view.observations],
+                 view.task.model_dump(mode="json"), view.history, a),
+             "Retrieve already revealed measurements by sequence, variant, round or residue background; never reveal new fitness.")
     return list(ANALYSIS_TOOLS)

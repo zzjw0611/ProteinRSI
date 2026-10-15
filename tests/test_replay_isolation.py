@@ -10,6 +10,7 @@ from proteinrsi.replay.broker import reader_roots
 from proteinrsi.replay.sandbox import probe
 
 
+@pytest.mark.core
 def test_worker_filesystem_network_and_legacy_abi_protections(tmp_path):
     if not probe()["available"]:
         pytest.skip("Landlock/libseccomp unavailable")

@@ -16,7 +16,7 @@
 - `SequenceProposal` 表示模型可撰写的内容：候选、突变编辑、已提供的候选资源引用。
   `Design` 在其上增加内置设计器的可选工具请求和重新规划信号。
 - 内置设计器及自定义 `protein.sequence_set/v1` Agent 都复用 `resolve_design` 的任务约束。
-  自定义操作不能通过回复直接调用工具，应在协议中登记工具步骤。
+  内置及自定义操作均可返回工具请求，在原步骤内接收结果，再交付科学输出。
 - `materialize_sequence_proposal` 根据任务母本应用编辑，或接受新序列/输入引用；
   `ResourceStore.sequences` 计算候选 ID。没有 GB1 位点或母本常量。
 - 其他自定义科学输出继续使用声明的 Schema。已有工具原生结果和显式适配器继续使用。
@@ -32,7 +32,9 @@
 | 合法回复，包括 M 不修改 | 接受并缓存，不因为结论不理想再抽样 |
 | 工具/步骤已返回，发布或输出校验失败 | 保存 `returned` 回执及原始返回；恢复时复用返回，只重做校验/登记 |
 | 步骤只留下 `started` | 完成状态未知，禁止自动重复执行，需核对 |
-| 工具执行明确报错、权限不足、预算不足 | 保留失败，不能用格式重试扩大权限或预算 |
+| Python或工具参数明确报错 | Executor保留失败attempt，局部修复原调用；成功后才登记步骤输出 |
+| 科学检查返回passed=false | 保留真实计算结果，修改候选或科学计划，不伪造成代码修复 |
+| 权限不足、输入scope不一致、预算不足 | 保留失败，不能用格式重试扩大权限、数据范围或预算 |
 | E 裁决 | 保留既有冻结证据、仅修格式、有效裁决不重抽机制 |
 
 原始模型尝试在 `research_step_outputs` 的 `/response/<attempt>` 记录中；
@@ -93,6 +95,21 @@ Responses 的 assistant 消息保留在 `llm_attempts.provider_messages`，包�
 设计器交接显式提供 `design_dialogue.tool_rounds_remaining`。每个设计步骤的最后一轮
 为 finalize：停止提供可调用目录，回复 Schema 限制 `tool_calls=[]`，运行时再次校验；
 只能完成候选或通过 `replan_reason` 交回 A。局部步长和全局 LLM/工具总预算是不同概念。
+此兼容步长仍用于旧研究；新研究的授权动作循环按实际完成推进，不设计算调用总次数。
+
+## 后台输入与共享执行（2026-10-14）
+
+`execution.py` 共用内置设计器及自定义Agent的动作/结果循环，并承担局部参数、代码纠错。
+`permissions.py` 在研究初始化时冻结工具授权，验证分支继承同一份授权；W/M只选择方法。
+Executor纠错使用当前配置模型的 `B-repair` 角色，不增加新的Agent或模型依赖。
+
+协议可以写 `bindings["resource_refs.panel"]={"source":"step:design.result","delivery":"ref"}`。
+下游Python直接读取 `inputs["panel"]["items"]`；完整已揭示TaskView仍在 `context`。
+后台检查资源及Schema身份和当前证据scope，禁止同名literal覆盖，不要求LLM读完再抄回。
+新协议不需要数据搬运Agent。现场修复、当轮计划调整、W/M提案和方法发布分别记录，TXT轨迹
+标明原步骤失败与局部修复，既有成功结果和实验提交身份保持可复用。
+
+旧研究不添加授权、不改写快照。源码变更后应新建研究；未完成旧研究仍需使用原始执行快照。
 
 
 M 的 `patch_constraints` 来自控制器冻结的 GovernancePolicy；沙箱仅可读取这份配置。

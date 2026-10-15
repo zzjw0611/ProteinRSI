@@ -12,18 +12,40 @@ import json
 from proteinrsi.contracts import canonical, digest
 
 VERSION = 'evidence-v1'
-POLICY_REVISION = 4
-MAX_ACTIONS = 12
-MAX_CONTEXT_BYTES = 48000
-PAGE_BYTES = 12000
+POLICY_REVISION = 12
+MAX_CONTEXT_BYTES = 1024 * 1024
+PAGE_BYTES = 64 * 1024
 NOTE_ROLES = {'C-feedback', 'A-review', 'M'}
 INSTRUCTIONS = '''
-Context protocol evidence-v1: large values are immutable evidence_ref descriptors,
+Context protocol evidence-v1: in full mode the complete stage input is already
+present. Make the requested decision directly; do not fetch a duplicate copy.
+Values represented by immutable evidence_ref descriptors are scoped references,
 not missing data or literal scientific values. The original evidence is retained.
 To read one, return only {"_context_action":{"kind":"read","ref":"...",
 "offset":0,"limit":20}}. Lists page by rows, objects by keys, strings by characters.
+Prefer a single batch read: {"_context_action":{"kind":"read_many","reads":[
+{"ref":"..."},{"ref":"...","name":"exact operation name"}]}}.
+The runtime fills a bounded page and returns remaining_reads with continuation
+cursors. Reuse those requests to continue; you need not choose page limits.
+execution_facts and observation_summary are computed from the supplied task and
+revealed evidence, not model hypotheses. Summary coverage does not imply every
+measurement was read by you. Inspect current_measurements for the latest feedback.
+Historical evidence is intentionally not repeated in the default stage input.
+Use view.research_context.research_state and current_measurements first. Retrieve history only
+for a concrete question. You can query the revealed snapshot directly with
+{"_context_action":{"kind":"query","filters":{"variants":["..."],"limit":20}}}.
+Filters may use sequences, variants, round, batch_id, or background with positions
+and residues. Queries reveal only previously measured rows, never new fitness.
+no_matching_observations is a normal result: no record matches these filters in
+this revealed snapshot. It does not mean a candidate is invalid or has zero fitness.
+Continue the requested decision with fitness unknown; unknown designs may still
+be proposed for an experiment. Only experimental submission through the Controller
+can reveal new measurements. Repeating an unchanged query against this immutable
+snapshot cannot reveal new fitness. Change filters only for a different question.
 Use next_offset until null when completeness matters. Read tool/operation schemas
 before using an abbreviated specification. Only refs issued in this decision work.
+tool_results exposes each result separately. Inspect prior successes and candidate_set
+references before requesting more tools; read referenced details only when needed.
 Successful reads stay in working_set or last_read until you explicitly release them.
 Do not reread retained evidence. If capacity is full, release an unused page with
 {"_context_action":{"kind":"release","ref":"...","offset":0}} or a named
@@ -44,8 +66,30 @@ You may save a concise research note using only {"_context_action":{"kind":"note
 "hypothesis":"...","evidence_refs":["..."],"counterevidence":"...",
 "failures":"...","open_questions":"...","next_step":"..."}}.
 Notes are model claims, not measurements, and must cite issued evidence refs.
-Otherwise return the original requested decision JSON. At most 12 context actions
-per decision; after that finalize. Never infer unread values from a preview/count.
+Otherwise return the original requested decision JSON. Reads can continue while
+they reveal new evidence. After repeated actions without progress, the runtime
+requests a decision-only recovery turn using the evidence already supplied.
+Never infer unread values from a preview/count.
+'''
+RECOVERY_INSTRUCTIONS = '''
+Decision-only recovery: the preceding context actions made no progress. Their
+requests and results are attached in last_read and working_set. Context actions
+are unavailable for this turn; return the original requested decision JSON.
+Use the evidence already supplied. An empty history lookup is completed work,
+not an unfinished experiment: unobserved fitness remains unknown. You may propose
+unmeasured candidates or request an offered execution tool through the original
+decision contract. If the task needs replanning, use that contract's failure or
+replan field when available. Do not repeat a lookup, invent evidence, or claim
+that unread information or an unexecuted check was inspected.
+'''
+REPAIR_CONTEXT_INSTRUCTIONS = '''
+Execution repair input: error and arguments describe the failed call;
+context_shape, input_shape and resource_shapes describe actual injected data,
+not experiment records or a TaskView to summarize. Follow execution_contract.
+Repair only this call, using the requested response schema. All inline input is
+already available. If a field is an evidence_ref, read it with
+{"_context_action":{"kind":"read","ref":"...","offset":0,"limit":20}}
+or read_many; do not infer missing values or retrieve experimental labels.
 '''
 
 
@@ -81,6 +125,9 @@ class ContextBuilder:
     def pack(self, value, path='$', threshold=2000):
         if size(value) <= threshold:
             return deepcopy(value)
+        if isinstance(value, list) and path == '$.tool_results':
+            # One large knowledge/input item must not hide later completed tool results.
+            return [self.pack(row, f'{path}[{i}]', threshold) for i, row in enumerate(value)]
         if isinstance(value, (list, str)):
             return self.reference(value, path)
         if isinstance(value, dict):
@@ -93,14 +140,15 @@ class ContextBuilder:
 
     def operation_contract(self, row, path):
         if not isinstance(row, dict) or not {'name', 'input_schema', 'output_schema_ref'} <= row.keys():
-            return self.pack(row, path)
+            return self.pack(row, path, threshold=6000)
         result = {k: deepcopy(row[k]) for k in (
-            'name', 'input_schema', 'output_schema_ref', 'resource_inputs', 'question_from_step') if k in row}
+            'name', 'input_schema', 'output_schema_ref', 'resource_inputs', 'question_from_step',
+            'execution_contract', 'output_views') if k in row}
         result['full_spec'] = self.reference(row, path)
         reply = row.get('agent_reply_contract')
         if isinstance(reply, dict):
             result['reply_guidance'] = {k: v for k, v in reply.items() if k != 'agent_reply_schema'}
-        return self.pack(result, path + '.execution_contract')
+        return self.pack(result, path + '.execution_contract', threshold=6000)
 
     def read(self, action):
         if set(action) - {'kind', 'ref', 'offset', 'limit', 'name'}:
@@ -148,7 +196,7 @@ class ContextBuilder:
             page = {k: self.pack(value[k], f'{record["path"]}.{k}') for k in keys}
         # Shrink by whole records, not by truncating evidence. A large record
         # becomes a child reference and can itself be read losslessly.
-        while size(page) > PAGE_BYTES and count > 1:
+        while self.page_size(page) > 1 and count > 1:
             count //= 2
             if isinstance(page, dict):
                 page = dict(list(page.items())[:count])
@@ -156,6 +204,11 @@ class ContextBuilder:
                 page = page[:count]
         return {'ref': ref, 'offset': start, 'total': len(value), 'value': page,
                 'next_offset': start + count if start + count < len(value) else None}
+
+    @staticmethod
+    def page_size(value):
+        from proteinrsi.llm import estimate_tokens
+        return max(size(value) / PAGE_BYTES, estimate_tokens(canonical(value)) / 16384)
 
     def note(self, action):
         fields = {'kind', 'hypothesis', 'evidence_refs', 'counterevidence', 'failures',
@@ -170,9 +223,52 @@ class ContextBuilder:
             raise ValueError('Note text fields must be strings')
         return {k: v for k, v in action.items() if k != 'kind'}
 
+    def read_many(self, reads):
+        if not isinstance(reads, list) or not 1 <= len(reads) <= 16:
+            raise ValueError('Batch reads require 1..16 requests')
+        for request in reads:
+            if (not isinstance(request, dict) or set(request) - {'ref', 'name', 'offset'}
+                    or not isinstance(request.get('ref'), str) or request['ref'] not in self.issued):
+                raise ValueError('Batch reads require issued references and valid fields')
+        # A batch cursor streams a reference to its end. Overlapping starts for
+        # the same reference are the same request, not separate page ranges.
+        pending, positions = [], {}
+        for request in reads:
+            name, offset = request.get('name'), request.get('offset', 0)
+            value = self.issued[request['ref']]['value']
+            if ('name' in request and (not isinstance(name, str) or 'offset' in request)
+                    or type(offset) is not int or not 0 <= offset <= len(value)):
+                raise ValueError('Named reads cannot have offsets; offsets must fit the evidence')
+            identity = (request['ref'], name)
+            if identity in positions:
+                if name is None:
+                    previous = pending[positions[identity]]
+                    previous['offset'] = min(previous.get('offset', 0), offset)
+            else:
+                positions[identity] = len(pending)
+                pending.append(deepcopy(request))
+        pages = []
+        while pending:
+            request = pending[0]
+            limit = 50
+            while True:
+                page = self.read({'kind': 'read', **request,
+                                 **({} if 'name' in request else {'limit': limit})})
+                if self.page_size(pages + [page]) <= 1:
+                    break
+                if limit == 1 or 'name' in request:
+                    return {'pages': pages, 'remaining_reads': pending}
+                limit = max(1, limit // 2)
+            pages.append(page)
+            if page['next_offset'] is None:
+                pending.pop(0)
+            else:
+                pending[0] = {'ref': request['ref'], 'offset': page['next_offset']}
+        return {'pages': pages, 'remaining_reads': []}
+
 
 def enabled(store):
-    return store.get('configuration', 'research', {}).get('context_policy') == VERSION
+    return store.get('configuration', 'research', {}).get('context_policy') in {VERSION, 'state-v1'}
 
 
 def complete(llm, role, instructions, context, schema):
@@ -180,26 +276,29 @@ def complete(llm, role, instructions, context, schema):
     from proteinrsi.llm import ProviderPaused
 
     store = llm.store
-    identity = {'revision': POLICY_REVISION, 'version': VERSION, 'role': role, 'instructions': instructions,
+    policy = store.get('configuration', 'research', {}).get('context_policy', VERSION)
+    identity = {'revision': POLICY_REVISION, 'version': policy, 'role': role, 'instructions': instructions,
                 'context': context, 'schema': schema, 'model': llm.model,
                 'url': llm.base_url, 'settings': llm.cache_settings,
+                'capacity': getattr(llm, 'capacity_settings', {}),
                 'max_tokens': getattr(llm, 'max_tokens', None)}
     key = 'ctx-' + digest(identity)
     builder = ContextBuilder(store, key)
     root = builder.reference(context, '$')
-    view = context.get('view', context)
+    view = {} if role == 'B-repair' else context.get('view', {})
     task = view.get('task') if isinstance(view, dict) else None
     round_index = view.get('round_index') if isinstance(view, dict) else None
     scope = {'task': digest(task), 'round': round_index}
     # Notes are advisory and only shared inside the same task/evidence lineage.
-    observations = view.get('observations', []) if isinstance(view, dict) else []
-    visible = {digest(row) for row in observations} if isinstance(observations, list) else set()
+    from .context_frame import observation_rows
+    observations = observation_rows(view.get('observations', []), task or {}) if isinstance(view, dict) else []
+    visible = {digest(row) for row in observations}
     scope['observations'] = sorted(visible)
     saved = store.get('context_sessions', key)
     if saved is None:
         # Freeze notes at first entry: retries never acquire later-round evidence.
         notes = []
-        if task is not None and type(round_index) is int and not role.startswith('E'):
+        if policy != 'state-v1' and task is not None and type(round_index) is int and not role.startswith('E'):
             with store.connect() as con:
                 rows = con.execute(
                     "SELECT value FROM kv WHERE namespace='research_notes' "
@@ -208,19 +307,23 @@ def complete(llm, role, instructions, context, schema):
                     (scope['task'], round_index))
                 for row in rows:
                     note = json.loads(row['value'])
-                    if set(note['scope']['observations']) <= visible:
+                    if (role == 'M' or note['role'] != 'M') and set(note['scope']['observations']) <= visible:
                         notes.append(note)
                     if len(notes) == 3:
                         break
-        saved = {'version': VERSION, 'revision': POLICY_REVISION, 'role': role, 'source_ref': root['evidence_ref'],
+        saved = {'version': policy, 'revision': POLICY_REVISION, 'role': role, 'source_ref': root['evidence_ref'],
                  'notes': notes, 'state': 'pending'}
         store.put('context_sessions', key, saved)
     if saved['state'] == 'done':
         return saved['result']
-    frame = builder.pack(context)
-    # An unusually wide input must still be accessible, without dropping fields.
-    if size(frame) > MAX_CONTEXT_BYTES - PAGE_BYTES - 18000:
-        frame = {'context_source': root}
+    from .context_frame import stage_frame, state_frame
+    if role == 'B-repair':
+        # Execution repair has its own input contract, not a scientific TaskView.
+        # Preserve code, errors and type descriptions exactly for the repairer.
+        frame = deepcopy(context)
+    else:
+        frame = state_frame(builder, context, role) if policy == 'state-v1' else stage_frame(builder, context, inline=True)
+    mode = 'full'
     note_summaries = []
     for index, note in enumerate(saved['notes']):
         # Reissue old capabilities in this scope only after the lineage check.
@@ -230,10 +333,7 @@ def complete(llm, role, instructions, context, schema):
             'round': note['scope']['round'], 'source': source,
             'content': note.get('note', note.get('decision')),
             'authority': 'model_claim_not_measurement'})
-    note_frame = [builder.pack(note, f'$.research_notes[{i}]', threshold=512)
-                  for i, note in enumerate(note_summaries)]
-    if size(note_frame) > 6000:
-        note_frame = builder.reference(note_summaries, '$.research_notes')
+    note_frame = deepcopy(note_summaries)
     read_schema = {'type': 'object', 'additionalProperties': False,
         'required': ['kind', 'ref'], 'properties': {
             'kind': {'const': 'read'}, 'ref': {'type': 'string'},
@@ -244,6 +344,12 @@ def complete(llm, role, instructions, context, schema):
         'required': ['kind', 'ref'], 'properties': {
             'kind': {'const': 'release'}, 'ref': {'type': 'string'},
             'name': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}}}
+    batch_schema = {'type': 'object', 'additionalProperties': False,
+        'required': ['kind', 'reads'], 'properties': {'kind': {'const': 'read_many'},
+            'reads': {'type': 'array', 'minItems': 1, 'maxItems': 16,
+                'items': {'type': 'object', 'additionalProperties': False,
+                    'required': ['ref'], 'properties': {'ref': {'type': 'string'},
+                        'name': {'type': 'string'}, 'offset': {'type': 'integer', 'minimum': 0}}}}}}
     note_properties = {name: {'type': 'string'} for name in
         ('hypothesis', 'counterevidence', 'failures', 'open_questions', 'next_step')}
     note_properties.update({'kind': {'const': 'note'}, 'evidence_refs': {
@@ -252,7 +358,16 @@ def complete(llm, role, instructions, context, schema):
                    'required': list(note_properties), 'properties': note_properties}
     action_schema = {'type': 'object', 'required': ['_context_action'],
                      'additionalProperties': False,
-                     'properties': {'_context_action': {'oneOf': [read_schema, note_schema, release_schema]}}}
+                     'properties': {'_context_action': {'oneOf': [read_schema, batch_schema,
+                                                                  note_schema, release_schema]}}}
+    if role == 'B-repair':
+        action_schema['properties']['_context_action']['oneOf'] = [read_schema, batch_schema, release_schema]
+    from .analysis import QUERY_PROPERTIES
+    query_schema = {'type': 'object', 'additionalProperties': False, 'required': ['kind', 'filters'],
+        'properties': {'kind': {'const': 'query'}, 'filters': {'type': 'object',
+            'properties': QUERY_PROPERTIES, 'additionalProperties': False}}}
+    if task is not None and not role.startswith('E'):
+        action_schema['properties']['_context_action']['oneOf'].append(query_schema)
     # Preserve root definitions for original #/$defs/... references.
     response_schema = {'anyOf': [deepcopy(schema), action_schema]}
     for name in ('$defs', 'definitions'):
@@ -261,28 +376,67 @@ def complete(llm, role, instructions, context, schema):
     page = None
     ledger = []
     retained = []
+    seen_pages = set()
+    stalled = 0
 
     def page_key(value):
         return value.get('ref'), value.get('offset'), value.get('name'), value.get('next_offset')
 
     def frame_for(latest, pages, index):
-        previous = [p for p in pages if page_key(p) != page_key(latest or {})]
-        return {**frame, '_context': {'version': VERSION, 'revision': POLICY_REVISION,
-            'session': key, 'source': root, 'recent_notes': note_frame,
+        latest_pages = (latest or {}).get('pages', [latest or {}])
+        keys = {page_key(p) for p in latest_pages}
+        previous = [p for p in pages if page_key(p) not in keys]
+        return {**frame, '_context': {'version': policy, 'revision': POLICY_REVISION,
+            'session': key, 'mode': mode, 'source': root, 'recent_notes': note_frame,
             'last_read': latest, 'working_set': previous, 'actions_used': index,
-            'actions_remaining': MAX_ACTIONS - index, 'read_ledger': list(ledger)}}
+            'read_ledger': list(ledger)}}
 
-    for index in range(MAX_ACTIONS + 1):
+    def turn_contract(recovery=False):
+        context_instructions = REPAIR_CONTEXT_INSTRUCTIONS if role == 'B-repair' else INSTRUCTIONS
+        return (instructions + context_instructions + (RECOVERY_INSTRUCTIONS if recovery else ''),
+                schema if recovery else response_schema)
+
+    def capacity(value, *, recovery=False):
+        check = getattr(llm, 'request_capacity', None)
+        if check is not None:
+            prompt, output_schema = turn_contract(recovery)
+            return check(prompt, value, output_schema)
+        return {'fits': size(value) <= getattr(llm, 'max_request_bytes', MAX_CONTEXT_BYTES)}
+
+    if not capacity(frame_for(None, [], 0))['fits']:
+        # Batch local snapshot writes into a short transaction, never across LLM I/O.
+        with store.transaction():
+            frame = (stage_frame(builder, context) if policy != 'state-v1' and role != 'B-repair'
+                     else builder.pack(frame))
+            note_frame = [builder.pack(note, f'$.research_notes[{i}]', threshold=512)
+                          for i, note in enumerate(note_summaries)]
+            if size(note_frame) > 6000:
+                note_frame = builder.reference(note_summaries, '$.research_notes')
+        mode = 'referenced'
+
+    index = 0
+    while True:
+        recovery = stalled >= 3
         current = frame_for(page, retained, index)
-        if size(current) > MAX_CONTEXT_BYTES:
-            raise ProviderPaused('Bounded context frame exceeds its policy; inspect context_sessions')
+        if recovery:
+            current['_context']['recovery'] = {'reason': 'repeated_context_actions',
+                'stalled_actions': stalled, 'context_actions_available': False,
+                'next_action': 'complete_requested_decision'}
+        limits = capacity(current, recovery=recovery)
+        if not limits['fits']:
+            raise ProviderPaused('Context frame exceeds request capacity; inspect context_sessions')
         step_key = f'{key}/{index}'
         audit = {'session': key, 'role': role, 'index': index, 'context': current,
-                 'context_bytes': size(current), 'source_bytes': size(context)}
+                 'context_bytes': size(current), 'source_bytes': size(context), 'capacity': limits}
         store.put('context_frames', step_key, audit, immutable=True)
         store.event('context_prepared', {'context_frame_ref': step_key, 'role': role,
-                    'context_bytes': audit['context_bytes'], 'source_bytes': audit['source_bytes']})
-        result = llm._complete(role, instructions + INSTRUCTIONS, current, response_schema)
+                    'context_bytes': audit['context_bytes'], 'source_bytes': audit['source_bytes'],
+                    'estimated_input_tokens': limits.get('estimated_input_tokens'), 'context_actions': index})
+        if recovery:
+            store.event('context_recovery_started', {'session': key, 'role': role,
+                'context_frame_ref': step_key, 'stalled_actions': stalled})
+        prompt, output_schema = turn_contract(recovery)
+        result = llm._complete(role, prompt, current, output_schema)
         if '_context_action' not in result:
             # The caller retains its original scientific contract validation.
             with store.transaction():
@@ -292,22 +446,59 @@ def complete(llm, role, instructions, context, schema):
                         'decision': result, 'authority': 'model_claim_not_measurement'}, immutable=True)
                 store.put('context_sessions', key, {**saved, 'state': 'done', 'result': result})
             return result
-        if index == MAX_ACTIONS:
-            raise ProviderPaused('Context action limit reached; inspect context_reads before continuing')
+        if recovery:
+            pause = {'reason': 'context_stalled',
+                'message': 'Context actions made no progress and decision-only recovery failed; inspect context_reads before continuing',
+                'stalled_actions': stalled, 'context_read_ref': f'{key}/{index - 1}',
+                'recovery_frame_ref': step_key}
+            if saved.get('pause') != pause:
+                store.put('context_sessions', key, {**saved, 'pause': pause})
+                store.event('context_stalled', {'session': key, 'role': role, **pause})
+            raise ProviderPaused(pause['message'], reason=pause['reason'])
+        progressed = False
+        action = result.get('_context_action')
         try:
             if set(result) != {'_context_action'} or not isinstance(result['_context_action'], dict):
                 raise ValueError('Return either one context action or the final decision')
             action = result['_context_action']
-            if action.get('kind') == 'read':
-                incoming = builder.read(action)
-                updated = [p for p in retained if page_key(p) != page_key(incoming)] + [incoming]
-                entry = {'ref': incoming['ref'], 'offset': incoming['offset'],
-                         'name': incoming.get('name'), 'next_offset': incoming['next_offset']}
-                ledger.append(entry)
-                if size(frame_for(incoming, updated, index + 1)) > MAX_CONTEXT_BYTES - 2000:
-                    ledger.pop()
+            if action.get('kind') in {'read', 'read_many'}:
+                if action['kind'] == 'read_many':
+                    if set(action) != {'kind', 'reads'}:
+                        raise ValueError('Unknown batch read fields')
+                    incoming = builder.read_many(action['reads'])
+                    pages = incoming['pages']
+                else:
+                    incoming = builder.read(action)
+                    pages = [incoming]
+                keys = {page_key(p) for p in pages}
+                updated = [p for p in retained if page_key(p) not in keys] + pages
+                entries = [{'ref': p['ref'], 'offset': p['offset'],
+                            'name': p.get('name'), 'next_offset': p['next_offset']} for p in pages]
+                if not capacity(frame_for(incoming, updated, index + 1))['fits']:
                     raise ValueError('Context capacity reached. Release unused retained pages before reading more; no evidence was evicted.')
+                new_pages = {digest(p) for p in pages} - seen_pages
+                progressed = bool(new_pages)
+                if new_pages:
+                    ledger.extend(entry for entry, p in zip(entries, pages) if digest(p) in new_pages)
+                    seen_pages.update(new_pages)
                 retained, page = updated, incoming
+            elif action.get('kind') == 'query':
+                if task is None or role.startswith('E') or set(action) != {'kind', 'filters'}:
+                    raise ValueError('Revealed queries require a task snapshot and filters')
+                from .analysis import query_observations
+                incoming = query_observations(observations, task, view.get('history', []), action['filters'])
+                query_ref = builder.reference(incoming, '$.query.' + digest(action))['evidence_ref']
+                page = {'ref': query_ref, 'offset': incoming['coverage']['offset'],
+                        'next_offset': incoming['next_offset'], 'value': incoming}
+                progressed = digest(page) not in seen_pages
+                seen_pages.add(digest(page))
+                if not progressed:
+                    page['notice'] = (
+                        'This query already returned the same result in this immutable snapshot. '
+                        'Repeating it will not reveal new measurements. '
+                        'Continue the requested decision using known evidence, or make a different '
+                        'lookup needed for a concrete question; keep unobserved fitness unknown.')
+                retained = [p for p in retained if p.get('ref') != query_ref] + [page]
             elif action.get('kind') == 'release':
                 if (set(action) - {'kind', 'ref', 'name', 'offset'}
                         or not isinstance(action.get('ref'), str) or action['ref'] not in builder.issued
@@ -331,9 +522,13 @@ def complete(llm, role, instructions, context, schema):
                 raise ValueError('Unknown context action')
         except ValueError as exc:
             page = {'error': str(exc)}
+        # Provider requests are stateless. Carry the originating request alongside
+        # its result so an empty query still identifies which designs were checked.
+        page['action'] = deepcopy(action)
         store.put('context_reads', step_key, {'session': key, 'role': role,
             'request': result, 'response': page}, immutable=True)
         store.event('context_read_completed', {'context_read_ref': step_key, 'role': role,
             'status': 'error' if 'error' in page else 'done', 'offset': page.get('offset'),
             'next_offset': page.get('next_offset')})
-    raise AssertionError('unreachable')
+        stalled = 0 if progressed else stalled + 1
+        index += 1

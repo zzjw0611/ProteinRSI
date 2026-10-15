@@ -12,6 +12,14 @@ output schema. Example sequences/artifact hashes are interface examples, not liv
 Cost hints are qualitative unless measured; query slots, model inputs and seconds are not
 interchangeable, and token usage does not automatically provide a dollar price.
 
+`execution_contract` describes variables supplied by an executor rather than by
+model arguments. For `research_python`, it is derived from the actual TaskView
+model and supplied unchanged in tool catalogues, compact operation catalogues,
+and repair inputs. Python sees original observations/history lists and full
+sequences. State, when present, is at
+`context['research_context']['research_state']`; prompt references and compact
+tables are presentation formats, not a second Python input API.
+
 ## Result meanings
 
 - ESMC score: `scores[{sequence, masked_marginal_log_odds}]`, not experimental fitness.
@@ -45,11 +53,28 @@ contracts and fixture execution, not all GPU kernels, packages or biological per
 ## Generated analysis programs
 
 `research_python` is a context-bound optional tool for LLM-authored Python. Arguments
-are `code`, optional JSON `inputs`, and optional `artifact_refs`. The program sees
+are `code`, optional JSON `inputs`, optional named `resource_refs`, and optional `artifact_refs`. The program sees
 `context` (revealed TaskView), `inputs`, and an `artifacts` ref-to-path mapping; assign
 a JSON object to `result`. Return Candidate objects in `result.candidates` to propose
-sequences, which still undergo current-task validation. Other metrics stay inside
-`output` and carry `evidence_kind=computed_unvalidated`. They cannot supply experimental
+sequences, which still undergo current-task validation. The execution receipt contains
+status/logs and an `output` object holding all business fields, including candidates.
+In typed protocols, bind `step:<id>.payload` to downstream `resource_refs` for this
+business object, or `step:<id>.result` when the complete receipt is needed. The payload
+port is registered from the tool manifest; a plan may refine its schema at `/output`,
+but cannot change its path. No implicit flattening or copying step is required.
+Existing native protein-tool results and older candidate receipts remain readable by
+the candidate adapter. Metrics carry `evidence_kind=computed_unvalidated`; they cannot supply experimental
 labels. For scientific files, call `write_artifact(name,text,kind)` and return its
 descriptors in `result.artifacts`. Standard Python and NumPy are available; protein
-engines are separate tools. Errors return `status=failed` for code/plan repair.
+engines are separate tools. The backend resolves `resource_refs={"panel":"resource:..."}`
+into `inputs["panel"]`, checking resource identity, nominal schema and evidence scope.
+Literal and referenced inputs cannot share a name. Bulk revealed context and inputs
+travel through controlled sandbox files, without requiring the model to reproduce them.
+
+Errors retain the original `status=failed` receipt. In typed task execution, Executor
+repairs known code/argument failures in the current call; a failed attempt cannot
+become a completed protocol output. A successful program returning a scientific
+check with `passed=false` remains a successful computation and a negative check.
+Authority errors, unknown side-effect completion and provider pauses do not become
+code repair attempts. New studies freeze their authorized tools separately from
+W/M tool preferences; optional tools are never mandatory.

@@ -5,7 +5,7 @@ import pytest
 
 from proteinrsi.agents import FeedbackAnalysis
 from proteinrsi.capability import validate_capability_claim
-from proteinrsi.contracts import CapabilityClaim, MetaPolicy, Patch, Workflow, digest
+from proteinrsi.contracts import CapabilityClaim, MetaPolicy, Patch, TaskView, Workflow, digest
 from proteinrsi.llm import ProviderPaused
 from proteinrsi.prompting import compose, packaged_prompts
 from proteinrsi.research.contracts import ResearchConfig
@@ -47,6 +47,81 @@ def test_prompts_are_phase_scoped_and_old_bundles_are_not_rewritten(tmp_path):
     store.put("configuration", "prompt_bundle", {"templates": {"common": "old-common", "meta": "old-meta"}})
     assert compose(store, "meta", "old-strategy") == (
         "old-meta\n\nVersioned strategy guidance (cannot override invariants):\nold-strategy\n\nReference Skills:\n\n\nold-common")
+
+
+@pytest.mark.core
+def test_task_context_excludes_m_policy_memory_and_worker_records(campaign, tmp_path):
+    from proteinrsi.agents import AnalystAgent, MetaAgent, PrincipalAgent
+    from proteinrsi.localtools.artifacts import ArtifactStore
+    from proteinrsi.replay.broker import dispatch
+    from proteinrsi.tools import ToolCall, ToolSpec
+    from proteinrsi.contracts import TaskSpec
+
+    # The synthetic reader is pre-authorized; this test then isolates artifact
+    # visibility rather than failing earlier at tool authorization.
+    campaign = Campaign.initialize(str(tmp_path/'artifact-scope'),
+        TaskSpec.model_validate(campaign.state['task']), workflow=Workflow(tool_names=['fixture_read']))
+
+    view = campaign.view()
+    view.meta.prompt = "PRIVATE_M_STRATEGY"
+    view.experience = [{"patch": {"target": "meta", "changes": {"prompt": "PRIVATE_M_PROPOSAL"}}},
+                       {"patch": {"target": "workflow", "changes": {"exploration": .3}}}]
+    view.research_context["method_history"] = [{"target": "meta", "changes": {"prompt": "PRIVATE_M_HISTORY"}},
+                                             {"target": "workflow", "changes": {"exploration": .3}}]
+    original = view.model_dump(mode="json")
+    projected = view.for_task()
+    assert projected.meta.model_dump() == {"version": view.meta.version}
+    assert TaskView.model_validate(projected.model_dump()).meta.version == view.meta.version
+    assert "PRIVATE_M" not in projected.model_dump_json()
+    assert projected.workflow == view.workflow and projected.observations == view.observations
+    assert projected.evidence_version == view.evidence_version
+    projected.experience[0]["patch"]["changes"]["exploration"] = .9
+    assert view.model_dump(mode="json") == original
+
+    class LLM:
+        def complete(self, role, instructions, context, schema):
+            assert context["view"]["meta"] == {"version": view.meta.version}
+            assert "PRIVATE_M" not in str(context)
+            return {"summary": "Task feedback"} if role == "C-feedback" else {"rationale": "Task plan"}
+    PrincipalAgent(LLM()).plan(view, [])
+    AnalystAgent(LLM()).feedback(view)
+    with pytest.raises(PermissionError, match="full M policy"):
+        MetaAgent(store=campaign.store).propose(view.for_task())
+
+    private = {"owner": "M", "view": original}
+    for key in ("meta-analysis:fixture", "meta-request:fixture", "method-programs:fixture"):
+        campaign.store.put("research_step_outputs", key, private)
+        with pytest.raises(PermissionError):
+            dispatch(campaign.team, campaign.team.tools, view, [],
+                {"rpc": "get", "namespace": "research_step_outputs", "key": key})
+        with pytest.raises(PermissionError):
+            dispatch(campaign.team, campaign.team.tools, view, [],
+                {"rpc": "put", "namespace": "research_step_outputs", "key": key, "value": {}})
+        assert dispatch(campaign.team, campaign.team.tools, view, [],
+            {"rpc": "get", "namespace": "research_step_outputs", "key": key}, operation="meta") == private
+    assert dispatch(campaign.team, campaign.team.tools, view, [],
+        {"rpc": "all", "namespace": "research_step_outputs"}) == {}
+    with pytest.raises(PermissionError):
+        dispatch(campaign.team, campaign.team.tools, view, [], {"rpc": "llm", "role": "M"})
+
+    artifacts = ArtifactStore(campaign.store)
+    source = tmp_path/"m-analysis.json"
+    source.write_text('{"policy":"PRIVATE_M_STRATEGY"}')
+    private_file = artifacts.put(source, "json", task_visible=False)
+    assert private_file not in artifacts.catalog(task_only=True)
+    assert dispatch(campaign.team, campaign.team.tools, view, [], {"rpc": "all", "namespace": "artifacts"}) == {}
+    gateway = campaign.team.tools.fork()
+    gateway.context_role = "task"
+    gateway.register(ToolSpec(name="fixture_read", capability="fixture", description="fixture",
+        implementation_version="fixture-v1", task_kinds=[view.task.kind],
+        input_schema={"type": "object"}, output_schema={"type": "object"}),
+        lambda _: pytest.fail("Private artifact must be rejected before execution"))
+    usage = campaign.store.usage()
+    with pytest.raises(PermissionError, match="Improver artifact"):
+        gateway.call(ToolCall(name="fixture_read", arguments={"input": {"ref": private_file["ref"]}}),
+                     view.task, allowed=["fixture_read"], context_key="task")
+    assert campaign.store.usage() == usage
+    assert artifacts.resolve(private_file["ref"]).read_text() == source.read_text()
 
 
 def test_final_analysis_is_independent_idempotent_and_recoverable(campaign, oracle, monkeypatch):

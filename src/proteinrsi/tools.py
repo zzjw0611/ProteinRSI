@@ -33,6 +33,7 @@ class ToolSpec(Model):
     task_kinds: list[TaskKind]
     input_schema: dict[str, Any]
     output_schema: dict[str, Any]
+    execution_contract: dict[str, Any] = Field(default_factory=dict)
     protected_inputs: dict[str, str] = Field(default_factory=dict)
     license_id: str = "NOASSERTION"
     data_egress: bool = False
@@ -42,12 +43,14 @@ class ToolGateway:
     def __init__(self, store: Store, *, allow_egress: bool = False):
         self.store = store
         self.allow_egress = allow_egress
+        self.context_role = None
         self._tools: dict[str, tuple[ToolSpec, Callable[[dict], dict]]] = {}
 
     def fork(self) -> ToolGateway:
         """Copy bindings for a round-local overlay; shared store retains budget/cache rules."""
         gateway = ToolGateway(self.store, allow_egress=self.allow_egress)
         gateway._tools = dict(self._tools)
+        gateway.context_role = self.context_role
         return gateway
 
     def register(self, spec: ToolSpec, executor: Callable[[dict], dict]) -> None:
@@ -58,13 +61,18 @@ class ToolGateway:
         self._tools[spec.name] = (spec, executor)
 
     def catalog(self, task: TaskSpec, allowed: list[str]) -> list[dict]:
+        from proteinrsi.permissions import require_tools
+        require_tools(self.store, allowed)
         missing = set(allowed) - self._tools.keys()
         if missing:
             raise ValueError(f"Unconfigured tools: {sorted(missing)}")
         return [spec.model_dump(mode="json") for name, (spec, _) in self._tools.items()
-                if name in allowed and task.kind in spec.task_kinds]
+                if name in allowed and task.kind in spec.task_kinds
+                and (not spec.data_egress or self.allow_egress)]
 
     def call(self, call: ToolCall, task: TaskSpec, *, allowed: list[str], context_key: str) -> dict:
+        from proteinrsi.permissions import require_tools
+        grant = require_tools(self.store, [call.name])
         if call.name not in allowed or call.name not in self._tools:
             raise PermissionError("Tool is not allowlisted for this workflow")
         spec, executor = self._tools[call.name]
@@ -72,12 +80,24 @@ class ToolGateway:
             raise ValueError("Tool does not support this task")
         if spec.data_egress and not self.allow_egress:
             raise PermissionError("External sequence/data transfer requires explicit operator opt-in")
-        Draft202012Validator(spec.input_schema).validate(call.arguments)
+        from jsonschema import ValidationError
+        try:
+            Draft202012Validator(spec.input_schema).validate(call.arguments)
+        except ValidationError as exc:
+            from proteinrsi.execution import ExecutionFailure
+            raise ExecutionFailure(call.name, {"kind": "tool_arguments",
+                "path": "/" + "/".join(map(str, exc.path)),
+                "message": f"{exc.validator} input validation failed"}, recoverable=True) from exc
+        if self.context_role == "task":
+            from proteinrsi.localtools.artifacts import ArtifactStore
+            ArtifactStore(self.store).require_task_access(call.arguments)
         task_values = task.model_dump()
         for argument, field in spec.protected_inputs.items():
             if field not in task_values or call.arguments.get(argument) != task_values[field]:
                 raise ValueError(f"Protected input {argument} does not match task.{field}")
         payload = {"spec": spec.model_dump(mode="json"), "call": call.model_dump(), "context": context_key}
+        if grant is not None:
+            payload["authorization"] = grant.version
         key = "tool-" + digest(payload)
         previous = self.store.get("tool_jobs", key)
         self.store.event("tool_requested", {"tool": call.name, "purpose": call.purpose,

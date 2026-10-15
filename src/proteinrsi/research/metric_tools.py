@@ -19,7 +19,11 @@ def verified_source(store, view, gateway, ref):
     if (not isinstance(source, dict) or "resource:" + digest(source) != ref
             or source.get("scope") != scope_for(view)):
         raise ContractError("Metric source is missing, modified or from another scope")
-    allowed_specs = {s["name"]: s for s in gateway.catalog(view.task, view.workflow.tool_names)}
+    from proteinrsi.permissions import available_tools
+    from proteinrsi.permissions import authorization
+    grant = authorization(store)
+    allowed_specs = {s["name"]: s for s in gateway.catalog(view.task,
+        available_tools(gateway, view, view.workflow.tool_names))}
     for job_key, job in store.all("tool_jobs").items():
         spec, call = job.get("spec", {}), job.get("call", {})
         provider = spec.get("name")
@@ -27,18 +31,39 @@ def verified_source(store, view, gateway, ref):
                 or allowed_specs.get(provider) != spec or source.get("data") != job.get("result")):
             continue
         fingerprint = digest(spec)
-        if (source.get("producer") != "tool:" + provider + "@" + fingerprint
+        prefix = "tool:" + provider + "@"
+        if not source.get("producer", "").startswith(prefix):
+            continue
+        implementation = source["producer"].removeprefix(prefix)
+        if (implementation not in {fingerprint, "executed-v1:" + fingerprint}
                 or source.get("schema_ref") != "tool.result/" + provider + "/" + fingerprint
                 or source.get("schema_sha256") != digest(spec["output_schema"])):
             continue
-        step_key = "protocol-step:" + digest({"scope": source["scope"],
-            "operation": "tool:" + provider, "implementation": fingerprint,
+        step_key = job.get("context")
+        receipt = store.get(NAMESPACE, step_key, {})
+        identity = receipt.get("identity", {"scope": source["scope"],
+            "operation": "tool:" + provider, "implementation": implementation,
             "arguments": call["arguments"], "parents": source["parents"],
             "output_schema": digest(spec["output_schema"])})
-        expected_job = "tool-" + digest({"spec": spec, "call": call, "context": step_key})
-        receipt = store.get(NAMESPACE, step_key, {})
-        if (job.get("context") == step_key and job_key == expected_job
-                and receipt.get("status") == "done" and receipt.get("resource_id") == ref):
+        if (step_key != "protocol-step:" + digest(identity) or identity["scope"] != source["scope"]
+                or identity["operation"] != "tool:" + provider or identity["implementation"] != implementation
+                or identity["parents"] != source["parents"] or identity["output_schema"] != digest(spec["output_schema"])):
+            continue
+        payload = {"spec": spec, "call": call, "context": step_key}
+        if grant is not None:
+            payload["authorization"] = grant.version
+        expected_job = "tool-" + digest(payload)
+        if (identity["arguments"] != call["arguments"]):
+            # A repaired call can have different arguments; require its durable
+            # executor receipt as well as the actual native tool job.
+            original = {"name": provider, "arguments": identity["arguments"], "purpose": "Explicit protocol operation"}
+            execution_key = "execution-call:" + digest({"call": original, "context": step_key,
+                "implementation": spec, "authorization": grant.version if grant else None})
+            execution = store.get(NAMESPACE, execution_key, {})
+            if (execution.get("status") != "done" or execution.get("current") != call
+                    or execution.get("result") != source["data"]):
+                continue
+        if (job_key == expected_job and receipt.get("status") == "done" and receipt.get("resource_id") == ref):
             return provider, source["data"], call["arguments"], job_key, fingerprint
     raise ContractError("Metric source has no matching completed provider receipt in this scope")
 
@@ -82,7 +107,11 @@ def register_metric_tool(gateway, view):
     if getattr(gateway, "remote_context_tools", False):
         return
     gateway._tools.pop(TOOL, None)
-    if "protein-metrics" not in view.workflow.skill_names or TOOL not in view.workflow.tool_names:
+    from proteinrsi.permissions import authorization
+    grant = authorization(gateway.store)
+    permitted = TOOL in grant.tool_names if grant else (
+        "protein-metrics" in view.workflow.skill_names and TOOL in view.workflow.tool_names)
+    if not permitted:
         return
     spec = ToolSpec(name=TOOL, capability="analysis.metric_extract",
         description="Extract selected metrics from a completed native tool Protocol resource. "

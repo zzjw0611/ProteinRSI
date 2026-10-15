@@ -103,6 +103,7 @@ def test_real_design_boundary_uses_compaction_without_mutating_tool_inputs(store
     class LLM:
         def complete(self, role, instructions, context, schema):
             assert 'presentation only' in instructions
+            assert context['view']['meta'] == {'version': view.meta.version}
             assert context['tool_results'] == [{'context_ref': '/view'}]
             assert decode_observations(context['view']) == raw['observations']
             return {'edits': [[{'position': 39, 'from': 'V', 'to': 'A'}]]}

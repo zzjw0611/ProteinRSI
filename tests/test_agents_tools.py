@@ -5,8 +5,10 @@ import pytest
 from jsonschema import ValidationError
 
 from proteinrsi.agents import Team, skill_text
-from proteinrsi.contracts import TaskKind, TaskSpec
+from proteinrsi.contracts import MetaPolicy, TaskKind, TaskSpec, Workflow
+from proteinrsi.runtime import Campaign
 from proteinrsi.llm import JSONLLM, LLMError
+from proteinrsi.execution import ExecutionFailure
 from proteinrsi.tools import ToolCall, ToolGateway, ToolSpec
 
 
@@ -19,7 +21,15 @@ def tool_spec(**updates):
     return spec.model_copy(update=updates)
 
 
-def test_gateway_checks_input_and_idempotency(campaign):
+@pytest.fixture
+def tool_campaign(tmp_path, fixture_data):
+    task, _ = fixture_data
+    return Campaign.initialize(str(tmp_path/'authorized-tools'), task,
+        workflow=Workflow(tool_names=['example']), meta=MetaPolicy(enabled=False))
+
+
+def test_gateway_checks_input_and_idempotency(tool_campaign):
+    campaign = tool_campaign
     calls = []
     gateway = ToolGateway(campaign.store)
     gateway.register(tool_spec(), lambda arguments: calls.append(arguments) or {"candidates": []})
@@ -33,12 +43,13 @@ def test_gateway_checks_input_and_idempotency(campaign):
     with pytest.raises(ValueError):
         gateway.call(ToolCall(name="example", arguments={"target": "ACD"}), task,
                      allowed=["example"], context_key="bad")
-    with pytest.raises(ValidationError):
+    with pytest.raises(ExecutionFailure, match='input validation'):
         gateway.call(ToolCall(name="example", arguments={"target": task.reference_sequence, "shell": "bad"}),
                      task, allowed=["example"], context_key="bad")
 
 
-def test_no_silent_egress_and_bad_output(campaign):
+def test_no_silent_egress_and_bad_output(tool_campaign):
+    campaign = tool_campaign
     task = campaign.view().task
     gateway = ToolGateway(campaign.store)
     gateway.register(tool_spec(data_egress=True), lambda a: {})

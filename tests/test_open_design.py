@@ -40,6 +40,7 @@ def write_labels(tmp_path):
 
 
 @pytest.mark.parametrize('guarded', [False, True])
+@pytest.mark.core
 def test_open_design_two_rounds_receive_only_queried_feedback(tmp_path, guarded):
     if guarded:
         from proteinrsi.replay.sandbox import probe
@@ -62,7 +63,7 @@ def test_open_design_two_rounds_receive_only_queried_feedback(tmp_path, guarded)
             result = {'hypothesis': 'Design mutations; adapt to actual feedback', 'steps': [
                 {'step_id': op, 'operation': op, 'question': op, 'expected_output': op}
                 for op in ['design', 'rank', 'finalize']]}
-        elif '# B — protein design' in instructions:
+        elif '# Executor — protein design' in instructions:
             round_index = view['round_index']
             if round_index == 0:
                 assert len(view['observations']) == 1
