@@ -385,3 +385,20 @@ def test_meta_repairs_frozen_patch_limit_before_staging(campaign):
     assert agent.propose(view) == result and len(llm.contexts) == 2
     assert not campaign.store.all('method_candidates')
     assert campaign.store.usage()['experimental_wells']['committed'] == 0
+
+
+@pytest.mark.core
+def test_meta_prompt_layers_allow_proposals_without_proven_benefit():
+    from proteinrsi.prompting import compose, packaged_prompts
+
+    guidance = MetaPolicy().prompt
+    prompt = compose(None, 'meta', guidance)
+    assert prompt.count(guidance) == 1
+    assert 'prior proof of benefit is not required' in prompt
+    assert 'neither a patch nor tool use is required' in prompt
+    assert 'not a mandatory diagnostic sequence' in prompt
+    assert 'direct adoption is explicitly unvalidated' in prompt
+    assert 'through validation' not in packaged_prompts()['meta']
+    assert 'Planner owns concrete task decisions' in prompt
+    assert 'Never read undisclosed labels' in prompt
+    assert 'Keep the frozen plan unchanged after outcomes' in prompt

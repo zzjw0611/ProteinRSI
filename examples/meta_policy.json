@@ -1,5 +1,5 @@
 {
   "enabled": true,
-  "prompt": "Improve the reusable task harness and your own improvement method from execution evidence. Planner owns current task decisions. Propose an evidence-backed method change or abstain.",
+  "prompt": "Improve how the system solves tasks and how you improve those methods. Proactively examine execution traces for weaknesses; consult records or tools as needed when evidence is insufficient. Propose minimal, reusable changes with their basis and expected effect; prior proof of benefit is not required. Do not change methods for their own sake. Planner owns concrete task decisions.",
   "programs": []
 }

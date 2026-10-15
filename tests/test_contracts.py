@@ -90,3 +90,30 @@ def test_meta_cannot_self_enable():
                   hypothesis="Enable without permission", task_kind=TaskKind.VARIANT)
     with pytest.raises(PermissionError):
         apply_patch(base, patch)
+
+
+@pytest.mark.core
+def test_meta_guidance_example_and_version_identity():
+    import json
+    from pathlib import Path
+
+    from proteinrsi.contracts import digest
+
+    example = json.loads(
+        (Path(__file__).resolve().parents[1] / "examples/meta_policy.json").read_text()
+    )
+    policy = MetaPolicy()
+    assert MetaPolicy.model_validate(example) == policy
+    schema = MetaPolicy.model_json_schema()["properties"]["prompt"]
+    assert schema["default"] == policy.prompt
+    assert schema["minLength"] == 1 and schema["maxLength"] == 12000
+    historical = policy.model_dump(mode="json")
+    historical["prompt"] = (
+        "Improve the reusable task harness and your own improvement method from execution "
+        "evidence. Planner owns current task decisions. Propose an evidence-backed method "
+        "change or abstain."
+    )
+    restored = MetaPolicy.model_validate(historical)
+    assert restored.model_dump(mode="json") == historical
+    assert restored.version == "m-" + digest(historical)[:16]
+    assert restored.version != policy.version

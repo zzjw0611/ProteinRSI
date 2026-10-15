@@ -233,7 +233,16 @@ class MetaPolicy(ProgrammedMethod):
     min_observations: int = Field(default=6, ge=2, le=5000)
     cooldown_rounds: int = Field(default=1, ge=1, le=20)
     min_remaining_wells: int = Field(default=10, ge=4)
-    prompt: str = Field(default="Improve the reusable task harness and your own improvement method from execution evidence. Planner owns current task decisions. Propose an evidence-backed method change or abstain.", min_length=1, max_length=12000)
+    prompt: str = Field(
+        default=(
+            "Improve how the system solves tasks and how you improve those methods. "
+            "Proactively examine execution traces for weaknesses; consult records or tools "
+            "as needed when evidence is insufficient. Propose minimal, reusable changes "
+            "with their basis and expected effect; prior proof of benefit is not required. "
+            "Do not change methods for their own sake. Planner owns concrete task decisions."
+        ),
+        min_length=1, max_length=12000,
+    )
 
     @property
     def version(self) -> str:

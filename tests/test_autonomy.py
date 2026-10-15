@@ -147,14 +147,17 @@ def test_zero_observations_fit_predict_has_no_fabricated_number(campaign):
     assert all(r["predicted_value"] is None for r in result["predictions"])
 
 
-def test_prompts_are_snapshot_not_hot_reloaded(campaign,monkeypatch):
-    before=compose(campaign.store,"designer")
+@pytest.mark.parametrize("role", ["designer", "meta"])
+def test_prompts_are_snapshot_not_hot_reloaded(campaign,monkeypatch,role):
+    before=compose(campaign.store,role)
     ver=prompt_version(campaign.store)
     import proteinrsi.prompting as p
     monkeypatch.setattr(p,"packaged_prompts",lambda:{"designer":"changed"})
-    assert compose(campaign.store,"designer")==before
+    assert compose(campaign.store,role)==before
     assert prompt_version(campaign.store)==ver
-    assert "OPTIONAL" in before and "private reasoning" in before
+    assert "private reasoning" in before
+    if role == "designer":
+        assert "OPTIONAL" in before
 
 
 def test_strict_registered_model_results_and_documentation():
