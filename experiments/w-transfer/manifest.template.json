@@ -1,0 +1,125 @@
+{
+  "schema_version": "w-transfer-archive-manifest/v1",
+  "status": "TEMPLATE_UNEXECUTED",
+  "execution_authorized": false,
+  "notice": "Unexecuted placeholders only. No run artifacts exist here. Lost prior W-transfer pilots cannot be recovered; a regenerated candidate is a new run.",
+  "run_id": null,
+  "created_at_utc": null,
+  "authorization": {
+    "source_reference": null,
+    "approved_at_utc": null,
+    "approved_budget": null
+  },
+  "source": {
+    "repository": "zzjw0611/ProteinRSI",
+    "scaffold_base_commit": "c7de6bf5995d513a9682f6ef8df2558878e3eb0e",
+    "execution_commit": null,
+    "execution_tree": null
+  },
+  "preregistration": {
+    "path": null,
+    "sha256": null,
+    "registered_before_source_outcomes": null,
+    "source_selection_rule": null,
+    "source_ids": [],
+    "target_holdout_ids": [],
+    "split_sha256": null,
+    "prior_target_exposure": null,
+    "metrics": [],
+    "seeds": [],
+    "query_allocations": null,
+    "stopping_rule": null,
+    "decision_criteria": null
+  },
+  "environment": {
+    "dependency_lock_sha256": null,
+    "runtime_versions": null,
+    "model_id": null,
+    "model_version": null,
+    "tool_schema_versions": null,
+    "parameters": null
+  },
+  "data": {
+    "dataset_id": null,
+    "dataset_version": null,
+    "dataset_sha256": null,
+    "full_tables_included": false,
+    "hidden_labels_included": false
+  },
+  "method_freeze": {
+    "W0": {
+      "path": null,
+      "sha256": null,
+      "frozen_at_utc": null
+    },
+    "W1": {
+      "path": null,
+      "sha256": null,
+      "frozen_at_utc": null
+    },
+    "M": {
+      "path": null,
+      "sha256": null
+    },
+    "canonical_serialization": null,
+    "sanitization_exclusions": [],
+    "frozen_before_target_testing": null,
+    "target_M_enabled": false,
+    "inline_controls_allowed": false
+  },
+  "budget": {
+    "approved": null,
+    "consumed": null,
+    "currency": null,
+    "model_calls": null,
+    "queries": null
+  },
+  "checkpoints": [],
+  "checkpoint_entry_template": {
+    "round": null,
+    "status": "UNEXECUTED_PLACEHOLDER",
+    "timestamp_utc": null,
+    "parent_checkpoint_sha256": null,
+    "archive_commit": null,
+    "W_export_path": null,
+    "W_sha256": null,
+    "M_export_path": null,
+    "M_sha256": null,
+    "revealed_queries_results_path": null,
+    "revealed_queries_results_sha256": null,
+    "sanitized_tool_receipts_path": null,
+    "sanitized_tool_receipts_sha256": null,
+    "budget_accounting_path": null,
+    "budget_accounting_sha256": null
+  },
+  "recovery_records": [],
+  "recovery_entry_template": {
+    "timestamp_utc": null,
+    "prior_checkpoint": null,
+    "prior_commit": null,
+    "reason": null,
+    "observed_evidence": null,
+    "missing_artifacts": [],
+    "resume_decision": null,
+    "new_artifact_paths": []
+  },
+  "artifacts": [],
+  "artifact_entry_template": {
+    "path": null,
+    "sha256": null,
+    "bytes": null,
+    "kind": null,
+    "exclusions": []
+  },
+  "verification": {
+    "prohibited_content_review": null,
+    "hashes_checked": null,
+    "remote_readback_checked": null,
+    "main_sha_before": null,
+    "main_sha_after": null,
+    "expected_archive_head": null
+  },
+  "results": null,
+  "deviations": [],
+  "completed_at_utc": null
+}
