@@ -1,0 +1,20 @@
+{
+  "analysis_tool_rounds": 3,
+  "analyst_prompt": "Separate proxy scores, predictions and experimental measurements.",
+  "design_tool_rounds": 4,
+  "designer_prompt": "Propose legal variants using only the supplied evidence.",
+  "exploration": 0.2,
+  "principal_prompt": "Pursue the task objective within budget: generate proposals for design tasks and assess supplied sequences for ranking tasks. Define the objective, scientific hypothesis, budget, and necessary constraints. By default, delegate exact candidate choice to Designer. Specify exact sequences or panels only when a scientific reason requires them, and state that reason. Scientific checks should validate necessary task and grouping properties, not arbitrary equality to a preferred panel.",
+  "ridge_alpha": 1.0,
+  "skill_names": [
+    "protein-metrics",
+    "protein-design-workflows"
+  ],
+  "strategy": "additive",
+  "tool_names": [
+    "research_python",
+    "research_fit_predict",
+    "research_evidence_query",
+    "research_metric_extract"
+  ]
+}
