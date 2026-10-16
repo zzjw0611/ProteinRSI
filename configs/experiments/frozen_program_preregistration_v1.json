@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "study": "frozen executable background-dependence mechanism diagnostic",
+  "authorship": "Root dot authored all scientific policies after source T7 observations; no subagent/model API scientific decisions. This is a new executable policy family, not a direct test of old prompt-W and not autonomous M self-modification.",
+  "source_evidence": "Previously revealed T7 and TrpB4 trajectories; no unseen target labels or global extrema inspected.",
+  "development_landscapes": [
+    "T7",
+    "TrpB4"
+  ],
+  "evaluation_landscapes": [
+    "GB1",
+    "ParD2",
+    "ParD3",
+    "TEV",
+    "TrpB3A",
+    "TrpB3B",
+    "TrpB3C",
+    "TrpB3D",
+    "TrpB3E",
+    "TrpB3F",
+    "TrpB3G",
+    "TrpB3H",
+    "TrpB3I"
+  ],
+  "family_groups": {
+    "GB1": [
+      "GB1"
+    ],
+    "ParD": [
+      "ParD2",
+      "ParD3"
+    ],
+    "TEV": [
+      "TEV"
+    ],
+    "TrpB": [
+      "TrpB3A",
+      "TrpB3B",
+      "TrpB3C",
+      "TrpB3D",
+      "TrpB3E",
+      "TrpB3F",
+      "TrpB3G",
+      "TrpB3H",
+      "TrpB3I",
+      "TrpB4"
+    ],
+    "T7": [
+      "T7"
+    ]
+  },
+  "family_holdout_interpretation": "GB1/ParD/TEV are distinct from sourceT7/TrpB families; GB1/ParD were explored earlier by root and are not untouched confirmation. TEV has not been scientifically queried by root. TrpB3 transfers are within-family, not independent proteins.",
+  "excluded": {
+    "DHFR": "Different antibiotic-selection phenotype, transformed codon aggregate and canonical-construct caveat; reference-only in this phase. No resistance optimization."
+  },
+  "arms": [
+    "random",
+    "additive",
+    "conditional_pairwise"
+  ],
+  "seeds": [
+    17,
+    101,
+    202
+  ],
+  "initialization": "Identical per-seed site-balanced16 parent single mutants across all arms; free supplied parent. Initial16 count in128 budget.",
+  "new_queries_per_case": 128,
+  "batch_size": 16,
+  "rounds": 8,
+  "total_cases": 135,
+  "total_query_slots": 17280,
+  "model_api_calls": 0,
+  "method_llm_calls": 0,
+  "primary_comparison": "conditional_pairwise versus additive; random is a fixed sanity baseline.",
+  "primary_metrics": [
+    "best revealed valid value including supplied parent at128",
+    "paired16-query endpoint best-so-far curve"
+  ],
+  "secondary": [
+    "top5/top10 of unique valid new sequences",
+    "valid/unavailable counts",
+    "tools/CPU/wall cost",
+    "switch trigger frequencies"
+  ],
+  "aggregation": "Compare within each landscape/seed; do not pool raw score units. Report wins/ties/losses and family-balanced summaries; seeds/related landscapes do not create independent proteins. No statistical significance claim from three seeds.",
+  "analysis": "Report all predeclared targets, negatives, missingness and runtime failures. No changes to frozen policies or matrix after empirical outcomes; any repair must preserve scientific logic and be separately versioned.",
+  "known_limits": [
+    "Gated pairwise algorithm is an explicit root-designed implementation inspired by measured reversals, not proof the original learned prompt transfers.",
+    "Same main model context informed policy design; target execution is deterministic and sees only own budgeted observations.",
+    "Historical replay does not equal prospective wetlab success.",
+    "No global ranks/optima/normalization by hidden labels."
+  ],
+  "runtime": "Mandatory guardedworker and bwrap/seccomp; programtools only research_python, Mdisabled, frozenpolicy, nofallback.",
+  "storage": "Local raw data/trajectories; reviewed code may be committed to work/assistant-cloud; main untouched.",
+  "source_code_sha256": "8d2404e6a83aa6ee91da99f1d50d738a3e77f48728b5bfe3f85c75bd7b3caf3e",
+  "program_sha256": {
+    "random": "255377b19739f5f0cc16a7e61e83690b251243b57798c45e422bf55ea25f6133",
+    "additive": "606871ccabed9a0c0446cd1f6f3bf3d8276b7aa9309f0c1c89968e6bcdd5de9b",
+    "conditional_pairwise": "02eb0cff6bfa5f029dcc0fb25425b86fff6e641d78e757ac7659a391848cf6a0"
+  }
+}

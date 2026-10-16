@@ -66,3 +66,17 @@ limitations. Preserve older entries and code history.
 - Focused existing regression: 100 passed, 1 skipped, 6 failures reproduced with
   the original source/fixtures. This is not a clean full-regression result.
 - No empirical matrix, task snapshot, dataset, trajectory or result is published.
+
+## frozen-aggregate-analysis-v1 / 2026-10-16
+
+- Parent milestone: `c33fce20a627591e54673bad3da1820d34a71bc5`.
+- Portable aggregate-only CLI: `scripts/analyze_frozen_program_aggregate.py`.
+- Exact frozen metadata: `configs/experiments/frozen_program_preregistration_v1.json`.
+- Statistics AST unchanged from pre-outcome analysis; only explicit input/output
+  paths and callable/CLI packaging added. No policy or scientific comparison changed.
+- Original analysis SHA-256: `e3c38faa1509ab38a6d6dfc6510f9161fd0134d92df2dddcaf2756c8a3058357`.
+- Portable analysis SHA-256: `fa08474cbb3706f34311fde90280ed4ace8368dc8f4bd4ee2a608ce75935308a`.
+- Preregistration SHA-256: `cb354e2a0f968f5a8ea9ef472dd0dea046d2c6eea7db5737e7591f90bcbc0d78`.
+- Synthetic focused validation: 11 passed; Ruff passed. No local full-regression rerun.
+- See [analysis contract](AGGREGATE_ANALYSIS.md). No empirical aggregate,
+  comparison output, dataset, raw trajectory or outcome is published.
