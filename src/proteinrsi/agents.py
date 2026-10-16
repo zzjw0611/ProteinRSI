@@ -192,6 +192,10 @@ class Team:
             "evidence_version": view.evidence_version, "prompts": prompt_version(self.store),
             "programs": [p.version for p in view.workflow.programs]})
         self.bind_tools(view)
+        binding = self.store.get("configuration", "frozen_program_benchmark")
+        if binding is not None:
+            from proteinrsi.frozen_program_benchmark import select_candidates
+            return select_candidates(self, view, binding)
         if view.workflow.programs:
             from proteinrsi.research.methods import run_method_programs
             outputs = run_method_programs(self.store, self.tools, view, view.workflow, owner="W")

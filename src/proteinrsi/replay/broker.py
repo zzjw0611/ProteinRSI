@@ -19,7 +19,7 @@ READ_NAMESPACES = {"research_runs", "research_step_outputs", "resource_selection
     "team_outputs", "artifacts", "artifact_visibility", "task_predictions", "embedding_artifacts", "batches"}
 WRITE_NAMESPACES = {"research_runs", "research_step_outputs", "resource_selections", "research_analysis", "team_outputs"}
 CONFIG_KEYS = {"research", "know_how", "prompt_bundle", "protein_model", "local_tools", "method_governance",
-               "execution_authorization"}
+               "execution_authorization", "frozen_program_benchmark"}
 ROLES = {
     "team": {"A", "A-plan", "A-review", "A-selection", "B", "C", "C-tools", "resource-selector", "A-resources", "B-repair"},
     "feedback": {"C-feedback"},
@@ -103,6 +103,17 @@ def invoke_worker(team, view, operation, *, last_patch_round=-100, timeout=900):
     method_code = ["research_python"] if code_enabled and (operation == "meta" or view.workflow.programs) else []
     from proteinrsi.permissions import available_tools
     allowed = available_tools(gateway, view, [*view.workflow.tool_names, *core, *method_code])
+    binding = team.store.get("configuration", "frozen_program_benchmark")
+    if binding is not None:
+        from proteinrsi.frozen_program_benchmark import validate_binding
+        validate_binding(view, binding)
+        if backend != "bwrap":
+            raise PermissionError("Frozen program benchmark requires explicit bwrap")
+        if team.llm is not None or team.protein_model is not None or gateway.allow_egress:
+            raise PermissionError("Frozen program benchmark forbids LLM, models and egress")
+        allowed = ["research_python"] if operation == "team" else []
+        if operation == "meta":
+            raise PermissionError("Frozen program benchmark has no improver operation")
     catalogue = [t for t in gateway.catalog(view.task, allowed) if not t["data_egress"] or gateway.allow_egress]
     allowed = [t["name"] for t in catalogue]
     llm = team.llm

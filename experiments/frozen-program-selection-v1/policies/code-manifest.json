@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "milestone": "frozen-program-selection-v1",
+  "claim": "assistant-authored new mechanism diagnostic; not original prompt-W evaluation or autonomous M self-modification",
+  "source_base_commit": "c7de6bf5995d513a9682f6ef8df2558878e3eb0e",
+  "file_sha256": {
+    "experiments/frozen-program-selection-v1/policies/additive.json": "606871ccabed9a0c0446cd1f6f3bf3d8276b7aa9309f0c1c89968e6bcdd5de9b",
+    "experiments/frozen-program-selection-v1/policies/conditional_pairwise.json": "02eb0cff6bfa5f029dcc0fb25425b86fff6e641d78e757ac7659a391848cf6a0",
+    "experiments/frozen-program-selection-v1/policies/random.json": "255377b19739f5f0cc16a7e61e83690b251243b57798c45e422bf55ea25f6133",
+    "experiments/frozen-program-selection-v1/policies/selection_v1.py": "8d2404e6a83aa6ee91da99f1d50d738a3e77f48728b5bfe3f85c75bd7b3caf3e",
+    "scripts/run_frozen_program_matrix.py": "1917bc800b62db78420674b509764658e6b96bd97b1384ef74c2252536e85796",
+    "src/proteinrsi/agents.py": "d313c91181d8deb36a705765ca5a1725f0fdc6760a6a62a55d56085550c8af6e",
+    "src/proteinrsi/frozen_program_benchmark.py": "764b3506fb8860d340ce2a10e897d1a264c82ac8c02a99e8c87aa1a8ba3dae09",
+    "src/proteinrsi/replay/broker.py": "b433ef5ba9e704276fbd3136942e86a3d08f0ef377875e6b28b674baf8453e5a",
+    "tests/test_program_benchmark.py": "01800d7d2c6af0e89eb14d43b0d2c9f1616cb7c9223a30973d758ffa51633564",
+    "tests/test_root_program_contract.py": "40e08d9b6f0ac2f114a05aad63bc61ae8914e1b4ade94a95e467c5ee916ef78e"
+  },
+  "programs": {
+    "random": {
+      "file": "random.json",
+      "file_sha256": "255377b19739f5f0cc16a7e61e83690b251243b57798c45e422bf55ea25f6133",
+      "program_version": "program-edad374fb107d208",
+      "code_digest": "17833b88532cb77af684a3a24ee30a001dc5b97bd469333de088aa72fc7e8ae4",
+      "inputs": {
+        "mode": "random"
+      }
+    },
+    "additive": {
+      "file": "additive.json",
+      "file_sha256": "606871ccabed9a0c0446cd1f6f3bf3d8276b7aa9309f0c1c89968e6bcdd5de9b",
+      "program_version": "program-ae9a53876ce386b8",
+      "code_digest": "17833b88532cb77af684a3a24ee30a001dc5b97bd469333de088aa72fc7e8ae4",
+      "inputs": {
+        "mode": "additive"
+      }
+    },
+    "conditional_pairwise": {
+      "file": "conditional_pairwise.json",
+      "file_sha256": "02eb0cff6bfa5f029dcc0fb25425b86fff6e641d78e757ac7659a391848cf6a0",
+      "program_version": "program-3fa25e7125869007",
+      "code_digest": "17833b88532cb77af684a3a24ee30a001dc5b97bd469333de088aa72fc7e8ae4",
+      "inputs": {
+        "mode": "conditional_pairwise"
+      }
+    }
+  }
+}

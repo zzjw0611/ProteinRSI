@@ -47,3 +47,22 @@ This saved input does not change defaults or select an experiment automatically.
 For future milestones, append a version entry with the source revision, changed
 files, content-derived identities or hashes, tests actually run, and remaining
 limitations. Preserve older entries and code history.
+
+## frozen-program-selection-v1 / 2026-10-16
+
+- Parent code milestone: `84f3358c2d5b069358eb80cafbc8a9ac1c2955f1`.
+- Source base: `c7de6bf5995d513a9682f6ef8df2558878e3eb0e`.
+- New opt-in selection adapter, narrow Team/replay guards, portable matrix runner,
+  synthetic regression checks and frozen assistant-authored policy source/JSON.
+- Portable packaging imports the installed package and writes test runtime
+  diagnostics only to temporary test directories. Scientific policy bytes are
+  unchanged. See [contract](FROZEN_PROGRAM_BENCHMARK.md) and the policy
+  `code-manifest.json` for exact identities/hashes.
+- This is a new deterministic mechanism diagnostic, not a transfer test of the
+  original prompt-W and not autonomous M self-modification.
+- Active local adapter checks passed (14); root-policy synthetic checks passed
+  (2). Portable packaged checks passed separately (16 tests); Ruff passed on
+  staged adapter, runner and tests. No full-regression rerun was performed.
+- Focused existing regression: 100 passed, 1 skipped, 6 failures reproduced with
+  the original source/fixtures. This is not a clean full-regression result.
+- No empirical matrix, task snapshot, dataset, trajectory or result is published.
