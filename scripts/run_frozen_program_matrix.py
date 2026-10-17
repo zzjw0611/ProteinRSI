@@ -22,7 +22,21 @@ FIELDS = {'case_id', 'landscape', 'arm', 'seed', 'task_file', 'task_sha256',
           'dataset', 'dataset_sha256', 'program_file', 'program_sha256'}
 
 
-def prepare_matrix(matrix):
+def frozen_budget(batch_size=16, max_rounds=8, query_budget=128):
+    """Validate explicit run-wide limits before any output or campaign is created."""
+    values = (batch_size, max_rounds, query_budget)
+    if any(not isinstance(v, int) or isinstance(v, bool) or v <= 0 for v in values):
+        raise ValueError('Frozen budgets must be positive integers')
+    if not 2 <= batch_size <= 384:
+        raise ValueError('Frozen batch_size must satisfy TaskSpec bounds (2..384)')
+    if batch_size * max_rounds != query_budget:
+        raise ValueError('query_budget must equal batch_size * max_rounds')
+    return {'batch_size': batch_size, 'max_rounds': max_rounds,
+            'query_budget': query_budget, 'llm_calls': 0, 'tool_calls': 2 * max_rounds}
+
+
+def prepare_matrix(matrix, *, batch_size=16, max_rounds=8, query_budget=128):
+    limits = frozen_budget(batch_size, max_rounds, query_budget)
     if not isinstance(matrix, list) or not matrix:
         raise ValueError('A nonempty explicitly seeded case matrix is required')
     prepared, ids = [], set()
@@ -41,10 +55,10 @@ def prepare_matrix(matrix):
         if (task.initial_observation_policy != 'provided_parent' or task.candidate_access != 'open'
                 or task.feedback_source not in {'measured_replay', 'synthetic'}):
             raise ValueError('Requires open replay with explicitly provided free parent')
-        task = TaskSpec.model_validate({**task.model_dump(mode='json'), 'batch_size': 16,
-            'max_rounds': 8, 'controls_per_batch': 0, 'batch_fill_policy': 'full_plate',
-            'seed': row['seed'], 'budget': BudgetSpec(experimental_wells=128,
-                llm_calls=0, tool_calls=16).model_dump()})
+        task = TaskSpec.model_validate({**task.model_dump(mode='json'), 'batch_size': limits['batch_size'],
+            'max_rounds': limits['max_rounds'], 'controls_per_batch': 0, 'batch_fill_policy': 'full_plate',
+            'seed': row['seed'], 'budget': BudgetSpec(experimental_wells=limits['query_budget'],
+                llm_calls=0, tool_calls=limits['tool_calls']).model_dump()})
         workflow = Workflow(programs=[program], tool_names=['research_python'])
         prepared.append((row, task, workflow))
     return prepared
@@ -67,8 +81,15 @@ def audit_completed_case(store, state, task, workflow):
     from proteinrsi.reporting_metrics import align_observations, charged_metrics
     from proteinrsi.contracts import Observation
 
+    limits = frozen_budget(task.batch_size, task.max_rounds, task.budget.experimental_wells)
+    rounds, size, queries = limits['max_rounds'], limits['batch_size'], limits['query_budget']
+    if (task.budget.llm_calls != 0 or task.budget.tool_calls != limits['tool_calls']
+            or task.controls_per_batch != 0 or task.batch_fill_policy != 'full_plate'
+            or task.initial_observation_policy != 'provided_parent'):
+        raise ValueError('Completed case does not carry the frozen execution budget and parent contract')
     usage, charges = store.usage(), _saved_charges(store)
-    expected = {'experimental_wells': (128, 128), 'llm_calls': (0, 0), 'tool_calls': (16, None)}
+    expected = {'experimental_wells': (queries, queries), 'llm_calls': (0, 0),
+                'tool_calls': (limits['tool_calls'], None)}
     for resource, (limit, exact) in expected.items():
         item = usage[resource]
         if (item['limit'] != limit or item['reserved'] != 0
@@ -76,20 +97,20 @@ def audit_completed_case(store, state, task, workflow):
                 or (exact is not None and item['committed'] != exact)
                 or item['committed'] > limit):
             raise ValueError('Benchmark completion has unresolved or incorrect resource accounting')
-    if state['round_index'] != 8 or state['status'] != 'complete' or state['pending_batch']:
-        raise ValueError('Benchmark did not finish exactly eight rounds')
+    if state['round_index'] != rounds or state['status'] != 'complete' or state['pending_batch']:
+        raise ValueError('Benchmark did not finish exactly the frozen number of rounds')
     if state['task'] != task.model_dump(mode='json') or state['workflow'] != workflow.model_dump(mode='json'):
         raise ValueError('Completed case task or workflow differs')
     if len(workflow.programs) != 1:
         raise ValueError('Exactly one frozen program is required')
     batches, measurements = store.all('batches'), store.all('measurements')
-    if len(batches) != 8 or {b['round_index'] for b in batches.values()} != set(range(8)):
-        raise ValueError('Benchmark batches do not cover exactly eight rounds')
+    if len(batches) != rounds or {b['round_index'] for b in batches.values()} != set(range(rounds)):
+        raise ValueError('Benchmark batches do not cover exactly the frozen number of rounds')
     sequences, sample_ids, by_round, qc = set(), set(), {}, Counter()
     for bid, batch in batches.items():
         samples = batch['samples']
-        if batch['phase'] != 'research' or len(samples) != 16:
-            raise ValueError('Benchmark requires eight complete research plates')
+        if batch['phase'] != 'research' or len(samples) != size:
+            raise ValueError('Benchmark requires complete frozen-size research plates')
         by_round[batch['round_index']] = {s['candidate']['sequence'] for s in samples}
         for sample, observation in zip(samples, align_observations(samples, measurements.get(bid, []))):
             sequence = sample['candidate']['sequence']
@@ -109,12 +130,12 @@ def audit_completed_case(store, state, task, workflow):
         raise ValueError('Unexpected measurement batch')
     well_charges = [c for c in charges if c['resource'] == 'experimental_wells' and c['state'] == 'committed']
     metrics = charged_metrics(batches, measurements, charges, initial=[], reference=task.reference_sequence)
-    if (len(well_charges) != 8 or any(c['amount'] != 16 for c in well_charges)
-            or metrics['reconstructed_charged_queries'] != 128 or metrics['unreconstructed_charged_queries']):
+    if (len(well_charges) != rounds or any(c['amount'] != size for c in well_charges)
+            or metrics['reconstructed_charged_queries'] != queries or metrics['unreconstructed_charged_queries']):
         raise ValueError('Benchmark queries cannot be reconciled to charged plates')
     tool_charges = [c for c in charges if c['resource'] == 'tool_calls' and c['state'] == 'committed']
     jobs, outputs = store.all('tool_jobs'), store.all('research_step_outputs')
-    if (len(tool_charges) != usage['tool_calls']['committed'] or len(tool_charges) > 16
+    if (len(tool_charges) != usage['tool_calls']['committed'] or len(tool_charges) > limits['tool_calls']
             or any(c['amount'] != 1 for c in tool_charges)
             or set(jobs) != {c['key'] for c in tool_charges} or len(outputs) != len(jobs)):
         raise ValueError('Unexplained charged program attempt')
@@ -130,7 +151,7 @@ def audit_completed_case(store, state, task, workflow):
                 or output.get('owner') != 'W' or output.get('method_version') != workflow.version
                 or output.get('workflow') != workflow.version or output.get('program') != program.name
                 or output.get('program_version') != program.version or output.get('result') != result
-                or output.get('round') not in range(8)
+                or output.get('round') not in range(rounds)
                 or result.get('code_sha256') != digest(program.code)
                 or result.get('execution_backend') != 'bwrap_seccomp_generated_v1'
                 or result.get('measurement_authority') is not False
@@ -140,50 +161,57 @@ def audit_completed_case(store, state, task, workflow):
         if result.get('status') == 'ok':
             candidates = result.get('output', {}).get('candidates', [])
             selected = [c['sequence'] for c in candidates]
-            if len(selected) != 16 or set(selected) != by_round[output['round']]:
+            if len(selected) != size or set(selected) != by_round[output['round']]:
                 raise ValueError('Successful selection differs from its purchased round')
             success_rounds.append(output['round'])
         elif result.get('status') == 'failed' and result.get('error_type'):
             failed[result['error_type']] += 1
         else:
             raise ValueError('Unaccounted program outcome')
-    if sorted(success_rounds) != list(range(8)):
+    if sorted(success_rounds) != list(range(rounds)):
         raise ValueError('Exactly one successful program selection per round is required')
-    return {'successful_selection_rounds': 8, 'charged_tool_attempts': len(tool_charges),
+    return {'successful_selection_rounds': rounds, 'charged_tool_attempts': len(tool_charges),
             'failed_program_attempts': sum(failed.values()), 'failed_attempt_types': dict(sorted(failed.items())),
             'distinct_charged_queries': len(sequences), 'returned_qc_counts': dict(sorted(qc.items())),
             'note': 'Failed attempts remain charged with saved receipts; missing outcomes are not replaced.'}
 
 
-def run_matrix(matrix, destination, *, execute=False):
+def run_matrix(matrix, destination, *, execute=False, batch_size=16, max_rounds=8, query_budget=128):
     if not execute:
         raise PermissionError("Execution is disabled; root must freeze programs and matrix first")
+    frozen_budget(batch_size, max_rounds, query_budget)
     import fcntl
     destination = Path(destination).resolve()
     destination.mkdir(parents=True, exist_ok=True)
     with (destination / "controller.lock").open("a") as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
-        return _run_matrix(matrix, destination, execute=True)
+        return _run_matrix(matrix, destination, execute=True, batch_size=batch_size,
+                           max_rounds=max_rounds, query_budget=query_budget)
 
 
-def _run_matrix(matrix, destination, *, execute=False):
+def _run_matrix(matrix, destination, *, execute=False, batch_size=16, max_rounds=8, query_budget=128):
     if not execute:
         raise PermissionError('Execution is disabled; root must freeze programs and matrix first')
     os.environ['PROTEINRSI_SANDBOX_BACKEND'] = 'bwrap'
     from proteinrsi.replay.sandbox import probe
+    from proteinrsi.evaluation_metrics import runtime_identity
     security = probe()
     if not security['available'] or security['backend'] != 'bwrap':
         raise RuntimeError('Mandatory bwrap enforcement unavailable')
-    prepared = prepare_matrix(matrix)
+    limits = frozen_budget(batch_size, max_rounds, query_budget)
+    prepared = prepare_matrix(matrix, batch_size=batch_size, max_rounds=max_rounds,
+                              query_budget=query_budget)
     destination = Path(destination).resolve()
     destination.mkdir(parents=True, exist_ok=True)
     manifest = {'mode': MODE, 'claim': 'Separate root-authored deterministic mechanism diagnostic; '
         'not evaluation of existing prompt-W', 'matrix': matrix, 'adapter_sha256': adapter_sha256(),
         'runner_sha256': file_sha256(Path(__file__)), 'sandbox': security,
+        'runtime': runtime_identity(),
         'source_bundle_sha256': digest({p.relative_to(SOURCE_ROOT).as_posix():file_sha256(p)
             for p in sorted(SOURCE_ROOT.rglob('*'))
             if p.is_file() and p.suffix in {'.py','.md','.json'}}),
-        'initial_evidence': 'one provided free parent; 128 additional paid slots',
+        'limits': limits,
+        'initial_evidence': f'one provided free parent; {query_budget} additional paid slots',
         'outputs': 'aggregate purchased-observation metrics only; no oracle summaries'}
     manifest_path = destination / 'frozen-manifest.json'
     if manifest_path.exists():
@@ -220,7 +248,7 @@ def _run_matrix(matrix, destination, *, execute=False):
         usage, charges = store.usage(), _saved_charges(store)
         metrics = charged_metrics(store.all('batches'), store.all('measurements'), charges,
             initial=store.get('configuration', 'provided_initial_evidence')['observations'],
-            reference=task.reference_sequence, direction=task.direction, top_ns=(5, 10), query_bin_size=16)
+            reference=task.reference_sequence, direction=task.direction, top_ns=(5, 10), query_bin_size=batch_size)
         # Only descriptive numbers leave the per-case controller. No sequences,
         # saved observations, hidden-label statistics or global ranks are returned.
         metrics.pop('batch_endpoints', None)
@@ -242,10 +270,14 @@ if __name__ == '__main__':
     parser.add_argument('--matrix', required=True)
     parser.add_argument('--out', required=True)
     parser.add_argument('--execute', action='store_true')
+    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--max-rounds', type=int, default=8)
+    parser.add_argument('--query-budget', type=int, default=128)
     args = parser.parse_args()
     if not args.execute:
         parser.error('No execution without --execute and a frozen root-authored matrix')
-    result = run_matrix(json.loads(Path(args.matrix).read_text()), args.out, execute=True)
+    result = run_matrix(json.loads(Path(args.matrix).read_text()), args.out, execute=True,
+        batch_size=args.batch_size, max_rounds=args.max_rounds, query_budget=args.query_budget)
     print(json.dumps({'status':'completed','completed_cases':len(result['case_aggregates']),
         'results_file':str(Path(args.out).resolve()/'aggregate-results.json'),
         'results_sha256':digest(result)}))

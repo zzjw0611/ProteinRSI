@@ -45,6 +45,38 @@ bounded scalar diagnostic metadata; candidate prediction claims are rejected.
 Each case has its own store. Aggregate output is descriptive purchased-evidence
 metrics; raw purchased evidence remains in its case store for audit.
 
+## Explicit run-wide budgets
+
+The legacy invocation remains eight rounds × 16 candidates = 128 purchased
+queries. New invocations may freeze a different complete-plate budget explicitly:
+
+```bash
+python scripts/run_frozen_program_matrix.py --matrix MATRIX.json --out NEW_OUTPUT \
+  --batch-size 16 --max-rounds 4 --query-budget 64 --execute
+python scripts/run_frozen_program_matrix.py --matrix MATRIX.json --out NEW_OUTPUT \
+  --batch-size 16 --max-rounds 8 --query-budget 128 --execute
+```
+
+Python API: `run_matrix(matrix, destination, execute=True, batch_size=16,
+max_rounds=4, query_budget=64)`. Each integer must be positive and `query_budget`
+must equal `batch_size * max_rounds`; TaskSpec's plate-size bounds also apply.
+LLM budget stays zero. The charged tool-attempt cap is twice `max_rounds`, covering
+successful selections and explicitly recorded failed attempts together. Exact
+purchased counts include unavailable or absent outcomes. Equal-query metrics use
+the frozen plate size as their bin width. These are execution limits, not a choice
+of scientific policy, initialization, or comparison matrix; supplied programs
+must produce the configured plate remainder and receive the frozen task seed and
+round in their existing context.
+
+The manifest now records all effective limits and the existing strict
+`runtime_identity()` including interpreter version/implementation, installed
+dependency versions, package source identities, execution limits and isolation
+backend identity. Interpreter or dependency drift rejects resume. Any changed limits, inputs, runner,
+source bundle or sandbox identity reject resume. This revision never migrates or
+rewrites an older run to the new manifest format, even for the default budget.
+Keep old runtime copies and manifests for historical campaign inspection. The
+completion audit derives required counts from the exact supplied saved task.
+
 ## Frozen policy code
 
 `experiments/frozen-program-selection-v1/policies/selection_v1.py` is sandbox

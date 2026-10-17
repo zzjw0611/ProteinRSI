@@ -187,3 +187,29 @@ host-isolation skips (1,157 non-core checks deselected). The full regression sui
 was not run. Focused bwrap execution/resume tests did not skip. Staging and the
 published helper preserve the independently checked source SHA-256
 `eafacada096fce0ff78bdf5c2643d8ff60c5a932979582dd67914fb9dfc23c84`.
+
+## configurable-frozen-runner / 2026-10-17
+
+- Base: `0aaf5004ecb9fcf2c51ddba8a035e5f5c2d1c979`.
+- Generalizes only run-wide batch size, rounds and exact purchased-query budget;
+  legacy CLI defaults remain 8 × 16 = 128. No scientific policies are changed.
+- Manifest freezes explicit effective limits; changed runtime or limits refuse
+  resume rather than migrating any historical run. Tool attempt cap is twice
+  rounds; zero LLM calls, mandatory bwrap/seccomp and existing 20-second tool wall
+  limit are unchanged. Missing outcomes remain purchased slots.
+- Synthetic-only regressions cover 4 × 16, 8 × 16 and variable plate size, supplied
+  common initialization, timeout receipts and exact resumed accounting, invalid
+  budgets/input hashes, and immutable mismatch rejection. Test results and source
+  hashes are supplied with review; no empirical matrices or campaigns are run.
+
+Validation on the final runner: 50 focused cases passed in the comprehensive
+invocation; two new assertions initially overconstrained valid-resume SQLite
+execution-control bookkeeping. Those test-only assertions were corrected to
+require unchanged scientific records, receipts and charges on valid resume and
+byte-for-byte immutability on rejected runtime drift. All three runtime-identity
+cases then passed separately. Default core: 75 passed, 9 host-landlock skips.
+Actual-bwrap isolation acceptance: 19 passed including the 20-second wall timeout.
+The portable explicit-path frontier preflight passed 44 synthetic cases separately
+(96 bwrap receipts); it skips without opt-in. No empirical or model calls occurred.
+Ruff and source build passed. The entire focused invocation was not repeated
+after the test-only assertion correction; the production runner was unchanged.

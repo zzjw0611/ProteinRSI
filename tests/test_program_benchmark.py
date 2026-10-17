@@ -16,13 +16,13 @@ from proteinrsi.storage import Store
 
 FIXTURE_CODE = '''import itertools, random
 assert 'labels' not in context
-assert len(context['observations']) == 1 + context['round_index'] * 16
+assert len(context['observations']) == 1 + context['round_index'] * context['task']['batch_size']
 alphabet = 'ACDEFGHIKLMNPQRSTVWY'
 sequences = [''.join(pair) + 'AA' for pair in itertools.product(alphabet, repeat=2)]
 random.Random(context['task']['seed']).shuffle(sequences)
 excluded = {o['sequence'] for o in context['observations']} | {'AAAA'}
 result = {'candidates': [{'sequence': s, 'source': 'synthetic-protocol-fixture'}
-                         for s in sequences if s not in excluded][:16]}
+                         for s in sequences if s not in excluded][:context['task']['batch_size']]}
 '''
 
 
@@ -50,24 +50,26 @@ def test_execution_inert_by_default(tmp_path):
     assert not (tmp_path/'out').exists()
 
 
-def test_synthetic_real_bwrap_full_loop_and_resume(tmp_path):
+@pytest.mark.parametrize('rounds,size', [(4, 16), (8, 16), (3, 7)])
+def test_synthetic_real_bwrap_full_loop_and_resume(tmp_path, rounds, size):
     matrix = matrix_fixture(tmp_path)
-    result = runner.run_matrix(matrix, tmp_path/'out', execute=True)
+    limits = dict(max_rounds=rounds, batch_size=size, query_budget=rounds * size)
+    result = runner.run_matrix(matrix, tmp_path/'out', execute=True, **limits)
     assert result['llm_calls'] == 0 and result['prompt_workflow_evaluated'] is False
     case = result['case_aggregates'][0]
-    assert case['metrics']['charged_queries'] == 128
-    assert len(case['metrics']['equal_query_curve']) == 8
-    assert case['usage']['tool_calls']['committed'] == 8
+    assert case['metrics']['charged_queries'] == rounds * size
+    assert len(case['metrics']['equal_query_curve']) == rounds
+    assert case['usage']['tool_calls']['committed'] == rounds
     saved = next((tmp_path/'out').glob('case-*'))
     store = Store(saved)
     outputs = store.all('research_step_outputs')
-    assert len(outputs) == 8
+    assert len(outputs) == rounds
     assert all(v['result']['execution_backend'] == 'bwrap_seccomp_generated_v1' for v in outputs.values())
     batches = store.all('batches')
-    assert len(batches) == 8
-    assert all(len(b['samples']) == 16 for b in batches.values())
+    assert len(batches) == rounds
+    assert all(len(b['samples']) == size for b in batches.values())
     before = store.usage()
-    assert runner.run_matrix(matrix, tmp_path/'out', execute=True) == result
+    assert runner.run_matrix(matrix, tmp_path/'out', execute=True, **limits) == result
     assert store.usage() == before
     encoded = json.dumps(result)
     assert '"sequence":' not in encoded and '"observations":' not in encoded
@@ -106,16 +108,16 @@ def test_valid_bounded_diagnostic_metadata(tmp_path):
     assert result['case_aggregates'][0]['metrics']['charged_queries'] == 128
 
 
-def completed_audit_fixture(tmp_path, *, failed_attempts=0, missing=False):
+def completed_audit_fixture(tmp_path, *, failed_attempts=0, missing=False, rounds=8):
     """Construct saved ledger/receipt shapes without executing a policy or model."""
     from proteinrsi.contracts import digest
-    row, task, workflow = runner.prepare_matrix(matrix_fixture(tmp_path))[0]
+    row, task, workflow = runner.prepare_matrix(matrix_fixture(tmp_path), max_rounds=rounds, query_budget=rounds * 16)[0]
     store = Store(tmp_path / 'completed-audit')
     store.configure_budget(task.budget.model_dump())
     state = {'task': task.model_dump(mode='json'), 'workflow': workflow.model_dump(mode='json'),
-             'round_index': 8, 'status': 'complete', 'pending_batch': None}
+             'round_index': rounds, 'status': 'complete', 'pending_batch': None}
     sequences = [''.join(pair) + 'AA' for pair in itertools.product('ACDEFGHIKLMNPQRSTVWY', repeat=2)
-                 if pair != ('A', 'A')][:128]
+                 if pair != ('A', 'A')][:rounds * 16]
     program = workflow.programs[0]
     def attempt(round_index, suffix, candidates=None):
         context = f'method-programs:synthetic-{round_index}-{suffix}/{program.version}'
@@ -134,7 +136,7 @@ def completed_audit_fixture(tmp_path, *, failed_attempts=0, missing=False):
         store.put('research_step_outputs', context, {'owner': 'W', 'method_version': workflow.version,
             'workflow': workflow.version, 'program': program.name, 'program_version': program.version,
             'round': round_index, 'result': receipt, 'authority': 'computed_unvalidated'}, immutable=True)
-    for round_index in range(8):
+    for round_index in range(rounds):
         bid = f'synthetic-batch-{round_index}'
         candidates = [{'sequence': s} for s in sequences[round_index * 16:(round_index + 1) * 16]]
         samples = [{'sample_id': f'{bid}-{i}', 'candidate': candidate,
@@ -146,12 +148,12 @@ def completed_audit_fixture(tmp_path, *, failed_attempts=0, missing=False):
                          'value': 1.0, 'qc': 'valid', 'batch_id': bid, 'metric': 'fitness',
                          'unit': 'a.u.', 'source': 'synthetic', 'assay_protocol': 'synthetic-only'}
                         for sample in samples]
-        if missing and round_index == 7:
+        if missing and round_index == rounds - 1:
             observations[-1].update(value=None, qc='unavailable', source='measured_replay')
         store.put('measurements', bid, observations)
         store.reserve(bid, 'experimental_wells', 16, batch)
         store.settle(bid)
-        if round_index == 4:
+        if round_index == 2:
             for i in range(failed_attempts):
                 attempt(round_index, f'failure-{i}')
         attempt(round_index, 'success', candidates)
@@ -216,14 +218,15 @@ def test_completed_audit_rejects_unexplained_accounting(tmp_path, tamper):
         runner.audit_completed_case(store, state, task, workflow)
 
 
-def test_supported_resume_after_saved_timeout_receipt(tmp_path, monkeypatch):
+@pytest.mark.parametrize('rounds', [4, 8])
+def test_supported_resume_after_saved_timeout_receipt(tmp_path, monkeypatch, rounds):
     """Inject one timeout receipt; successful selections still execute real bwrap."""
     from proteinrsi.contracts import digest
     from proteinrsi.research import code as code_module
     original = code_module.execute_code
     failed_once = []
     def timeout_once(store, view, arguments, **kwargs):
-        if view.round_index == 4 and not failed_once:
+        if view.round_index == 2 and not failed_once:
             failed_once.append(True)
             return {'status': 'failed', 'error_type': 'Timeout', 'error': 'synthetic timeout receipt',
                     'execution_backend': 'bwrap_seccomp_generated_v1', 'measurement_authority': False,
@@ -231,18 +234,145 @@ def test_supported_resume_after_saved_timeout_receipt(tmp_path, monkeypatch):
         return original(store, view, arguments, **kwargs)
     monkeypatch.setattr(code_module, 'execute_code', timeout_once)
     matrix = matrix_fixture(tmp_path)
+    limits = dict(max_rounds=rounds, batch_size=16, query_budget=rounds * 16)
     with pytest.raises((ValueError, RuntimeError), match='Frozen selection program failed'):
-        runner.run_matrix(matrix, tmp_path / 'out', execute=True)
+        runner.run_matrix(matrix, tmp_path / 'out', execute=True, **limits)
     store = Store(next((tmp_path / 'out').glob('case-*')))
     failed_receipts = {key: value for key, value in store.all('research_step_outputs').items()
                        if value['result']['status'] == 'failed'}
     assert len(failed_receipts) == 1
-    result = runner.run_matrix(matrix, tmp_path / 'out', execute=True)
+    result = runner.run_matrix(matrix, tmp_path / 'out', execute=True, **limits)
     report = result['case_aggregates'][0]['execution_audit']
-    assert report['charged_tool_attempts'] == 9 and report['failed_program_attempts'] == 1
-    assert report['successful_selection_rounds'] == 8 and report['distinct_charged_queries'] == 128
-    assert report['returned_qc_counts'] == {'valid': 128}
+    assert report['charged_tool_attempts'] == rounds + 1 and report['failed_program_attempts'] == 1
+    assert report['successful_selection_rounds'] == rounds and report['distinct_charged_queries'] == rounds * 16
+    assert report['returned_qc_counts'] == {'valid': rounds * 16}
     assert all(store.all('research_step_outputs')[key] == value for key, value in failed_receipts.items())
     before = store.usage()
-    assert runner.run_matrix(matrix, tmp_path / 'out', execute=True) == result
+    assert runner.run_matrix(matrix, tmp_path / 'out', execute=True, **limits) == result
     assert store.usage() == before
+
+
+@pytest.mark.parametrize('budgets', [
+    {'batch_size': 16, 'max_rounds': 4, 'query_budget': 128},
+    {'batch_size': 1, 'query_budget': 8},
+    {'batch_size': 385, 'query_budget': 3080}, {'batch_size': 0}, {'max_rounds': -1}, {'query_budget': True},
+    {'batch_size': 16.0}, {'query_budget': '128'},
+])
+def test_wrong_budgets_fail_before_output(tmp_path, budgets):
+    with pytest.raises(ValueError):
+        runner.run_matrix(matrix_fixture(tmp_path), tmp_path / 'out', execute=True, **budgets)
+    assert not (tmp_path / 'out').exists()
+
+
+def test_changed_frozen_budget_or_runtime_never_migrates_old_run(tmp_path):
+    matrix = matrix_fixture(tmp_path)
+    destination = tmp_path / 'out'
+    runner.run_matrix(matrix, destination, execute=True)
+    manifest = destination / 'frozen-manifest.json'
+    # Snapshot every byte after the completed default-CLI run, including its ledger.
+    before = {p.relative_to(destination): p.read_bytes() for p in destination.rglob('*') if p.is_file()}
+    with pytest.raises(ValueError, match='different frozen matrix or runtime'):
+        runner.run_matrix(matrix, destination, execute=True, max_rounds=4, query_budget=64)
+    assert {p.relative_to(destination): p.read_bytes() for p in destination.rglob('*') if p.is_file()} == before
+    frozen = json.loads(manifest.read_text())
+    frozen['runner_sha256'] = '0' * 64
+    manifest.write_text(json.dumps(frozen))
+    before = {p.relative_to(destination): p.read_bytes() for p in destination.rglob('*') if p.is_file()}
+    with pytest.raises(ValueError, match='different frozen matrix or runtime'):
+        runner.run_matrix(matrix, destination, execute=True)
+    assert {p.relative_to(destination): p.read_bytes() for p in destination.rglob('*') if p.is_file()} == before
+
+
+@pytest.mark.parametrize('rounds', [4, 8])
+def test_supplied_common_initialization_and_seed_round_context(tmp_path, rounds):
+    # Engineering-only policy supplied inline. No repository scientific policy changes.
+    code = FIXTURE_CODE.replace("random.Random(context['task']['seed'])",
+        "random.Random(context['task']['seed'] + context['round_index'])")
+    code += "\nassert context['task']['max_rounds'] == inputs['rounds']\n"
+    code += "assert context['task']['budget']['experimental_wells'] == inputs['rounds'] * 16\n"
+    firsts = []
+    for arm in ('fixture-a', 'fixture-b'):
+        folder = tmp_path / arm
+        folder.mkdir()
+        matrix = matrix_fixture(folder, code)
+        program_path = Path(matrix[0]['program_file'])
+        program = MethodProgram.model_validate_json(program_path.read_text())
+        program = program.model_copy(update={'name': arm, 'inputs': {'rounds': rounds}})
+        program_path.write_text(program.model_dump_json())
+        matrix[0]['program_sha256'] = runner.file_sha256(program_path)
+        runner.run_matrix(matrix, folder / 'out', execute=True, max_rounds=rounds, query_budget=rounds * 16)
+        store = Store(next((folder / 'out').glob('case-*')))
+        batch = next(b for b in store.all('batches').values() if b['round_index'] == 0)
+        firsts.append([s['candidate']['sequence'] for s in batch['samples']])
+        initial = store.get('configuration', 'provided_initial_evidence')['observations']
+        assert len(initial) == 1 and initial[0]['sequence'] == 'AAAA'
+    assert firsts[0] == firsts[1]
+
+
+@pytest.mark.parametrize('rounds', [4, 8])
+def test_configured_audit_counts_missing_and_timeout_without_mutation(tmp_path, rounds):
+    store, state, task, workflow, _ = completed_audit_fixture(
+        tmp_path, rounds=rounds, failed_attempts=1, missing=True)
+    before = {p.relative_to(store.root): p.read_bytes() for p in store.root.rglob('*') if p.is_file()}
+    report = runner.audit_completed_case(store, state, task, workflow)
+    assert report['distinct_charged_queries'] == rounds * 16
+    assert report['charged_tool_attempts'] == rounds + 1
+    assert report['failed_attempt_types'] == {'Timeout': 1}
+    assert report['returned_qc_counts'] == {'unavailable': 1, 'valid': rounds * 16 - 1}
+    assert {p.relative_to(store.root): p.read_bytes() for p in store.root.rglob('*') if p.is_file()} == before
+
+
+@pytest.mark.parametrize('rounds', [4, 8])
+def test_absent_measurement_keeps_purchased_identity_and_budget(tmp_path, rounds):
+    store, state, task, workflow, _ = completed_audit_fixture(tmp_path, rounds=rounds)
+    bid = f'synthetic-batch-{rounds - 1}'
+    observations = store.all('measurements')[bid]
+    store.put('measurements', bid, observations[:-1])
+    before = store.usage()
+    report = runner.audit_completed_case(store, state, task, workflow)
+    assert report['returned_qc_counts'] == {'not_returned': 1, 'valid': rounds * 16 - 1}
+    assert report['distinct_charged_queries'] == rounds * 16
+    assert store.usage() == before
+
+
+@pytest.mark.parametrize('field', ['python', 'installed_dependency_versions'])
+def test_interpreter_and_dependency_drift_refuse_resume(tmp_path, monkeypatch, field):
+    from copy import deepcopy
+    from proteinrsi import evaluation_metrics
+    matrix = matrix_fixture(tmp_path)
+    destination = tmp_path / 'out'
+    limits = dict(max_rounds=1, batch_size=2, query_budget=2)
+    result = runner.run_matrix(matrix, destination, execute=True, **limits)
+    store = Store(next(destination.glob('case-*')))
+    before_usage, before_charges = store.usage(), runner._saved_charges(store)
+    namespaces = ('batches', 'measurements', 'research_step_outputs', 'tool_jobs')
+    before_records = {name: store.all(name) for name in namespaces}
+    assert runner.run_matrix(matrix, destination, execute=True, **limits) == result
+    assert store.usage() == before_usage and runner._saved_charges(store) == before_charges
+    assert {name: store.all(name) for name in namespaces} == before_records
+    # Valid resume may update reversible execution-control bookkeeping. Rejected
+    # drift must fail before opening a campaign, leaving every saved byte intact.
+    before = {p.relative_to(destination): p.read_bytes() for p in destination.rglob('*') if p.is_file()}
+    original = evaluation_metrics.runtime_identity
+    identity = deepcopy(original())
+    identity[field] = ('different-interpreter' if field == 'python'
+                       else identity[field] + [['synthetic-dependency-drift', '0']])
+    monkeypatch.setattr(evaluation_metrics, 'runtime_identity', lambda: identity)
+    with pytest.raises(ValueError, match='different frozen matrix or runtime'):
+        runner.run_matrix(matrix, destination, execute=True, **limits)
+    assert {p.relative_to(destination): p.read_bytes() for p in destination.rglob('*') if p.is_file()} == before
+
+
+def test_pre_runtime_identity_manifest_is_never_migrated(tmp_path):
+    matrix = matrix_fixture(tmp_path)
+    destination = tmp_path / 'out'
+    limits = dict(max_rounds=1, batch_size=2, query_budget=2)
+    runner.run_matrix(matrix, destination, execute=True, **limits)
+    manifest = destination / 'frozen-manifest.json'
+    frozen = json.loads(manifest.read_text())
+    del frozen['runtime']
+    manifest.write_text(json.dumps(frozen))
+    before = {p.relative_to(destination): p.read_bytes() for p in destination.rglob('*') if p.is_file()}
+    with pytest.raises(ValueError, match='different frozen matrix or runtime'):
+        runner.run_matrix(matrix, destination, execute=True, **limits)
+    assert {p.relative_to(destination): p.read_bytes() for p in destination.rglob('*') if p.is_file()} == before
