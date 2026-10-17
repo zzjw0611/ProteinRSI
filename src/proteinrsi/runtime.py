@@ -42,6 +42,7 @@ class Campaign:
                 store.put("configuration", "acceptance_policy", gate.model_dump(), immutable=True)
             from proteinrsi.prompting import snapshot_prompts
             snapshot_prompts(store)
+            store.put("configuration", "decision_entry_semantics", {"version": "decision-entry-v1"}, immutable=True)
             resources = task.budget.model_dump()
             if protein_config is not None:
                 from proteinrsi.protein.esmc import ESMCConfig
@@ -140,6 +141,53 @@ class Campaign:
                 **({"method_history": self.methods.visible_history()} if self.methods.enabled else {}),
                 **({"acceptance_policy": state["gate"]} if state["gate"].get("criterion") in {"observed_pareto_v1", "llm_adjudicated_v1"} else {})})
 
+    def _decision_view(self, state: dict, phase: str) -> TaskView:
+        """Freeze presentation-only execution counters for one logical decision.
+
+        Live view/status, budgets and authorization are never replaced. Historical
+        campaigns do not acquire these semantics. Every other semantic input and
+        runtime/config/tool change produces a different entry. Full original
+        summary is retained as evidence, rather than removed from model input.
+        """
+        view = self.view(state)
+        if (self.store.get("configuration", "decision_entry_semantics") !=
+                {"version": "decision-entry-v1"}
+                or "execution_summary" not in view.research_context):
+            return view
+        semantic = view.model_dump(mode="json")
+        semantic["research_context"].pop("execution_summary")
+        # Rebind context-derived tools against the same normalized semantic view.
+        # Merely binding tools performs no calls and grants no new permissions.
+        normalized = TaskView.model_validate(semantic)
+        bound = Team(self.store, tools=self.team.tools.fork(), register_tools=False)
+        bound.protein_model = self.team.protein_model
+        bound.bind_tools(normalized)
+        from proteinrsi.governance import _packaged_source
+        from proteinrsi.protein.metadata import declared_identity
+        llm = self.team.llm
+        identity = {"version": "decision-entry-v1", "phase": phase,
+            "view": semantic, "planning_attempt": state.get("planning_attempt", 0),
+            "configuration": self.store.all("configuration"),
+            "tools": {name: spec.model_dump(mode="json")
+                      for name, (spec, _) in bound.tools._tools.items()},
+            "egress": bound.tools.allow_egress,
+            "source": digest(_packaged_source()),
+            "protein_model": declared_identity(self.store, self.team.protein_model),
+            "llm": {"model": getattr(llm, "model", None),
+                "url": getattr(llm, "base_url", None),
+                "settings": getattr(llm, "cache_settings", {}),
+                "capacity": getattr(llm, "capacity_settings", {}),
+                "max_tokens": getattr(llm, "max_tokens", None)}}
+        key = "decision-entry-" + digest(identity)
+        saved = self.store.get("decision_entries", key)
+        if saved is None:
+            saved = {"identity_sha256": digest(identity), "phase": phase,
+                     "view": view.model_dump(mode="json")}
+            self.store.put("decision_entries", key, saved, immutable=True)
+        elif saved["identity_sha256"] != digest(identity):
+            raise Conflict("Decision entry identity differs")
+        return TaskView.model_validate(saved["view"])
+
     def prepare(self) -> Batch | None:
         # Task analysis is independent of whether improvement is enabled/pending.
         # A crashed final iteration must finish its analysis before reporting done.
@@ -168,7 +216,7 @@ class Campaign:
                     and (state["pending_patch"] or state["pending_meta"])):
                 raise Conflict("A method is awaiting publication; run the validation checkpoint before planning")
             self.methods.assert_plannable(state)
-            view = self.view(state)
+            view = self._decision_view(state, "prepare")
             task = view.task
             if task.execution_mode == "computational":
                 raise ValueError("Use the computational runner; no experimental batch may be submitted")
@@ -508,6 +556,9 @@ class Campaign:
             from proteinrsi.recovery import is_provider_paused
             if not is_provider_paused(exc) or self.methods.is_evaluation:
                 raise
+            if self.store.get("configuration", "decision_entry_semantics") == {
+                    "version": "decision-entry-v1"}:
+                raise  # Fresh continuation is pending, not a failed M opportunity.
             config = self.store.get("configuration", "research", {})
             if config.get("improvement_contract") != "capability-v1":
                 raise  # Historical studies keep their original pause semantics.
@@ -539,7 +590,7 @@ class Campaign:
                 # idle-boundary resume can use the saved C result.
                 if self.methods.paused(state):
                     return
-                view = self.view(state)
+                view = self._decision_view(state, "improve")
                 snapshot(self.store, "improver_input", view)
                 response = self.meta_agent.propose(view, state["last_patch_round"])
                 if response.patch:

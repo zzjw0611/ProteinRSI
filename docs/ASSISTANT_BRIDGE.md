@@ -146,3 +146,22 @@ the returned artifact via `prediction_refs`, then pass the ranking through
 `agent:select` and `adapter:ranked_sequences`. Only validated tool-derived
 annotations survive into the frozen batch. Merely mentioning fitting in a
 question does not execute a tool, and copying a number is not provenance.
+
+## Fresh-campaign decision-entry continuation
+
+New campaigns record `decision-entry-v1`. In state-v1, task preparation and M
+improvement freeze their initial execution-summary presentation for the same
+logical decision. Previously, a transport pause changed live counters, which
+changed tool scopes and request/context identities on restart without new
+scientific input. The snapshot preserves the original summary in model input;
+live logs, budget accounting and authorization checks remain authoritative.
+Observations, semantic memory, W/M, tools, configuration and runtime changes
+invalidate the entry. Existing campaigns without the marker retain their
+historical semantics; use a new campaign rather than rewriting their evidence.
+
+Under this marker, an M ProviderPaused propagates as a pending continuation. It
+does not disable improvement, consume its round opportunity, or fabricate a
+no-change decision. Resume the identical operation after supplying a real M
+answer. Synthetic guarded replay and M bridge tests verify repeated pause/resume,
+context reads and exact charging, not scientific efficacy. See
+[decision-entry details](DECISION_ENTRY_RESUME.md).

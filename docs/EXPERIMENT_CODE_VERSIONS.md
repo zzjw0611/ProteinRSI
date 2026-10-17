@@ -80,3 +80,22 @@ limitations. Preserve older entries and code history.
 - Synthetic focused validation: 11 passed; Ruff passed. No local full-regression rerun.
 - See [analysis contract](AGGREGATE_ANALYSIS.md). No empirical aggregate,
   comparison output, dataset, raw trajectory or outcome is published.
+
+## decision-entry-v1 / 2026-10-17
+
+- Base code milestone: `d2dc5881339e0c95fb58494f7bcd80184504bc9d`.
+- Fresh campaigns record `decision_entry_semantics: {"version": "decision-entry-v1"}`.
+- Task preparation and M improvement preserve their decision-entry execution
+  summary across transport-only pauses. Live transport counters previously
+  changed scope-bound tool catalogues and planner/context identities on restart.
+- All remaining semantic inputs and runtime/configuration/tool identities stay in
+  the lookup key. Live audit logs, controller budgets and permission enforcement
+  remain authoritative. The exact initial summary remains visible to the model.
+- Fresh M provider pauses propagate as continuations, preserving the pending
+  opportunity. Historical campaigns without the marker keep their old behavior.
+- Synthetic validation covers process restarts, hash-seed independence, typed
+  guarded replay/resource selection/context reads, real M continuation, semantic
+  invalidation, budget refusal and legacy behavior. These are software tests, not
+  empirical outcomes, model-identity verification or a claim of improved designs.
+- No dataset, empirical trajectory or scientific outcome is published. See
+  [resume semantics and limits](DECISION_ENTRY_RESUME.md).
