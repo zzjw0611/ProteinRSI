@@ -1,0 +1,8 @@
+{
+  "schema": "frozen-method-program-source-v1",
+  "authorship": "root-authored deterministic diagnostic; not native M",
+  "files": {
+    "policies/global_local_portfolio_v2.py": "a4d46d85d81ba47395bcd0c08614944cbbf05b5c2c7d81898e3a07fdb3734ebd",
+    "policies/global_local_portfolio_v2.json": "dc8a899de2b9c5937916546f87353eca90cf00ba2c59624abe8cd5f3c136eef1"
+  }
+}

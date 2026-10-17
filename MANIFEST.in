@@ -17,3 +17,7 @@ recursive-include src/proteinrsi/prompts *.md
 recursive-include docs/assets *.svg *.json
 
 recursive-include docs/validation *.txt
+
+# Portable synthetic portfolio checks require only these generic program inputs.
+recursive-include experiments/mechanism-portfolio-v2 *.md *.py *.json
+include experiments/frozen-program-selection-v1/policies/additive.json

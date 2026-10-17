@@ -213,3 +213,30 @@ The portable explicit-path frontier preflight passed 44 synthetic cases separate
 (96 bwrap receipts); it skips without opt-in. No empirical or model calls occurred.
 Ruff and source build passed. The entire focused invocation was not repeated
 after the test-only assertion correction; the production runner was unchanged.
+
+## global-local-portfolio-diagnostic-v2 / 2026-10-17
+
+- Parent publication: `d1c2d3ff92021429ef05d5f7faf729115f0cceda`.
+- Adds root-authored frozen MethodProgram data, a mechanism README, source-hash
+  manifest and portable synthetic execution-contract tests. This is a deterministic
+  diagnostic mechanism, not native M self-modification or prompt-workflow efficacy.
+- Source SHA-256:
+  `a4d46d85d81ba47395bcd0c08614944cbbf05b5c2c7d81898e3a07fdb3734ebd`.
+- MethodProgram JSON SHA-256:
+  `dc8a899de2b9c5937916546f87353eca90cf00ba2c59624abe8cd5f3c136eef1`.
+- Supplied policy bytes and coefficients are unchanged. Existing source controller,
+  runtime, defaults and historical policies/campaigns remain unchanged.
+- No empirical inputs, outcomes, assessments or performance claims are included.
+  This publication does not execute or authorize an empirical study.
+
+Validation: 27 portable synthetic contract cases passed with actual bwrap and no
+skips, covering initialization, deterministic legal unseen selections, independent
+allocation reconstruction, missing outcomes, fallbacks, repairs and 128-observation
+stress within the existing 20-second tool limit. Default core checks passed 75
+cases with nine host-Landlock skips. Ruff and whitespace checks passed. No real
+model APIs or empirical experiments were run for this publication.
+
+Wheel and source-distribution builds passed. Narrow manifest entries include only
+the generic mechanism and its already-public additive control; the same 27 real
+bwrap checks passed again against the extracted source distribution. No empirical
+experiment directories are added to the distribution by these manifest entries.
