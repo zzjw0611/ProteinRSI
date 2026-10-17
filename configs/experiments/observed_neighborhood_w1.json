@@ -1,0 +1,28 @@
+{
+  "analysis_tool_rounds": 3,
+  "analyst_prompt": "Separate proxy scores, predictions and experimental measurements.",
+  "design_tool_rounds": 4,
+  "designer_prompt": "Propose legal variants using only the supplied evidence. When measured substitution effects reverse across backgrounds, or individually favorable changes antagonize one another, condition candidate choices on the compared backgrounds instead of pooling residues into a universal good set. Prefer informative matched-background comparisons around promising observed variants, while retaining a bounded allocation to unexplored alternatives. Treat missing outcomes as unknown; this heuristic does not override the current plan or mandate a fixed panel.",
+  "exploration": 0.2,
+  "principal_prompt": "Pursue the task objective within budget: generate proposals for design tasks and assess supplied sequences for ranking tasks. Define the objective, scientific hypothesis, budget, and necessary constraints. By default, delegate exact candidate choice to Designer. Specify exact sequences or panels only when a scientific reason requires them, and state that reason. Scientific checks should validate necessary task and grouping properties, not arbitrary equality to a preferred panel. When an applicable observed-neighborhood coverage report is supplied, use its attempted, valid and unqueried counts to inform the current budget allocation and any completeness claim. Unknown outcomes remain unknown; a completed neighborhood is not evidence of a global optimum. The report is evidence, not a mandatory search schedule.",
+  "programs": [
+    {
+      "code": "import math\ntask=context['task'];ref=task['reference_sequence'];positions=sorted(task['mutable_positions']);alphabet='ACDEFGHIKLMNPQRSTVWY'\napplicable=(task['kind']=='variant_design' and task['candidate_access']=='open' and not task['allow_indels'] and 1<=len(positions)<=8)\nif not applicable:\n result={'applicable':False,'reason':'Requires open fixed-site substitution design with one to eight mutable sites.'}\nelse:\n seen={o['sequence'] for o in context['observations']};groups={}\n for o in context['observations']:\n  if o['qc']=='valid' and o['value'] is not None and math.isfinite(float(o['value'])):groups.setdefault(o['sequence'],[]).append(float(o['value']))\n valid={s:sum(v)/len(v) for s,v in groups.items()}\n def sites(s):return ''.join(s[p-1] for p in positions)\n def neighborhood(anchor):\n  out=set()\n  for p in positions:\n   for aa in alphabet:\n    if aa!=anchor[p-1]:\n     q=list(anchor);q[p-1]=aa;q=''.join(q)\n     if task['max_mutations'] is None or sum(a!=b for a,b in zip(ref,q))<=task['max_mutations']:out.add(q)\n  return out\n def coverage(anchor):\n  legal=neighborhood(anchor);queried=legal&seen;numeric=legal&set(valid)\n  return {'eligible_count':len(legal),'queried_count':len(queried),'valid_count':len(numeric),'nonvalid_only_count':len(queried-numeric),'unqueried_count':len(legal-seen),'unqueried_site_residues':sorted(sites(s) for s in legal-seen),'nonvalid_site_residues':sorted(sites(s) for s in queried-numeric),'all_neighbor_outcomes_valid':len(numeric)==len(legal)}\n best=(sorted(valid,key=lambda s:((-valid[s] if task['direction']=='maximize' else valid[s]),s))[0] if valid else None)\n result={'applicable':True,'scope':'Only supplied observed identities and valid values; generated neighbors are legal identities, not hidden catalogue membership.','positions_1based':positions,'repeat_aggregation':'Mean of supplied valid rows per sequence; deterministic repeats are not independent evidence.','parent_neighborhood':coverage(ref),'incumbent_site_residues':sites(best) if best else None,'incumbent_neighborhood':coverage(best) if best else None,'interpretation':'Attempted coverage differs from valid numeric coverage. This reports no global optimum and no unqueried fitness.'}\n",
+      "inputs": {},
+      "name": "observed_neighborhood_coverage",
+      "purpose": "Report parent and incumbent one-step coverage from revealed observations for small open substitution landscapes; distinguish attempted, valid and unknown outcomes without selecting candidates or reading hidden labels."
+    }
+  ],
+  "ridge_alpha": 1.0,
+  "skill_names": [
+    "protein-metrics",
+    "protein-design-workflows"
+  ],
+  "strategy": "additive",
+  "tool_names": [
+    "research_python",
+    "research_fit_predict",
+    "research_evidence_query",
+    "research_metric_extract"
+  ]
+}

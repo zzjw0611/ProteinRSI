@@ -99,3 +99,51 @@ limitations. Preserve older entries and code history.
   empirical outcomes, model-identity verification or a claim of improved designs.
 - No dataset, empirical trajectory or scientific outcome is published. See
   [resume semantics and limits](DECISION_ENTRY_RESUME.md).
+
+## observed-neighborhood-w1 / 2026-10-17
+
+- Parent engineering revision: `dd9e36f9f42e3d0915bfa14ee44d54e00d987619`.
+- Exact frozen final W: `configs/experiments/observed_neighborhood_w1.json`.
+- Initial W remains `configs/experiments/planner_delegation_w0.json`, identity
+  `w-6ccf8d89b4d80098`; final identity is `w-d2d2ae7a057dad0f`.
+- Published JSON byte SHA-256: `e55b84bde21603795b934fcb49779853c149f74044f79c2e2c5b5cfa85fab98b`.
+- Embedded coverage source byte SHA-256:
+  `af5163419e8e562d95ec4cd208e19f472c3c3a7228805138eb5726b47b8f6ab6`.
+- Origin: the interactive root dot acted as M during source-task feedback,
+  retaining conditional-background Designer guidance and adding an
+  `observed_neighborhood_coverage` program with Planner interpretation guidance.
+  This is not an independently called autonomous M model. The source campaign
+  used direct, unvalidated adoption, without a held-out promotion gate.
+- The program summarizes parent/incumbent one-step attempted, valid and unknown
+  coverage from supplied observations, including an unlimited mutation cap.
+  It does not select candidates, supply unknown fitness or prove a global optimum.
+- Only the frozen generic W definition, synthetic contract tests and this code
+  version record are published. No source measurements, empirical sequences,
+  trajectories, checkpoints, private paths or empirical reports are included.
+- Opt-in configuration only: no package default, controller, M definition,
+  existing campaign or frozen initial W is modified.
+
+### Engineering validation and interpretation
+
+Portable identity/delta checks and 17 synthetic cases cover three/four-site empty
+neighborhoods, attempted versus valid outcomes, unavailable/failed/inconclusive
+rows, repeat means, minimization, mutation caps (including null), complete local
+coverage, noncontiguous sites and unsupported task settings. The program executes
+unchanged through actual bwrap/seccomp, with measurement authority disabled.
+
+```bash
+PROTEINRSI_REQUIRE_BWRAP=1 pytest -q tests/test_observed_neighborhood_config.py -m ''
+```
+
+These are engineering contracts only. There is no demonstrated performance,
+biological, causal RSI or cross-task-transfer benefit, and no held-out validation
+of the adopted W is claimed. Source empirical results remain outside this record.
+
+Local validation on this final staging tree: the focused module passed all 18
+checks (17 actual bwrap executions plus the identity/delta contract); repository
+Ruff and whitespace checks passed. The default core suite passed 75 checks and
+skipped 9 host-isolation checks because its default Landlock backend is unavailable
+here (1,142 non-core checks deselected). The focused bwrap checks did not skip.
+Wheel and source distribution builds passed using installed pip/setuptools;
+`python -m build` itself was unavailable. The full regression suite, real model
+APIs and new scientific experiments were not run for this publication.
