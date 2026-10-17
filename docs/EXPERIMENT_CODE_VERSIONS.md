@@ -147,3 +147,43 @@ here (1,142 non-core checks deselected). The focused bwrap checks did not skip.
 Wheel and source distribution builds passed using installed pip/setuptools;
 `python -m build` itself was unavailable. The full regression suite, real model
 APIs and new scientific experiments were not run for this publication.
+
+## frozen-completion-audit-v1 / 2026-10-17
+
+- Parent code milestone: `daa8a84c34b18811aaf7116768cc869f3d42234c`.
+- Replace the final runner's exact-eight-total-tool-charge assertion with a
+  read-only ledger/receipt audit. Successful completion still requires exactly
+  eight successful frozen selections, one for each round, matching eight full
+  purchased plates and 128 distinct new query identities, zero LLM calls and the
+  original 16-tool-call cap. Explicitly saved failed attempts count against that
+  cap and remain in immutable method receipts/tool jobs and the charged ledger.
+- Reject unresolved reservations/allocations, incomplete jobs, wrong rounds,
+  duplicate queries, unexplained charges, mismatched code/receipts and additional
+  successful selections. Report returned QC coverage separately; unavailable or
+  absent queried outcomes retain their purchased slots without replacement.
+- Expose `audit_completed_case` for read-only reporting of completed historical
+  stores. Integrate aggregate `execution_audit` counts in future runner output.
+  Frozen manifest/resume SHA equality is unchanged; a newer reporting helper
+  never authorizes replaying a changed runner against an older frozen manifest.
+- Only runner/reporting code, synthetic tests and engineering documentation are
+  published. No frozen scientific configuration/policy, package controller or
+  active campaign is changed; no empirical records or results are included.
+
+Validation: 31 focused synthetic regressions passed, including a supported resume
+with one injected timeout receipt and eight successful real bwrap selections,
+unchanged failed receipts, exact nine-charge accounting and repeat-report
+idempotence. Repository Ruff/whitespace checks and a staging wheel build passed.
+No new model API, empirical experiment or scientific comparison was run.
+
+An initial concurrent core run had 74 passes, nine host-isolation skips and one
+`MetricExecutionPaused` failure in the unchanged operator-limit comparison test:
+its frozen runtime guard detected identity drift. Both parameterizations passed
+when checked separately on the unchanged parent tree. Concurrent staging package
+metadata generation was suspected; no test or runtime guard was relaxed. Final
+core validation was rerun serially after packaging stopped, as recorded below.
+
+The final serialized core rerun passed 75 checks with nine default-Landlock
+host-isolation skips (1,157 non-core checks deselected). The full regression suite
+was not run. Focused bwrap execution/resume tests did not skip. Staging and the
+published helper preserve the independently checked source SHA-256
+`eafacada096fce0ff78bdf5c2643d8ff60c5a932979582dd67914fb9dfc23c84`.

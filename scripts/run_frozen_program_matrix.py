@@ -50,6 +50,111 @@ def prepare_matrix(matrix):
     return prepared
 
 
+def _saved_charges(store):
+    with store.connect() as connection:
+        return [dict(zip(('key', 'resource', 'amount', 'fingerprint', 'state'), values))
+                for values in connection.execute('SELECT key,resource,amount,fingerprint,state '
+                                                 'FROM charges ORDER BY rowid')]
+
+
+def audit_completed_case(store, state, task, workflow):
+    """Read-only completion audit; failed attempts stay charged and immutable.
+
+    This can inspect an already-completed pinned campaign without replaying it or
+    changing its frozen manifest. It grants no permission to resume changed code.
+    """
+    from collections import Counter
+    from proteinrsi.reporting_metrics import align_observations, charged_metrics
+    from proteinrsi.contracts import Observation
+
+    usage, charges = store.usage(), _saved_charges(store)
+    expected = {'experimental_wells': (128, 128), 'llm_calls': (0, 0), 'tool_calls': (16, None)}
+    for resource, (limit, exact) in expected.items():
+        item = usage[resource]
+        if (item['limit'] != limit or item['reserved'] != 0
+                or item.get('allocated_unspent', 0) != 0
+                or (exact is not None and item['committed'] != exact)
+                or item['committed'] > limit):
+            raise ValueError('Benchmark completion has unresolved or incorrect resource accounting')
+    if state['round_index'] != 8 or state['status'] != 'complete' or state['pending_batch']:
+        raise ValueError('Benchmark did not finish exactly eight rounds')
+    if state['task'] != task.model_dump(mode='json') or state['workflow'] != workflow.model_dump(mode='json'):
+        raise ValueError('Completed case task or workflow differs')
+    if len(workflow.programs) != 1:
+        raise ValueError('Exactly one frozen program is required')
+    batches, measurements = store.all('batches'), store.all('measurements')
+    if len(batches) != 8 or {b['round_index'] for b in batches.values()} != set(range(8)):
+        raise ValueError('Benchmark batches do not cover exactly eight rounds')
+    sequences, sample_ids, by_round, qc = set(), set(), {}, Counter()
+    for bid, batch in batches.items():
+        samples = batch['samples']
+        if batch['phase'] != 'research' or len(samples) != 16:
+            raise ValueError('Benchmark requires eight complete research plates')
+        by_round[batch['round_index']] = {s['candidate']['sequence'] for s in samples}
+        for sample, observation in zip(samples, align_observations(samples, measurements.get(bid, []))):
+            sequence = sample['candidate']['sequence']
+            if (sequence in sequences or sequence == task.reference_sequence
+                    or sample['sample_id'] in sample_ids or sample['workflow_version'] != workflow.version):
+                raise ValueError('Benchmark queries must be distinct new frozen-workflow identities')
+            sequences.add(sequence)
+            sample_ids.add(sample['sample_id'])
+            if observation is None:
+                qc['not_returned'] += 1
+            else:
+                saved = Observation.model_validate(observation)
+                if saved.batch_id != bid:
+                    raise ValueError('Returned measurement batch differs')
+                qc[saved.qc] += 1
+    if set(measurements) - set(batches):
+        raise ValueError('Unexpected measurement batch')
+    well_charges = [c for c in charges if c['resource'] == 'experimental_wells' and c['state'] == 'committed']
+    metrics = charged_metrics(batches, measurements, charges, initial=[], reference=task.reference_sequence)
+    if (len(well_charges) != 8 or any(c['amount'] != 16 for c in well_charges)
+            or metrics['reconstructed_charged_queries'] != 128 or metrics['unreconstructed_charged_queries']):
+        raise ValueError('Benchmark queries cannot be reconciled to charged plates')
+    tool_charges = [c for c in charges if c['resource'] == 'tool_calls' and c['state'] == 'committed']
+    jobs, outputs = store.all('tool_jobs'), store.all('research_step_outputs')
+    if (len(tool_charges) != usage['tool_calls']['committed'] or len(tool_charges) > 16
+            or any(c['amount'] != 1 for c in tool_charges)
+            or set(jobs) != {c['key'] for c in tool_charges} or len(outputs) != len(jobs)):
+        raise ValueError('Unexplained charged program attempt')
+    program, success_rounds, failed, used_outputs = workflow.programs[0], [], Counter(), set()
+    for charge in tool_charges:
+        job = jobs[charge['key']]
+        output_id = job.get('context')
+        output = outputs.get(output_id, {})
+        result = job.get('result', {})
+        if (charge['key'] != 'tool-' + charge['fingerprint'] or output_id in used_outputs
+                or job.get('state') != 'done' or job.get('call', {}).get('name') != 'research_python'
+                or job.get('call', {}).get('arguments') != {'code': program.code, 'inputs': program.inputs}
+                or output.get('owner') != 'W' or output.get('method_version') != workflow.version
+                or output.get('workflow') != workflow.version or output.get('program') != program.name
+                or output.get('program_version') != program.version or output.get('result') != result
+                or output.get('round') not in range(8)
+                or result.get('code_sha256') != digest(program.code)
+                or result.get('execution_backend') != 'bwrap_seccomp_generated_v1'
+                or result.get('measurement_authority') is not False
+                or result.get('evidence_kind') != 'computed_unvalidated'):
+            raise ValueError('Program charge and saved execution receipt differ')
+        used_outputs.add(output_id)
+        if result.get('status') == 'ok':
+            candidates = result.get('output', {}).get('candidates', [])
+            selected = [c['sequence'] for c in candidates]
+            if len(selected) != 16 or set(selected) != by_round[output['round']]:
+                raise ValueError('Successful selection differs from its purchased round')
+            success_rounds.append(output['round'])
+        elif result.get('status') == 'failed' and result.get('error_type'):
+            failed[result['error_type']] += 1
+        else:
+            raise ValueError('Unaccounted program outcome')
+    if sorted(success_rounds) != list(range(8)):
+        raise ValueError('Exactly one successful program selection per round is required')
+    return {'successful_selection_rounds': 8, 'charged_tool_attempts': len(tool_charges),
+            'failed_program_attempts': sum(failed.values()), 'failed_attempt_types': dict(sorted(failed.items())),
+            'distinct_charged_queries': len(sequences), 'returned_qc_counts': dict(sorted(qc.items())),
+            'note': 'Failed attempts remain charged with saved receipts; missing outcomes are not replaced.'}
+
+
 def run_matrix(matrix, destination, *, execute=False):
     if not execute:
         raise PermissionError("Execution is disabled; root must freeze programs and matrix first")
@@ -111,16 +216,8 @@ def _run_matrix(matrix, destination, *, execute=False):
                     or store.get('configuration', 'frozen_program_case') != row):
                 raise ValueError('Resume case identity differs')
         run_replay(campaign, row['dataset'], guarded=True)
-        usage = store.usage()
-        if (usage['experimental_wells']['committed'] != 128
-                or usage['llm_calls']['committed'] != 0
-                or usage['tool_calls']['committed'] != 8
-                or campaign.state['round_index'] != 8):
-            raise ValueError('Benchmark did not finish the exact 8x16/8-program-call contract')
-        with store.connect() as connection:
-            charges = [dict(zip(('key', 'resource', 'amount', 'fingerprint', 'state'), values))
-                for values in connection.execute('SELECT key,resource,amount,fingerprint,state '
-                                                  'FROM charges ORDER BY rowid')]
+        audit = audit_completed_case(store, campaign.state, task, workflow)
+        usage, charges = store.usage(), _saved_charges(store)
         metrics = charged_metrics(store.all('batches'), store.all('measurements'), charges,
             initial=store.get('configuration', 'provided_initial_evidence')['observations'],
             reference=task.reference_sequence, direction=task.direction, top_ns=(5, 10), query_bin_size=16)
@@ -128,7 +225,7 @@ def _run_matrix(matrix, destination, *, execute=False):
         # saved observations, hidden-label statistics or global ranks are returned.
         metrics.pop('batch_endpoints', None)
         summaries.append({'case_id': row['case_id'], 'landscape': row['landscape'],
-            'arm': row['arm'], 'seed': row['seed'], 'usage': usage, 'metrics': metrics})
+            'arm': row['arm'], 'seed': row['seed'], 'usage': usage, 'execution_audit': audit, 'metrics': metrics})
         progress = {'completed_cases':len(summaries),'total_cases':len(prepared),'status':'running'}
         (destination/'progress.json').write_text(json.dumps(progress)+'\n')
     result = {'mode': MODE, 'matrix_sha256': digest(matrix), 'case_aggregates': summaries,

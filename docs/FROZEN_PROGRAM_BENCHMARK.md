@@ -30,7 +30,11 @@ Each matrix row has exactly these keys: `case_id`, `landscape`, `arm`, integer
 open replay, one explicitly supplied free parent, and synthetic or measured
 replay feedback. Effective limits are eight rounds of 16 distinct new candidates,
 128 additional paid wells, zero LLM calls and at most 16 tool calls. Successful
-completion requires exactly eight program calls. M and patch authority are off.
+completion requires exactly one successful program selection per round (eight total).
+Additional explicitly saved failed attempts remain charged and must reconcile to
+the original tool ledger within the fixed 16-call cap; unresolved reservations,
+uncertain jobs and unexplained extra successes fail the final audit. Missing
+queried outcomes retain their charged slots and QC status. M and patch authority are off.
 
 Explicit bwrap and seccomp execution is mandatory. LLM, protein-model and egress
 routes are rejected. Programs see revealed TaskView evidence, never controller
@@ -72,3 +76,19 @@ engineering test data and must not be treated as a scientific comparator.
 These tests require Linux with bwrap/seccomp. They are extended regressions,
 not default `core` tests. No actual measurements or empirical results are
 asserted by these software checks.
+
+
+## Read-only completion audit
+
+`audit_completed_case(store, state, task, workflow)` in the runner inspects saved
+batches, measurements, tool jobs, method receipts and charges. It returns aggregate
+execution/QC counts without changing any store record or invoking replay. The
+runner adds this `execution_audit` to future case aggregates. A completed historical
+campaign can be inspected directly with the helper using its exact saved task and
+workflow; retain its original frozen runner identity alongside the report.
+
+The frozen-manifest equality/resume check is unchanged. A newer reporting helper
+does not authorize executing changed code against an older frozen manifest.
+Failed receipts, prior plate attempts and charged costs are never cleared or
+rewritten by this audit. Completion means 128 distinct purchased identities across
+eight 16-query rounds, not a claim that all queried outcomes are available or valid.
